@@ -87,6 +87,9 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
   - eshell (FShell later) on the framebuffer console;
   - a temporary input path: volume keys as GPIO, or text over the USB serial link from H0.
 - Exit: a shell prompt on the phone screen; basic f32test runs.
+- Repos: when the user side is built with `phe`, split this repo Phorepoc-style. The arm64 port and the Qualcomm
+  drivers go into a SoC repo (`adaptation-sdm670`), and the Pixel settings and image recipes into a board repo
+  (`board-bonito`), both under `neosymbian`.
 
 **M4: performance** (any time after M3)
 - **big.LITTLE-aware balancing** in `nkernsmp/nk_bal.cpp`: 2 gold + 6 silver cores. Busy threads go to gold, background

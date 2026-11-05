@@ -14,6 +14,20 @@ Dates are **last-commit dates** from the commits API. GitHub's `pushed_at` can b
 - **compilationtoolchains:** its last commit is "Change SFL to EPL", so some packages once carried the Symbian Foundation License (SFL). Check headers before reusing anything outside kernelhwsrv and the tools.
 - **Phorepoc:** our own code is Apache-2.0. Symbian files we change become EPL-2.0 (with GPL-2.0-or-later as a Secondary License). Unchanged Symbian files stay EPL-1.0.
 
+## Our forks (neosymbian)
+
+Everything the build fetches is forked into https://github.com/neosymbian. Nothing is pushed back upstream.
+
+- **The 99 SymbianSource packages** pinned in Phorepoc `core/sources.lock` (126 entries over `master` and
+  `BRANCH_RCL_3`) are forked from **SymbianSource**, the root of the fork network, not from Phorepoc's identical mirrors.
+- **Phorepoc `core` and `pdk`** are forked too. Our `core` fork's `fetch.sh` defaults `SOURCES_URL` to neosymbian.
+- **Not forked** until a stage needs them: `toolchain` (its container images are published separately), the
+  `adaptation-*` repos (reference only, in `ref/`), and the layers (`tls`, `qt-symbian`, …).
+- **Branch rule:** upstream branches stay untouched; our work is on `main`, the default branch.
+  - `oss.FCL.sf.os.kernelhwsrv` `main` starts at `0c32086` (tag `201043_12`), the commit `sources.lock` pins.
+  - In-place kernel edits are commits there. After each one, `core/sources.lock` is re-pinned to it.
+  - New code goes into new repos, starting with `symbian-pixel`.
+
 ## Top 10 sources (ranked)
 
 ### 1. SymbianSource/oss.FCL.sf.os.kernelhwsrv (the EKA2 kernel itself)
