@@ -255,7 +255,7 @@ The neutral `nkernsmp/*.cpp` (9.7k) + `nkern/nklib.cpp` are reused.
 | Boot (MMU/caches, super page stub) | 500 |
 | nkernsa glue | 500 |
 
-**Later milestones (GUESS):**
+**Later milestones (GUESS):** (the full staged plan beyond this, to a daily phone with a Rust UI, is in `roadmap.md`)
 - ekern arch (exec gate, LDTR/STTR umem, ExcTrap, EpocThreadFunction, exec atomics): ~1.5–2.5k.
 - VMSAv8 MMU delta + IPC alias redesign + ASID: ~1.5k touched.
 - AArch32-EL0 compat (SWP, alignment, VFP vectors): ~450, ported from ekern_seam.
