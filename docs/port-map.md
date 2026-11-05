@@ -207,6 +207,14 @@ The neutral `nkernsmp/*.cpp` (9.7k) + `nkern/nklib.cpp` are reused.
   - the armutils equivalents (`utils.h:37-65`: cpu idle/id, fast counter, local timer, RequestComplete, `new`);
   - a minimal super page / VIB and AP boot.
 - **No memory model needed:** a flat identity map with MMU and caches on is enough.
+- **Fix to the 2010 kernel itself (applied by `tools/build-kernel.sh`; the ekern build must carry it too):**
+  `NKern::JoinGroup` (`nkernsmp/nkern.cpp`), joining a group that is already ready on this CPU, raised the group's
+  priority with `SSChgEntryP` -> `ChangePriority`, which re-adds at the *tail*. The running thread then sat behind
+  its equal-priority peers and was switched out at the next reschedule, even while holding a fast mutex
+  (fastmutex.cpp DoRWTest `0x138`/`0x438`: protected buffer read half-written). The group now takes the joiner's
+  place at the head (`SSRemoveEntry` + `SSAddEntryHead`), as the not-ready path and LeaveGroup already do.
+- **Calibration for 2 GHz cores (phone build only, patched copies of the tests):** tiedevents LoopCount 5000;
+  fastmutex DoRWTest 4096-word blocks, 10000 reads per case. Both checks were tuned on ~400 MHz ARM11 boards.
 
 ## 6. ARMv8 specifics already in adaptation-a64
 - **`a53shim/shim.S`** (212, AArch64 EL2 → AArch32 EL1):
