@@ -78,7 +78,12 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
   ARMv5TE test program started by `exstart` as the ROM secondary) runs at AArch32 EL0. It makes fast and slow exec
   calls (with handle preprocessing), is preempted by the tick at EL0, and has its SWP and misaligned LDRD emulated by
   the kernel (`ekern/a64e_a32fix.cpp`).
-  Next: the real 2010 user side (euser, F32, a shell) from Phorepoc's 32-bit build, in a rombuild ROM.
+- Status (2026-11-06, `e2f9b8f`): **the real 2010 user side boots on QEMU and on the Pixel**.
+  - **Boot chain:** efile (F32) → estart → C: (FAT on the internal RAM drive).
+  - **Tests:** the e32-rs Rust test EXE passes 6/6: alloc, timer, async, threads, semaphore, fs.
+  - **Where the images come from:** the `symbian-2010` build (read-only), packed by `tools/build-userrom.sh` into a
+    ROM section (pdk `rombuild.py --section`) that the kernel image carries.
+  - **Next:** eshell on the phone screen (a console, the display HAL, a font, input).
 - Work, from `port-map.md` §2–§4 and §7:
   - exec gate: read the SVC opcode with `LDTR` at `ELR_EL1-4`; bit 23 = fast/slow; Thumb SVC has an 8-bit immediate;
   - `umemget`/`umemput`, `TExcTrap`, `EpocThreadFunction`, user entry;

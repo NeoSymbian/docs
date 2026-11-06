@@ -133,6 +133,12 @@ PSCI `AFFINITY_INFO`. On QEMU (`-smp` 1/2/4/8) and on the Pixel (8 cores), every
 - **Return to user:** user-mode callbacks run there. `NKern::ThreadGetUserContext` reads the top-of-stack frame.
 - **AArch32 fix-ups** (`a64e_a32fix.cpp`): SWP/SWPB and misaligned LDRD/STRD/LDM/STM.
 
+**M4.5 done (`e2f9b8f`): the real 2010 user side.**
+- **User side:** `tools/build-userrom.sh` + `boot/userside.args` (the symbian-2010 images, read-only) → pdk
+  `rombuild.py --section --data-top 0x7f000000` → `.uimage` 2 MB into the ROM; `a64boot.cpp` reads the PRSC v4 header.
+- **Media:** `board/a64_media.cpp` links ELOCD + the IRAM drive; `boot/estart.txt` mounts it as C:.
+- **Result:** efile → estart → neotest 6/6 on QEMU (1/4/8 CPUs) and on the Pixel.
+
 Shortcuts still open:
 - VFP for user code (an FP trap panics);
 - VFP short vectors;
