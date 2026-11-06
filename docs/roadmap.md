@@ -70,6 +70,10 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
   meet (its vCPUs don't advance in lockstep).
 
 **M2: full kernel (`ekern`) on QEMU, then on the phone**
+- Status (2026-11-06, `bc29b8c`): **the full kernel boots on QEMU and on the Pixel (1 CPU)**. Bootstrap
+  (`boot/a64boot.cpp`) → `_E32Startup` → `KernelMain` → kernel threads, 1 ms tick, timer DFC. The self-test extension
+  passes (`XTRAP` around a data abort returns -38; 4 × `NKern::Sleep(100)` = 404 ticks). Build: `tools/build-ekern.sh`.
+  Next: SMP (`NKern::BootAP` via PSCI), then the exec gate and user mode.
 - Work, from `port-map.md` §2–§4 and §7:
   - exec gate: read the SVC opcode with `LDTR` at `ELR_EL1-4`; bit 23 = fast/slow; Thumb SVC has an 8-bit immediate;
   - `umemget`/`umemput`, `TExcTrap`, `EpocThreadFunction`, user entry;

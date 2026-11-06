@@ -104,7 +104,18 @@ These 79 are the arch backend still to write: the M4.2 work list.
 - **C++ runtime:** `__cxa_pure_virtual`; `operator new/new[]/delete/delete[]` over `Kern::Alloc/Free` (the ARM build
   gets them from its kernel-side runtime).
 
-Not in this list but still needed before a boot:
+**M4.2 steps 3-5 done (`4f0e613`, `bc29b8c`):** variant (`board/a64_variant.cpp`), bootstrap (`boot/a64boot.cpp`),
+entry (`ekern/a64e_entry.cpp`), `boot/ekern.lds`, `tools/build-ekern.sh`. The kernel boots and passes its self-test on
+QEMU and on the Pixel (1 CPU). Fixes the first boot needed:
+- `KPageTableEnd` = 0xFFE00000: a fixed kernel region must be whole 2 MB chunks (`DMemoryManager::New` makes anything
+  else a fine object, which must fit one page table);
+- `Mmu::BlankPte`: global user-executable pages (the ROM, which holds the kernel's own code) stay executable at EL1;
+- the naked trap forwarders are `noinline` and `TExcTrap::Exception` is an ordinary call: GCC inlined the naked body
+  and lost the result argument;
+- the asm entry points zero-extend ILP32 pointer arguments;
+- the Pixel's ROM is linked at 0x80200000: ABL loads the image at 0x80080000, inside the first ROM chunk.
+
+What was originally listed as still needed before a boot (all done):
 - **Bootstrap** (`boot/a64boot.cpp`): tables, super page, ROM header, `KRootTableBase` with the kernel root, MAIR/TCR.
 - **Variant** (`Asic`).
 - **Linker script** at the native addresses.
