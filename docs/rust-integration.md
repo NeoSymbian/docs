@@ -230,9 +230,40 @@ change it.
 ### R6: the app model (streams A + B)
 
 - Apps are separate processes. Their surfaces live in global shared chunks, and they talk to the server over R3's IPC.
-- The launcher starts apps. A terminal app runs the old Symbian text programs.
+- The launcher starts apps. A terminal app runs the old Symbian text programs (split out as R6b).
 
 Exit: launcher → demo app → back to the launcher, on Syborg.
+
+**Status: done (2026-11-06)**, in `neoui` `5633ee2`, `e32-rs` `4659c03`, and `symbian-2010` `7ba685e`.
+- **The UI server (`SYSSTART.EXE`) is now also the `NeoUi` IPC server.** When the shell navigates to `clock`, it
+  starts `NEOCLOCK.EXE` through the loader: one `ELoadProcess` message to `!Loader` with a 32-byte `TLdrInfo`, then
+  `ProcessResume`.
+- **The app's lifecycle:**
+  - It connects and asks for `GEOMETRY` (the shell's body, 768×487, and the design unit).
+  - For `SURFACE`, the server creates an unnamed **global** chunk and answers with `MessageCompleteWithHandle`. The
+    chunk sits at the same address in both processes, and a local chunk could not be shared.
+  - The app renders its own Slint UI (the design's theme and digits) into the surface and reports `DAMAGE`. It
+    keeps one async `NEXT_EVENT` outstanding through the new `Session::send`.
+  - The server composes the surface into the body, between the live status bar and toolbar, and routes touches
+    there to the app in body coordinates.
+  - On Back the server sends `Quit`. The app exits 0, and the server reaps it with `ProcessExitType`.
+- **The Clock** shows Symbian's real time (`TimeNow` and a civil-date conversion) and ticks every second.
+- **CI** (`neoui` `syborg.yml`) runs Apps menu → scroll → Clock → tap → Back through the QEMU monitor
+  (`boot.sh` `MONITOR` plus `MON_GAP`, because drags need about 0.3 s between steps).
+- **Found:** the design prototype's home pages can't be tapped, because a swipe `TouchArea` declared after the
+  pages covers them. CI therefore opens Clock from the Apps menu. Reported to the design stream.
+- **Shortcuts:**
+  - one foreground app, killed on leaving;
+  - a fixed app table (`clock` → `neoclock`);
+  - no access policy on `NeoUi`;
+  - the time zone is whatever the kernel's UTC offset says.
+
+### R6b: the terminal (next)
+
+- ESHELL and the 2010 text programs in a terminal app. Use the stock kernelhwsrv `econs.dll` (it is a client of
+  `!E32WindowServer`, about 20 opcodes) built in place of `econswserv` in the ROM, plus a Rust console server: a text
+  grid, the cursor, a key queue and a held `Read`.
+- The terminal app starts ESHELL per window, and the UI server routes keys to it.
 
 ### R7: the Pixel (needs kernel M3; touch needs H4)
 
