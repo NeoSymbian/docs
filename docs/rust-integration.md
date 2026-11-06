@@ -61,6 +61,17 @@ Steps:
 
 Exit: "hello from Rust" appears in `serial.log`.
 
+**Status: done (2026-11-06).** `NeoSymbian/e32-rs` `crates/rust-hello` (nightly-2026-10-20, `build-std` core) is linked
+with `toolchain/rust/neo_glue.cpp` by `emitter/build_rust_exe.py` in `NeoSymbian/symbian-2010` (`3167456`) into
+`NEOHELLO.EXE`. Typing `neohello` into ESHELL on Syborg prints `neo: start` / `hello from Rust` /
+`neo: rust_hello(6, 7) = 42` and exits cleanly. Findings:
+- The object carries the expected attributes: `CPU_arch` v5TE, no VFP argument passing, relocations
+  `ABS32`/`CALL`/`PREL31` only.
+- The EXE has to go in the ROM (`Z:\sys\bin`). Loaded from C:, the loader rejects symbian-2010's images with
+  `KErrCorrupt`, which is worth investigating before apps install to C:.
+- The linker warns that the Rust object declares a 4-byte `wchar_t`. That's harmless while no `wchar_t` crosses the
+  boundary; Symbian text is `TUint16` anyway.
+
 ### R1: an EXE written only in Rust (stream A)
 
 `e32-sys` crate:
@@ -104,6 +115,20 @@ Exit: both pass on Syborg.
 - **First screens** in Slint, using its software renderer: launcher, status bar and one demo app.
 
 Exit: the launcher is usable on the Mac, with screenshots in the repo.
+
+**Step 1 done (2026-11-06)** in `NeoSymbian/neoui`:
+- `neoui-proto` and `neoui-render` are `no_std` and build for `thumbv7em`.
+- Slint 1.18.1 renders `ui/launcher.slint` into a raw XRGB8888 buffer, redrawing only what changed.
+- `neoui-host` uses winit + softbuffer.
+- Snapshot tests at 1080×2160 and 768×640 check that a tap changes the frame and stays inside the reported damage.
+
+**Open decision: the UI toolkit's licence.**
+- Slint is available under GPL-3.0, a royalty-free licence, or a commercial licence.
+- The royalty-free licence excludes embedded systems, which an OS launcher or UI server may count as.
+- Under GPL-3.0, an image that combines it with EPL-1.0 Symbian code may not be distributable, because the two
+  licences are incompatible.
+- Settle this before R5 ships Slint in a ROM. The alternatives are Slint's commercial licence, or a permissive
+  renderer (our own, or `embedded-graphics`) behind the same `neoui-render` API.
 
 ### R5: the UI on Syborg (streams A + B)
 
