@@ -115,6 +115,14 @@ QEMU and on the Pixel (1 CPU). Fixes the first boot needed:
 - the asm entry points zero-extend ILP32 pointer arguments;
 - the Pixel's ROM is linked at 0x80200000: ABL loads the image at 0x80080000, inside the first ROM chunk.
 
+**M4.2 step 6 done (`211931b`):** `NKern::BootAP` starts each CPU with PSCI `CPU_ON` into `boot.S` `A64_ApEntry`,
+which turns the MMU on with a private boot root (OS ASID 0's entries plus a 2 MB identity block over the boot stub)
+and enters `A64_ApStart`, which moves to the kernel's root and runs `ApMainGeneric`. `A64_CpuCount()` counts CPUs with
+PSCI `AFFINITY_INFO`. On QEMU (`-smp` 1/2/4/8) and on the Pixel (8 cores), every CPU comes up and the self-test passes.
+
+Shortcuts still open: user threads in `EpocThreadFunction`, `PreprocessHandler` and `ThreadGetUserContext` (M4.4),
+the crash IPI / debugger.
+
 What was originally listed as still needed before a boot (all done):
 - **Bootstrap** (`boot/a64boot.cpp`): tables, super page, ROM header, `KRootTableBase` with the kernel root, MAIR/TCR.
 - **Variant** (`Asic`).
