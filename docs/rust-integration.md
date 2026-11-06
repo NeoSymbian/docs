@@ -108,6 +108,21 @@ on every push.
 
 Exit: the tests pass on Syborg.
 
+**Status: done (2026-11-06)**, in `e32-rs` `f1e0431` and `symbian-2010` `c6b0b10`.
+- `NEOTEST.EXE` passes all 6 on-target tests on Syborg: alloc (heap grown past 64 KB), timer, async (two joined
+  delays take one delay's time), threads (4 threads, a kernel mutex, exit codes), semaphore ping-pong, and fs
+  (`C:\neotest.txt` written, read back, sized, reopened).
+- Design notes:
+  - The heap lives in a private chunk grown with `ChunkAdjust`, using `linked_list_allocator`.
+  - Locks use kernel mutexes, because ARMv5TE has no compare-and-swap.
+  - Threads start through the EXE start-up's `RunThread`, using the full 64-byte create info.
+  - `SessionSendSync` uses an assembly stub that passes the extended arguments in r4–r8.
+  - The file server is spoken to directly: `!FileServer`, version 2.0.4011, subsession handle in argument slot 3.
+- **C: loading is fixed.** The image writer flagged ELF-style import blocks as PE, so the loader's `ValidateImports`
+  returned `KErrCorrupt`; the ROM builder ignores that flag, which is why ROM images worked. `NEOR1C.EXE` now runs
+  from C:.
+- R3 (an IPC server in Rust) has everything it needs: sessions, descriptors, and threads.
+
 ### R3: an IPC server in Rust (stream A)
 
 - An equivalent of `CServer2` built on exec calls: create the server, receive messages, complete them, read and write
