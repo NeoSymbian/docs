@@ -258,12 +258,40 @@ Exit: launcher → demo app → back to the launcher, on Syborg.
   - no access policy on `NeoUi`;
   - the time zone is whatever the kernel's UTC offset says.
 
-### R6b: the terminal (next)
+### R6b: the terminal
 
 - ESHELL and the 2010 text programs in a terminal app. Use the stock kernelhwsrv `econs.dll` (it is a client of
   `!E32WindowServer`, about 20 opcodes) built in place of `econswserv` in the ROM, plus a Rust console server: a text
   grid, the cursor, a key queue and a held `Read`.
 - The terminal app starts ESHELL per window, and the UI server routes keys to it.
+
+**Status: done (2026-11-06)**, in `neoui` `f25bc67` and `symbian-2010` `6923dc6`.
+- `NEOTERM.EXE` (`neoui/symbian/apps/term`) is an R6 app and the console server `!E32WindowServer`:
+  - one window per client session, newest on top;
+  - a held `Read` answered with a 24-byte `SConsoleKey`;
+  - the `TConsoleWinOpcodes`; `Size` includes the stock 2-character frame.
+- The UI ROM (one whose Rust manifest has `SYSSTART.EXE`) ships the stock `econs.dll` as `ECONS.DLL`. Other ROMs
+  keep `econswserv`.
+- The grid model (`neoui/crates/neoui-term`, host-tested) follows the stock console's rules: newline mode, wrap,
+  destructive backspace, tab stops of 4, scrolling.
+- On Syborg (539×1079, a 46×29 grid): ESHELL's banner and `C:\>`, `dir`, and `neotest` started by ESHELL
+  (`7 passed`). CI types them through the QEMU monitor.
+- Found: closing the console server before completing the held `Read`s panics the app (KERN-EXEC 44). They are now
+  completed first.
+- Not yet: a soft keyboard (needed on the phone), colours and attributes, scrollback.
+
+**Phone handoff (for the kernel session's ROM, which now boots neoui by default):**
+- Rebuild `neoui/symbian` from `f25bc67` or later: `cd symbian && cargo arm --workspace`. Since `d4dfdad` neoui
+  takes touch as plain screen pixels; the old ¾-x Syborg correction is gone, because the Syborg driver itself was
+  fixed.
+- For the apps, add the lines from `neoui/symbian/exes.txt`: `NEOCLOCK.EXE 0xE0002002 libneoclock.a` and
+  `NEOTERM.EXE 0xE0002003 libneoterm.a`.
+- For the Terminal, put kernelhwsrv's stock `econs.dll` in the ROM as `ECONS.DLL` when SYSSTART is present (see
+  symbian-2010 `emitter/components.py` `econs` and `kernel/rom_args.py`).
+- To check on the phone:
+  - the R6 shared surface under the **flexible** memory model (each side asks `ChunkBase`, no shared address assumed);
+  - frame time at 1080×1800.
+- Typing needs a soft keyboard; the hardware keys only reach the extra-keys bar's codes.
 
 ### R7: the Pixel (needs kernel M3; touch needs H4)
 
