@@ -173,6 +173,18 @@ Exit: the launcher is usable on the Mac, with screenshots in the repo.
 - `neoui-host` uses winit + softbuffer.
 - Snapshot tests at 1080×2160 and 768×640 check that a tap changes the frame and stays inside the reported damage.
 
+**Step 2 done (2026-11-06)**: first screens, in `neoui` `90871bb` and `76c9384`.
+- Design language "Belle, modernized". `ui/theme.slint` tokens are measured from the Symbian^3 open layout data and
+  from a real N8 running Belle Refresh; `design/DESIGN.md` gives the source of each value.
+- An original icon set from `tools/make_icons.py`: 13 app tiles, 71 glyphs and the clock digits.
+- `ui/shell.slint` covers the home screen, the app menu, a notification shade, the Options menu and 12 app screens
+  with sub-views (phone, messages, contacts, browser, camera, photos, music, calendar, clock, files, settings,
+  terminal), all with invented sample data.
+- `neoui-host --screen app[/view]` opens any screen directly.
+- Every screen has a snapshot test.
+- Still to do in R4: `neoui-server`, so that apps run as separate clients rather than as views inside one Slint
+  component.
+
 **Open decision: the UI toolkit's licence.**
 - Slint is available under GPL-3.0, a royalty-free licence, or a commercial licence.
 - The royalty-free licence excludes embedded systems, which an OS launcher or UI server may count as.
