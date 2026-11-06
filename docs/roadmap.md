@@ -84,6 +84,13 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
   - **Where the images come from:** the `symbian-2010` build (read-only), packed by `tools/build-userrom.sh` into a
     ROM section (pdk `rombuild.py --section`) that the kernel image carries.
   - **Next:** eshell on the phone screen (a console, the display HAL, a font, input).
+- Status (2026-11-06, `7f63ec2`): **eshell's prompt is on the phone screen**.
+  - **Stack:** the 2010 window server drives it: wserv + fbserv + ecom + econswserv, the `symbian-2010` Syborg
+    minigui ROM's own image list.
+  - **Kernel:** a new display HAL (`board/a64_display.cpp`) maps the framebuffer for the user side; the kernel log
+    keeps the bottom strip of the phone screen.
+  - **QEMU:** commands are typed over the serial port (`board/a64_serialkbd.cpp`); `dir z:\sys\bin` runs.
+  - **Next:** input on the phone (touch or the volume keys), then the Rust UI (neoui) as the shell's successor.
 - Work, from `port-map.md` §2–§4 and §7:
   - exec gate: read the SVC opcode with `LDTR` at `ELR_EL1-4`; bit 23 = fast/slow; Thumb SVC has an 8-bit immediate;
   - `umemget`/`umemput`, `TExcTrap`, `EpocThreadFunction`, user entry;

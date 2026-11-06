@@ -139,6 +139,14 @@ PSCI `AFFINITY_INFO`. On QEMU (`-smp` 1/2/4/8) and on the Pixel (8 cores), every
 - **Media:** `board/a64_media.cpp` links ELOCD + the IRAM drive; `boot/estart.txt` mounts it as C:.
 - **Result:** efile → estart → neotest 6/6 on QEMU (1/4/8 CPUs) and on the Pixel.
 
+**M4.6 done (`7f63ec2`): eshell on the screen.**
+- **Display:** `board/a64_display.cpp` (`EHalGroupDisplay`, Syborg semantics; one 32 bpp mode, user-RW
+  `DPlatChunkHw`).
+- **User side:** `tools/build-userrom.sh` takes the Syborg minigui list plus the font on Z: and leaves out SYSSTART.
+- **QEMU input:** `board/a64_serialkbd.cpp` (PL011 → `Kern::AddEvent`, paced; Ctrl-T thread dump);
+  `run-qemu.sh FBDUMP=`/`INPUT=`.
+- **Bring-up prints kept:** `[proc]`, user aborts, thread exits (`sthread.cpp` built with `KPANIC`).
+
 Shortcuts still open:
 - VFP for user code (an FP trap panics);
 - VFP short vectors;
