@@ -91,6 +91,13 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
     keeps the bottom strip of the phone screen.
   - **QEMU:** commands are typed over the serial port (`board/a64_serialkbd.cpp`); `dir z:\sys\bin` runs.
   - **Next:** input on the phone (touch or the volume keys), then the Rust UI (neoui) as the shell's successor.
+- Status (2026-11-06, `366f63d`): **input on the phone, and the Rust UI is the shell**.
+  - **Keys:** power and volume over the PMIC's SPMI bus.
+  - **Touch:** the Synaptics RMI4 touchscreen over GENI I2C. The kernel brings up the clocks, pins, supply and reset
+    that the bootloader leaves off.
+  - **neoui:** the Rust UI server (SYSSTART) replaces eshell, draws its launcher on the phone and takes the taps.
+  - **Next:** neoui still scales tap x by 3/4 on the Pixel, because it applies the Syborg pointer
+    correction (Rust side). After that: storage (H2) and power (H3).
 - Work, from `port-map.md` §2–§4 and §7:
   - exec gate: read the SVC opcode with `LDTR` at `ELR_EL1-4`; bit 23 = fast/slow; Thumb SVC has an 8-bit immediate;
   - `umemget`/`umemput`, `TExcTrap`, `EpocThreadFunction`, user entry;
@@ -130,7 +137,7 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
 | **H1 platform base** | RPMh (clocks, regulators, bus votes), SPMI PMIC arbiter, TLMM GPIO, GENI I2C/SPI, GPI DMA, SCM calls to TrustZone | Can talk to PM660 and to an I2C device |
 | **H2 storage** | SDHCI-msm eMMC media driver (CQHCI later), read Android's GPT, a Symbian FAT drive on a spare or repurposed partition | Files written in Symbian survive a reboot |
 | **H3 power** | PM660 charger + RRADC battery reading (Rust policy); suspend and resume (PSCI CPU_SUSPEND / system suspend); screen off | Phone idles a night on battery and wakes on the power key |
-| **H4 display + input** | Synaptics RMI4 touch (I2C, Rust protocol code behind `hwaccess`); power and volume keys; WLED backlight on PM660L; DSI panel on/off. Keep the bootloader's splash framebuffer as scan-out until a DPU driver is needed. | Touch coordinates reach a user-side process; backlight dims |
+| **H4 display + input** | Synaptics RMI4 touch (I2C; **done 2026-11-06** in kernel C++, polled; Rust behind `hwaccess` later); power and volume keys (**done**, SPMI); WLED backlight on PM660L; DSI panel on/off. Keep the bootloader's splash framebuffer as scan-out until a DPU driver is needed. | Touch coordinates reach a user-side process; backlight dims |
 | **H5 audio** | ADSP remote processor; audio path through LPASS + PM660L WCD codec; speaker and earpiece | Play a tone through the earpiece |
 | **H6 haptics, LEDs, sensors** | PM660 haptics, LPG and flash LED, sensors (**unverified** which) | Vibrate on touch |
 

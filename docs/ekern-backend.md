@@ -142,12 +142,32 @@ PSCI `AFFINITY_INFO`. On QEMU (`-smp` 1/2/4/8) and on the Pixel (8 cores), every
 **M4.6 done (`7f63ec2`): eshell on the screen.**
 - **Display:** `board/a64_display.cpp` (`EHalGroupDisplay`, Syborg semantics; one 32 bpp mode, user-RW
   `DPlatChunkHw`).
-- **User side:** `tools/build-userrom.sh` takes the Syborg minigui list plus the font on Z: and leaves out SYSSTART.
+- **User side:** `tools/build-userrom.sh` takes the Syborg minigui list plus the font on Z: (it left SYSSTART out
+  until M4.7).
 - **QEMU input:** `board/a64_serialkbd.cpp` (PL011 → `Kern::AddEvent`, paced; Ctrl-T thread dump);
   `run-qemu.sh FBDUMP=`/`INPUT=`.
 - **Bring-up prints kept:** `[proc]`, user aborts, thread exits (`sthread.cpp` built with `KPANIC`).
 
+**M4.7 done (`b6d82cf`, `b353369`, `e8991c5`, `366f63d`): input on the Pixel, neoui as the shell.**
+- **Keys** (`board/a64_keys.cpp`): power and volume down from PM660 PON `INT_RT_STS`, volume up from PM660L GPIO7,
+  read over SPMI (`board/qcom_spmi.cpp`, PMIC arbiter v5: observer-channel reads, and writes through the
+  peripheral's own channel, mapped on first use and ownership-checked) every 20 ms. They post `EStdKeyDevice0` /
+  `EStdKeyDecVolume` / `EStdKeyIncVolume`.
+- **Touch** (`board/a64_touch.cpp`, on its own DFC queue):
+  - bring-up of what ABL leaves off: the QUP wrapper 1 clocks (GCC votes, SE1 RCG at XO), the TLMM pins, the
+    `ts_1p8` supply (PM660 GPIO12) and reset;
+  - a polled FIFO GENI I2C master (`board/qcom_geni_i2c.cpp`);
+  - Synaptics RMI4: the PDT, F12 register descriptors (the sensor range is already in screen pixels), F01
+    no-sleep;
+  - a 10 ms poll gated by the attention pin posts `EButton1Down` / `EPointerMove` / `EButton1Up`.
+  - The protocol is kernel C++ for now, not Rust behind `hwaccess` as the roadmap planned.
+- **neoui** (SYSSTART.EXE) is the default user side (`USERROM_SKIP='Sys\Bin\SYSSTART.EXE'` gives eshell). It
+  captures the event queue and draws its launcher through the display HAL on QEMU and on the Pixel.
+
 Shortcuts still open:
+- input polling: keys every 20 ms instead of the SPMI interrupt, touch every 10 ms instead of the TLMM interrupt;
+  one finger;
+- I2C at 100 kHz, without DMA;
 - VFP for user code (an FP trap panics);
 - VFP short vectors;
 - `NThread::Get/SetUserContext` (unused; `ThreadGetUserContext` reads a stale frame for a thread running on another
