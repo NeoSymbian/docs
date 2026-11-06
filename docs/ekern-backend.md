@@ -120,8 +120,25 @@ which turns the MMU on with a private boot root (OS ASID 0's entries plus a 2 MB
 and enters `A64_ApStart`, which moves to the kernel's root and runs `ApMainGeneric`. `A64_CpuCount()` counts CPUs with
 PSCI `AFFINITY_INFO`. On QEMU (`-smp` 1/2/4/8) and on the Pixel (8 cores), every CPU comes up and the self-test passes.
 
-Shortcuts still open: user threads in `EpocThreadFunction`, `PreprocessHandler` and `ThreadGetUserContext` (M4.4),
-the crash IPI / debugger.
+**M4.4 done (`5fe63a4`, `06c3cb8`): user mode.**
+- **Exec gate** (`a64e_exec.cpp`, ESR EC 0x11):
+  - the call number comes from the SVC instruction (LDTR at ELR-4), not from ESR, which keeps only 16 bits;
+  - fast and slow execs follow `__ArmVectorSwi`;
+  - preprocessing is a port of `Win32PreprocessHandler`.
+- **Entry** (`EpocThreadFunction` + `a64e_trap.S` `A64_EnterUser`):
+  - `TLocalThreadData` + TPIDRURW (the kernel is built with the ARMv7 thread-ID register);
+  - the create-info block below it;
+  - ERET to USR with an empty supervisor stack.
+- **Per thread:** TPIDR_EL0/TPIDRRO_EL0 are switched with the thread.
+- **Return to user:** user-mode callbacks run there. `NKern::ThreadGetUserContext` reads the top-of-stack frame.
+- **AArch32 fix-ups** (`a64e_a32fix.cpp`): SWP/SWPB and misaligned LDRD/STRD/LDM/STM.
+
+Shortcuts still open:
+- VFP for user code (an FP trap panics);
+- VFP short vectors;
+- `NThread::Get/SetUserContext` (unused; `ThreadGetUserContext` reads a stale frame for a thread running on another
+  CPU);
+- the crash IPI / debugger.
 
 What was originally listed as still needed before a boot (all done):
 - **Bootstrap** (`boot/a64boot.cpp`): tables, super page, ROM header, `KRootTableBase` with the kernel root, MAIR/TCR.
