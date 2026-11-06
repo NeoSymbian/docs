@@ -6,7 +6,27 @@ Produced by `port/arm64/tools/ekern-census.sh` with `LINK=1` (2026-11-06, HEAD a
 - **Link:** linked with the neutral nanokernel and our `a64smp` backend, the result has **79 undefined symbols and no
   multiple definitions**. Code is ~670 KB.
 
-These 79 are the arch backend still to write: the M4.2 work list. Templates:
+These 79 are the arch backend still to write: the M4.2 work list.
+
+**Status (M4.2 step 2 done):**
+- **Implemented:** all 79, in `port/arm64/ekern/`:
+  - `a64e_nkern.cpp`: groups 7-8;
+  - `a64e_cache.cpp`: group 2;
+  - `a64e_trap.S` + `a64e_exc.cpp`: groups 3-4;
+  - `a64e_exec.cpp`: group 5;
+  - `a64e_mmu.cpp`: group 6;
+  - `platform/a64_platform.cpp`: group 1's timer.
+- **Link:** the census now leaves 14 undefined symbols, all provided by the board files and the variant the image
+  links:
+  - console: `A64_DebugPuts/Hex`;
+  - GIC driver: `Gicv3_*`;
+  - board constants and functions: `A64_GicdBase/GicrBase/PsciSmc/TimerPpi`, `A64_CpuCount/CpuMpidr`;
+  - `A64_TickHook`.
+- **Shortcuts still open:**
+  - `NKern::BootAP` (one CPU);
+  - user threads in `EpocThreadFunction`;
+  - `PreprocessHandler` and `ThreadGetUserContext` (M4.4);
+  - crash IPI / debugger. Templates:
 - **Phorepoc x86-64** (`adaptation-x86-64/os/tools/phorepoc-x86`):
   - `port/x64ekern/xe_kernel.cpp`: umem, TExcTrap, EpocThreadFunction, exception info;
   - `xe_nkern.cpp`: Init0, timeslice, user-mode callbacks, BTrace stubs;
