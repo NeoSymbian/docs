@@ -15,22 +15,23 @@ written in Rust. See the [roadmap](docs/roadmap.md).
 - Next: the full kernel (`ekern`), then booting the Symbian user side to a shell. See
   [roadmap stages M1–M3](docs/roadmap.md#track-k-kernel).
 
-## How it's built
+## Where the code went (2026-11-06)
 
-The kernel is AArch64 code with **32-bit pointers (ILP32)**, so EKA2's data layouts stay the same and 32-bit ARM
-Symbian programs run unchanged at EL0. The arch-neutral kernel sources are compiled **unmodified**. This repository
-adds only the new architecture:
+The AArch64 port and the board support moved into the kernel repository, [**NeoSymbian/kernel**](https://github.com/NeoSymbian/kernel)
+(the kernelhwsrv fork, renamed), with their history. They sit next to Symbian's own `arm/` and `x86/` folders, and
+the boards are in `baseport/arm64` ([README](https://github.com/NeoSymbian/kernel/tree/main/baseport/arm64)):
 
-| Path | What |
+| Was here | Now in NeoSymbian/kernel |
 |---|---|
-| `port/arm64/a64smp/` | AArch64 backend of the SMP nanokernel: scheduler, context switch, atomics, spinlocks |
-| `port/arm64/boot/` | Boot code, exception vectors, linker script |
-| `port/arm64/board/` | GICv3, board glue for QEMU `virt` and the Pixel 3a XL (`pixel_bonito.cpp`) |
-| `port/arm64/nksa/` | Glue for the nkernsa nanokernel tests |
-| `port/arm64/tools/` | `build-kernel.sh`, `run-qemu.sh`, symbol census |
-| `probes/` | Tiny boot images that showed what the Pixel's bootloader accepts |
-| `zimaos/` | The Docker build environment (arm64 dev image, VNC desktop) |
-| `docs/` | [Port map](docs/port-map.md), [sources survey](docs/sources.md), [roadmap](docs/roadmap.md) |
+| `port/arm64/a64smp/`, `platform/`, `board/gicv3.*`, `boot/vectors.S` | `kernel/eka/nkernsmp/arm64/`, `kernel/eka/include/nkernsmp/arm64/` |
+| `port/arm64/ekern/`, `boot/` | `kernel/eka/kernel/arm64/`, `kernel/eka/include/kernel/arm64/` |
+| `port/arm64/mm/` | `kernel/eka/memmodel/epoc/flexible/{arm64,mmu/arm64}/` |
+| `port/arm64/nksa/` | `kerneltest/e32test/nkernsa/arm64/` |
+| `port/arm64/board/` (all other files), `probes/` | `baseport/arm64/{common,virt_assp,sdm670_assp,qemu_variant,bonito_variant}/` |
+| `port/arm64/tools/` | `baseport/arm64/tools/` |
+
+The build-time `sed` patches to 2010 files are now ordinary commits on the kernel's `main`. This repository still
+holds the docs and the ZimaOS build environment until they move too.
 
 ## Repositories
 
@@ -39,10 +40,10 @@ pushed back to the original projects.
 
 | Repository | Forked from | Role |
 |---|---|---|
-| `oss.FCL.sf.os.kernelhwsrv` | [SymbianSource](https://github.com/SymbianSource) | The EKA2 kernel. Our in-place kernel changes go on its `main` branch. |
+| `kernel` (was `oss.FCL.sf.os.kernelhwsrv`) | [SymbianSource](https://github.com/SymbianSource) | The EKA2 kernel with the arm64 port, drivers and boards, all on its `main` branch. |
 | 98 other `oss.*` packages | SymbianSource | The rest of the 2010 Symbian source, at the commits Phorepoc pins (`core/sources.lock`) |
 | `core`, `pdk` | [Phorepoc](https://github.com/Phorepoc) | The build system (`phe`, `fetch.sh`, compile fixes for modern GCC). `core` fetches from neosymbian. |
-| `symbian-pixel` | — (this repo) | New work: the AArch64 port, the Pixel board, docs |
+| `symbian-pixel` | — (this repo) | Docs and the ZimaOS build environment (the port moved to `kernel`) |
 
 Rule: in every fork, the upstream branches stay untouched and our work is on `main`.
 
