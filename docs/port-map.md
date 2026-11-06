@@ -1,6 +1,7 @@
 # Port map: EKA2 → AArch64 ILP32 kernel, AArch32 EL0 user side unchanged
 
-Written 2026-11-05 from shallow clones in `ref/` (gitignored): SymbianSource `oss.FCL.sf.os.kernelhwsrv` (KHS, `kernel/eka`),
+Written 2026-11-05 from clones that now sit next to this repo in the NeoSymbian workspace (`../<repo>`; they were in
+`ref/` until 2026-11-06): SymbianSource `oss.FCL.sf.os.kernelhwsrv` (KHS, `kernel/eka`),
 Phorepoc `adaptation-x86-64`, `adaptation-a64` and `core`. Line counts come from `wc -l`; "asm" is the number of `asm(` lines.
 Lines marked **GUESS** were not verified. Action legend:
 - **new**: write for AArch64;

@@ -21,8 +21,13 @@ Everything the build fetches is forked into https://github.com/neosymbian. Nothi
 - **The 99 SymbianSource packages** pinned in Phorepoc `core/sources.lock` (126 entries over `master` and
   `BRANCH_RCL_3`) are forked from **SymbianSource**, the root of the fork network, not from Phorepoc's identical mirrors.
 - **Phorepoc `core` and `pdk`** are forked too. Our `core` fork's `fetch.sh` defaults `SOURCES_URL` to neosymbian.
-- **Not forked** until a stage needs them: `toolchain` (its container images are published separately), the
-  `adaptation-*` repos (reference only, in `ref/`), and the layers (`tls`, `qt-symbian`, …).
+- **Also forked:** Phorepoc `adaptation-a64` and `adaptation-x86-64`, as read-only references. `symbian-2010` and
+  `qemu-syborg` are forked for the Rust stream.
+- **Not forked** until a stage needs them: `toolchain` (its container images are published separately) and the layers
+  (`tls`, `qt-symbian`, …).
+- **Local layout:** every repo we work in is cloned side by side in one workspace folder, `NeoSymbian/`:
+  `symbian-pixel`, `oss.FCL.sf.os.kernelhwsrv`, `core`, `pdk`, `symbian-2010`, `e32-rs`, `neoui`, `adaptation-*`.
+  The workspace's `CLAUDE.md` describes them.
 - **Branch rule:** upstream branches stay untouched; our work is on `main`, the default branch.
   - `oss.FCL.sf.os.kernelhwsrv` `main` starts at `0c32086` (tag `201043_12`), the commit `sources.lock` pins.
   - In-place kernel edits are commits there. After each one, `core/sources.lock` is re-pinned to it.
