@@ -185,7 +185,8 @@ Exit: the launcher is usable on the Mac, with screenshots in the repo.
 - Still to do in R4: `neoui-server`, so that apps run as separate clients rather than as views inside one Slint
   component.
 
-**Open decision: the UI toolkit's licence.**
+**Open decision: the UI toolkit's licence.** (2026-11-06: Slint under GPL-3.0 for development; ROM images are not
+published; decide before a release.)
 - Slint is available under GPL-3.0, a royalty-free licence, or a commercial licence.
 - The royalty-free licence excludes embedded systems, which an OS launcher or UI server may count as.
 - Under GPL-3.0, an image that combines it with EPL-1.0 Symbian code may not be distributable, because the two
@@ -203,6 +204,28 @@ Exit: the launcher is usable on the Mac, with screenshots in the repo.
 
 Exit: the Rust launcher appears on the Syborg screen (`fb.ppm` in CI), and clicks sent through QEMU's `mouse_button`
 change it.
+
+**Status: done (2026-11-06)**, in `neoui` `6861aff` (`symbian/`), `e32-rs` `c82dfd2`/`5dae8bd`, and `symbian-2010`
+`19f30b8`.
+- The launcher runs as **`SYSSTART.EXE`**. estart starts it in place of the window server, which was simpler than
+  writing a new starter config.
+- It reads the frame buffer from the HAL (`EDisplayHalCurrentModeInfo`: 768×640, 32 bpp, `0x00RRGGBB`, a global
+  user-writable mapping).
+- It registers as the window server (`WsRegisterThread`, `CaptureEventHook`) and takes raw pointer and key events
+  from the kernel.
+- It renders into a RAM frame and copies the damaged rectangles to video RAM.
+- On Syborg the first frame takes about 80 ms. A QEMU-monitor tap on Phone opens the Phone screen. CI
+  (`neoui/.github/workflows/syborg.yml`) checks the log and the screen.
+- Slint on ARMv5TE: it builds as-is (`portable-atomic` needs no compare-and-swap) once `e32` provides two things:
+  - a `critical-section` implementation, which is a kernel mutex;
+  - `__aeabi_unwind_cpp_pr0`, because Slint's EHABI tables would otherwise drag in libgcc's C++ unwinder.
+- Quirks:
+  - The Syborg pointer driver scales x by width/0x6000, so x arrives 4/3 too large; the backend corrects it.
+  - The hook exec calls return `void`.
+  - The pointer driver draws its own cursor into video RAM, leaving small artefacts.
+- Licence: Slint under GPL-3.0 for now, so `neoui/symbian` is GPL-3.0 and ROM images are not published. Decide
+  before any release.
+- Not yet: app processes and surfaces (R6), a keymap beyond ASCII, a security policy.
 
 ### R6: the app model (streams A + B)
 
