@@ -291,7 +291,27 @@ Exit: launcher → demo app → back to the launcher, on Syborg.
 - To check on the phone:
   - the R6 shared surface under the **flexible** memory model (each side asks `ChunkBase`, no shared address assumed);
   - frame time at 1080×1800.
-- Typing needs a soft keyboard; the hardware keys only reach the extra-keys bar's codes.
+- Typing needs a soft keyboard; the hardware keys only reach the extra-keys bar's codes. (Done in R6c, below.)
+
+### R6c: a system keyboard and a live clock
+
+**Status: done (2026-11-06)**, in `neoui` `0efa85a`.
+- The UI server draws a system on-screen keyboard (`neoui/ui/components/keyboard.slint`: letters and symbols, one-shot
+  shift) over the bottom of the foreground app, above the toolbar.
+- An app asks with `KEYBOARD` (op 5: show 1/0). The request completes with the height it covers. Its keys reach the
+  app as `InputEvent::Key`, the same path as hardware keys, so apps need no new input code.
+- The Terminal opens it and fits its grid above it: 46×19 at 539×1079, down from 46×29.
+- The status-bar time follows Symbian's clock (`TimeNow`). The server logs `neoui: clock HH:MM` once a minute.
+- Checked:
+  - **host test** (`crates/neoui-render/tests/keyboard.rs`): taps keys and checks what they type;
+  - **Syborg CI**: types `dir` into ESHELL by touch only (`taps.sh kb_type`), and the listing appears.
+- Not yet:
+  - key repeat, long-press, Ctrl;
+  - layouts other than US;
+  - a hide toggle with grid reflow in the Terminal.
+
+**Phone handoff:** rebuild `neoui/symbian` from `0efa85a` or later. The Pixel can then type into the Terminal by
+touch. Nothing else changes in the ROM.
 
 ### R7: the Pixel (needs kernel M3; touch needs H4)
 
