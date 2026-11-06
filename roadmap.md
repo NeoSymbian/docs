@@ -98,6 +98,15 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
   - **neoui:** the Rust UI server (SYSSTART) replaces eshell, draws its launcher on the phone and takes the taps.
   - **Next:** neoui still scales tap x by 3/4 on the Pixel, because it applies the Syborg pointer
     correction (Rust side). After that: storage (H2) and power (H3).
+- Status (2026-11-07, kernel `2594ed8`): **H0 debug link done; the eMMC reads on the phone (H2.2)**.
+  - **H0:** a USB CDC-ACM console (DWC3) with a kernel monitor (`log`, `peek`/`poke`, `blk`, `tap`, `shot`,
+    `fastboot`, …), `tools/phone.py` on the Mac, and an always-on watchdog in `AUTOFASTBOOT` builds, so tests boot,
+    report and return to fastboot unattended.
+  - **lastlog:** the log ring lives in RAM that survives a reset, so a crash's log is read on the next boot.
+  - **H2.1:** a block layer + media driver; C: persists on QEMU (virtio-blk).
+  - **H2.2:** the eMMC host (no SDMA on this core: ADMA2) reads EXT_CSD and the real GPT (userdata = 51 GB),
+    with the RPMh votes (CX, BCM SN8) that the bootloader drops, re-made by a minimal RPMh client.
+  - **Next:** H2.3, writes bounded to userdata and C: on it (the first write is asked for first), then H3 power.
 - Work, from `port-map.md` §2–§4 and §7:
   - exec gate: read the SVC opcode with `LDTR` at `ELR_EL1-4`; bit 23 = fast/slow; Thumb SVC has an 8-bit immediate;
   - `umemget`/`umemput`, `TExcTrap`, `EpocThreadFunction`, user entry;
