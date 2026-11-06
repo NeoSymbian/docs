@@ -115,10 +115,15 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
 
 ### Track U: Rust UI
 
-**U1: Rust on the Symbian user side** (needs M3)
+The full plan is in [rust-integration.md](rust-integration.md) (phases R0–R7). It is developed now on QEMU Syborg,
+with the real 2010 ARM user side, and moves to the Pixel after M3.
+
+**U1: Rust on the Symbian user side** (now on Syborg; on the Pixel after M3) = R0–R3
 - Build path:
-  - target `armv7a-none-eabihf` (the user side is 32-bit ARM);
-  - Rust staticlib → link with the existing Symbian toolchain → `elf2e32` → E32 image in the ROM.
+  - target **`armv5te-none-eabi`**, soft-float, matching the user side's `-march=armv5te` ABI. **Never `eabihf`:** it
+    passes floats differently and breaks calls into Symbian libraries;
+  - Rust staticlib → link with symbian-2010's toolchain → its emitter (ELF → E32Image from the frozen `.def` files)
+    → E32 image in the ROM.
 - `e32` crate:
   - raw exec calls (`svc` with the fast/slow bit);
   - a global allocator on an `RHeap` or a chunk;
@@ -127,7 +132,7 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
   - descriptor conversion at the boundary.
 - Exit: a Rust "hello" EXE runs from eshell, and a Rust server answers a C++ client.
 
-**U2: Rust UI server** (needs U1 + H4)
+**U2: Rust UI server** (R4–R6 on the Mac and Syborg now; on the Pixel = R7, needs U1 + M3 + H4)
 - Owns the framebuffer and touch input; replaces the old window server.
 - Apps draw into their own shared chunks; the server composites with damage tracking, then does a CPU copy to the
   splash framebuffer. Shared chunks are the EKA2 equivalent of shared memory.
@@ -187,7 +192,7 @@ graph LR
   M2 --> M3[M3 user side boots]
   H0[H0 USB debug link] -.-> M3
   M3 --> M4[M4 performance]
-  M3 --> U1[U1 Rust on user side]
+  M3 -.->|runs on Pixel| U1[U1 Rust on user side, Syborg first]
   M3 --> H1[H1 platform base]
   H1 --> H2[H2 eMMC storage]
   H1 --> H3[H3 power]

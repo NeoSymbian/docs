@@ -1,0 +1,149 @@
+# Rust integration: the `e32` crates and the Rust UI, built in parallel with the kernel
+
+Written 2026-11-06. This expands Track U of the [roadmap](roadmap.md).
+
+The Rust work does **not** wait for the Pixel kernel. It is developed and tested now on QEMU Syborg, running the real
+2010 ARM Symbian user side. Once the Pixel kernel boots the user side (roadmap **M3**), the same Symbian executables
+move to the phone. Sizes are **GUESSES**.
+
+## Why this works now
+
+- **There is a ready ARM test platform: [`Phorepoc/symbian-2010`](https://github.com/Phorepoc/symbian-2010).**
+  - It is the 2010 release, built with GCC 14 and booted in QEMU Syborg
+    ([`ghcr.io/phorepoc/qemu-syborg`](https://github.com/Phorepoc/qemu-syborg)) to a text shell.
+  - It has a keyboard, mouse, a C: drive, a serial log and framebuffer screenshots (`fb.ppm`), and it runs headless
+    in CI.
+  - All 13 Symbian packages it needs are already in the NeoSymbian forks, and its `fetch.sh` takes `SOURCES_URL`.
+- **It uses the same ABI as Phorepoc's user side:** `-march=armv5te`, ARM and Thumb code, soft-float
+  (`toolchain/symcc`).
+  - Its emitter turns ELF files into E32Images from the frozen `.def` files, with no `elf2e32` needed.
+  - `toolchain/efile_exe/` and `toolchain/dll_rt/` provide the start-up code for programs and DLLs.
+- **The same binaries run on the Pixel.** Our AArch64 kernel runs the 32-bit user side at AArch32 EL0, and ARMv5TE
+  code runs on ARMv8 cores in AArch32 mode. So one binary works on both platforms: Syborg now, the Pixel after M3.
+
+## Decisions
+
+| Topic | Decision | Why |
+|---|---|---|
+| Rust target | **`armv5te-none-eabi`** on a pinned nightly (`rust-toolchain.toml`, `-Zbuild-std=core,alloc`), with `panic=abort` | Exact match of the user-side ABI (ARMv5TE, soft-float), so it runs on Syborg and on the Pixel. `armv7a-none-eabi` can come later as a speed option for Pixel-only builds. **Never `eabihf`:** it passes floats differently and breaks calls into Symbian libraries. |
+| Test platform before M3 | QEMU Syborg, through NeoSymbian forks of `symbian-2010` and `qemu-syborg` | Real 32-bit ARM Symbian user side, scriptable, runs in CI, no hardware needed |
+| CI | GitHub Actions on the public repos, using the public `ghcr.io/phorepoc/*` images. Screenshot and serial log kept as artifacts. | Progress is visible to everyone; no ZimaOS dependency |
+| Kernel interface | Rust makes **exec calls directly** (`swi`), with the table generated from `kernelhwsrv/kernel/eka/kernel/execs.txt`. Features that exist only in euser's C++ (leaves, `TRAP`, the active scheduler) go through a thin C shim, and only when unavoidable. | No C++ name mangling; no leave or unwind ever crosses into Rust |
+| Entry point | Rust defines `E32Main` (`#[export_name = "_Z7E32Mainv"]`), linked with symbian-2010's `efile_exe` start-up | Behaves like any other Symbian EXE |
+| Repos | New: **`NeoSymbian/e32-rs`** (system crates) and **`NeoSymbian/neoui`** (UI server and apps). Forked: `symbian-2010`, `qemu-syborg`. | New work goes in new repos; dependencies are forked |
+
+## Phases
+
+There are two parallel streams:
+- **Stream A, the system crates (R0–R3)**;
+- **Stream B, the UI developed on the Mac (R4)**.
+
+They meet in **R5**. **R7** waits for kernel M3, and for H4 for touch.
+
+```mermaid
+graph LR
+  R0[R0 toolchain spike] --> R1[R1 pure-Rust EXE] --> R2[R2 e32 core] --> R3[R3 IPC server]
+  R4[R4 UI on the Mac] --> R5[R5 UI on Syborg]
+  R3 --> R5 --> R6[R6 app model] --> R7[R7 Pixel]
+  M3[kernel M3] --> R7
+  H4[H4 touch] -.-> R7
+```
+
+### R0: platform and toolchain spike (stream A)
+
+Steps:
+1. Fork `Phorepoc/symbian-2010` and `Phorepoc/qemu-syborg` into NeoSymbian, and fetch with
+   `SOURCES_URL=https://github.com/NeoSymbian`.
+2. Build the minigui ROM and boot it, on ZimaOS or in Actions.
+3. Add the Rust target and compile a `no_std` Rust staticlib.
+4. Link the staticlib into a small C++ EXE through symbian-2010's emitter, as a new component next to theirs. The
+   C++ calls a Rust function that prints through `RDebug`.
+
+Exit: "hello from Rust" appears in `serial.log`.
+
+### R1: an EXE written only in Rust (stream A)
+
+`e32-sys` crate:
+- exec-call numbers and the fast/slow encoding, generated from `execs.txt` by a small generator that mirrors
+  `genexec.pl`;
+- `#[repr(C)]` mirrors of `TDesC8`/`TDesC16`, handles and `TRequestStatus`.
+
+`E32Main` is written in Rust and uses `DebugPrint` and `User::Exit`; the panic handler calls `User::Panic`.
+
+Exit: a Rust-only EXE on the C: drive runs from eshell, prints, and exits with its own exit code. A CI job does this
+on every push.
+
+### R2: the `e32` core (stream A)
+
+- **Memory allocator** on a private `RChunk`, so `alloc` works without depending on euser's `RHeap`.
+- **Threads and timing:** threads, semaphores, mutexes, `RTimer`, process arguments, waiting on `TRequestStatus`.
+- **A minimal async executor** built on request statuses, replacing Symbian's active objects.
+- **A file-server client** written in Rust (`RFs`/`RFile` over IPC: connect, open, read, write). It proves that IPC
+  and descriptors work.
+- **`e32-tests` EXE:** an on-target test runner that reports over serial, with CI parsing the results. Pure logic gets
+  ordinary unit tests on the host.
+
+Exit: the tests pass on Syborg.
+
+### R3: an IPC server in Rust (stream A)
+
+- An equivalent of `CServer2` built on exec calls: create the server, receive messages, complete them, read and write
+  the client's descriptors.
+- Interop tests: a Rust server with a Rust client, and a Rust server with a C++ `RSessionBase` client.
+
+Exit: both pass on Syborg.
+
+### R4: the UI on the Mac (stream B, can start on day 1)
+
+- **`neoui-proto`** (`no_std`): the protocol for surfaces, damage rectangles, input events (touch and keys), focus and
+  app lifecycle. Tested on the host.
+- **`neoui-server`:** the compositor, with damage tracking and CPU blitting, behind a `Platform` trait (display, input,
+  clock, IPC).
+- **A host backend:** a desktop window where the mouse pointer stands in for touch. It runs at both **1080×2160** (the
+  Pixel) and **768×640** (Syborg), which keeps the UI resolution-independent.
+- **First screens** in Slint, using its software renderer: launcher, status bar and one demo app.
+
+Exit: the launcher is usable on the Mac, with screenshots in the repo.
+
+### R5: the UI on Syborg (streams A + B)
+
+- A Symbian `Platform` backend:
+  - **display:** memory address, mode and stride from HAL (`EDisplayMemoryAddress`, …);
+  - **input:** the kernel's event hook (`CaptureEventHook` / `RequestEvent` exec calls), the same path the window
+    server uses.
+- A ROM variant **without the window server:** the system starter launches the Rust UI server instead of wserv.
+
+Exit: the Rust launcher appears on the Syborg screen (`fb.ppm` in CI), and clicks sent through QEMU's `mouse_button`
+change it.
+
+### R6: the app model (streams A + B)
+
+- Apps are separate processes. Their surfaces live in global shared chunks, and they talk to the server over R3's IPC.
+- The launcher starts apps. A terminal app runs the old Symbian text programs.
+
+Exit: launcher → demo app → back to the launcher, on Syborg.
+
+### R7: the Pixel (needs kernel M3; touch needs H4)
+
+- The same binaries go into the Pixel ROM. The backend finds the Pixel's display (the 1080×2160 splash framebuffer)
+  through HAL.
+- Input: volume and power keys first, touch once the Synaptics driver (H4) delivers raw events.
+- Later, for speed: an `armv7a-none-eabi` build, then the GPU (roadmap U4).
+
+Exit: the Rust launcher on the phone, driven by touch.
+
+## How this maps to the roadmap
+
+| These phases | Roadmap stage |
+|---|---|
+| R0–R3 | U1 |
+| R4–R6 | groundwork for U2 and U3 |
+| R7 | U2 on the Pixel |
+
+## Risks
+
+- **QEMU 0.9.1 has no CPU acceleration.** Syborg proves that things work, not how fast they are. Slint will be slow
+  there.
+- **`armv5te-none-eabi` is a tier 3 Rust target.** It needs nightly plus build-std, so pin the nightly version.
+- **Only one process can capture the kernel's event hook.** The ROM must not start wserv when the Rust server runs.
+- **Syborg's exact CPU model is unverified.** ARMv5TE code runs on any model it could be.
