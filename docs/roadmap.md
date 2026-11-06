@@ -33,7 +33,7 @@ into the kernel safely. That gives one rule:
 |---|---|---|
 | Kernel drivers (EKA2 LDD/PDD) | C++ | GIC and timers (done), clocks and regulators over RPMh, SPMI to the PMICs, GENI I2C/SPI, GPI DMA, SDHCI/eMMC media driver, DWC3 USB, DSI panel and backlight power, SCM calls to TrustZone, remote-processor loader, GLINK/SMEM transport |
 | Generic `hwaccess` LDD | C++ (small) | Gives a user-side Rust driver a mapping of a register block and an interrupt-to-request notification. It exists so most new drivers don't need kernel code. |
-| User-side drivers and stacks | Rust (`armv7a-none-eabihf`, `no_std` + `e32` crate) | Synaptics RMI4 touch protocol, battery and charger policy, QMI client, modem and telephony logic, Wi-Fi control, the UI server, all system apps |
+| User-side drivers and stacks | Rust (`armv5te-none-eabi`, `no_std` + `e32` crate) | Synaptics RMI4 touch protocol, battery and charger policy, QMI client, modem and telephony logic, Wi-Fi control, the UI server, all system apps |
 | Glue to old Symbian frameworks | thin C++ | ETel TSY plugin over Rust QMI; ESOCK/TCPIP6 packet interface over the modem and Wi-Fi data paths |
 
 Rust user-side code can be unit-tested on a PC: protocol parsers, QMI, UI layout. Kernel C++ is tested on QEMU first,
@@ -231,5 +231,5 @@ graph LR
 | WCN3990 Wi-Fi on sdm670: firmware path and control path | P4 | Mainline sdm845 DTBs + postmarketOS notes for sargo/bonito |
 | VoLTE feasibility on the target carrier | P5 go/no-go | Carrier's 2G/3G status; postmarketOS VoLTE status on Qualcomm |
 | Sensors present on bonito | H6 | Full DTB from the bootloader / stock kernel |
-| Rust `armv7a-none-eabihf` objects linking through the Symbian toolchain and `elf2e32` | U1 | A one-function spike before the `e32` crate |
+| Rust `armv5te-none-eabi` objects linking through symbian-2010's toolchain and emitter | U1 | R0 spike (`rust-integration.md`) |
 | Slint software renderer speed at 1080×2160 on one Kryo core | U2 | Benchmark on Linux on similar ARM hardware, or on the phone after U1 |
