@@ -17,6 +17,7 @@ NeoSymbian brings the open-source 2010 Symbian (EKA2, the Symbian^3 release) bac
 | [ekern-backend.md](ekern-backend.md) | The full kernel's AArch64 backend |
 | [known-issues.md](known-issues.md) | Open problems and their workarounds |
 | [sources.md](sources.md) | Survey of the source repositories and licences |
+| [retired-repos.md](retired-repos.md) | The 91 repositories deleted on 2026-11-06, and how to bring one back |
 
 ## Repositories
 
