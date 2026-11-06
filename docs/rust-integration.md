@@ -313,6 +313,49 @@ Exit: launcher → demo app → back to the launcher, on Syborg.
 **Phone handoff:** rebuild `neoui/symbian` from `0efa85a` or later. The Pixel can then type into the Terminal by
 touch. Nothing else changes in the ROM.
 
+### R8: file access and a Files app
+
+**Status: done (2026-11-06)**, in `e32-rs` `9b77ce9` + `ecf8697` and `neoui` `d577344`.
+- **`e32::fs`** speaks the file server's protocol directly (opcodes and layouts from kernelhwsrv
+  `userlibandfileserver/fileserver`, cited in the code):
+  - drives (`TDriveList`);
+  - volume size, free space and label (`TVolumeInfo`);
+  - directory listings (`RDir`: packed entries, read until `KErrEof`, whose last batch may still hold entries);
+  - `mkdir`, `rmdir`, `delete`, `rename`.
+
+  `neotest` test 8 checks them on Syborg.
+- **Found on Syborg:**
+  - **Volume info:** the server reads the client's `TPckg<TVolumeInfo>` into its own before writing it back, so the
+    descriptor must go out at full length (576 bytes on ARM). An empty one comes back empty.
+  - **Dates:** Symbian's `TTime` calendar counts leap years before 1600 the Julian way, so 1970-01-01 is day 719,540,
+    not 719,528. e32's dates were 12 days late, the Clock app's date included; fixed in `ecf8697`.
+  - **PlatSec:** this ROM doesn't enforce it, so `Z:\sys\bin` lists without AllFiles (47 entries).
+- **`NEOFILES.EXE`** (`neoui/symbian/apps/files`):
+  - drive cards with usage bars;
+  - folders (sorted, with size and date);
+  - a text viewer (UTF-8, or UTF-16 with a BOM; first 64 KB);
+  - New folder / Rename / Delete from Options, with the name typed on the system keyboard and a confirm dialog.
+
+  The model is `neoui/crates/neoui-files`, tested on the host.
+- **Apps can claim the toolbar's Back and Options** (`NAV`, op 6). The shell then forwards them as
+  `AppEvent::Back`/`Options`. Files claims Back below the drive list, so Back walks up the folders and closes the app
+  at the top.
+- **Syborg CI:**
+  - browses `Z:\Sys\Bin`;
+  - opens `estart.txt`;
+  - makes `C:\neo\` by keyboard;
+  - deletes it through the confirm dialog;
+  - closes the app with Back.
+- Not yet:
+  - copy/move, recursive delete;
+  - opening images;
+  - long-press;
+  - names outside the glyphs the app embeds (the UI fonts are subset at build time; ASCII is safe).
+
+**Phone handoff:** rebuild `neoui/symbian` from `d577344` or later, and add
+`NEOFILES.EXE 0xE0002004 libneofiles.a` from `neoui/symbian/exes.txt`. On the Pixel, C: is the persistent eMMC drive
+from H2.1: check that a folder made in Files survives a reboot. Rebuild NEOTEST from e32-rs `ecf8697` (8 tests).
+
 ### R7: the Pixel (needs kernel M3; touch needs H4)
 
 - The same binaries go into the Pixel ROM. The backend finds the Pixel's display (the 1080×2160 splash framebuffer)
