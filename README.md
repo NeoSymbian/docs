@@ -1,53 +1,56 @@
-# symbian-pixel
+# NeoSymbian docs
 
-Symbian's EKA2 kernel, the 2010 open-source Symbian^3 release, ported to **64-bit ARM (AArch64)** and running on a
-**Google Pixel 3a XL** (Qualcomm SDM670, 8 cores).
+NeoSymbian brings the open-source 2010 Symbian (EKA2, the Symbian^3 release) back to modern hardware:
 
-The long-term goal is a daily phone: the 2010 Symbian user side running unchanged in 32-bit mode, under a new touch UI
-written in Rust. See the [roadmap](docs/roadmap.md).
+- **First target:** the Google Pixel 3a XL (bonito, Qualcomm SDM670).
+- **Kernel:** ported to AArch64 with 32-bit pointers (ILP32).
+- **User side:** the 2010 Symbian user side runs unchanged in 32-bit mode at AArch32 EL0.
+- **UI:** a new touch UI written in Rust.
 
-## Status (2026-11)
+## Documents
 
-- The 2010 **SMP nanokernel** boots on QEMU `virt` and on the **real phone**. It runs on all 8 cores, with GICv3,
-  generic-timer timeslicing, PSCI to start the other cores, and SMP load balancing.
-- The standalone nanokernel test suite (**nkernsa**) completes on the phone with a few timing failures left. Results
-  show on the screen through a text console drawn into the bootloader's framebuffer.
-- Next: the full kernel (`ekern`), then booting the Symbian user side to a shell. See
-  [roadmap stages M1–M3](docs/roadmap.md#track-k-kernel).
+| Document | What |
+|---|---|
+| [roadmap.md](roadmap.md) | Plan and status: kernel (K), hardware (H), UI (U) and phone (P) tracks |
+| [rust-integration.md](rust-integration.md) | Rust on the Symbian user side: stages R0–R8 |
+| [port-map.md](port-map.md) | How EKA2 maps onto AArch64: what was reused, adapted and written new |
+| [ekern-backend.md](ekern-backend.md) | The full kernel's AArch64 backend |
+| [known-issues.md](known-issues.md) | Open problems and their workarounds |
+| [sources.md](sources.md) | Survey of the source repositories and licences |
 
-## Where the code went (2026-11-06)
+## Repositories
 
-The AArch64 port and the board support moved into the kernel repository, [**NeoSymbian/kernel**](https://github.com/NeoSymbian/kernel)
-(the kernelhwsrv fork, renamed), with their history. They sit next to Symbian's own `arm/` and `x86/` folders, and
-the boards are in `baseport/arm64` ([README](https://github.com/NeoSymbian/kernel/tree/main/baseport/arm64)):
+Everything lives in the [NeoSymbian](https://github.com/NeoSymbian) organization. Nothing is pushed back to the
+original projects.
 
-| Was here | Now in NeoSymbian/kernel |
+| Repository | What |
+|---|---|
+| [kernel](https://github.com/NeoSymbian/kernel) | The EKA2 kernel (the SymbianSource kernelhwsrv fork) with the AArch64 port, drivers and boards (`baseport/arm64`) |
+| [build](https://github.com/NeoSymbian/build) | The build system: `neo`, the build image (`ghcr.io/neosymbian/toolchain`), the pinned sources, the 2010 ROM |
+| [e32-rs](https://github.com/NeoSymbian/e32-rs) | Rust crates for the Symbian user side |
+| [neoui](https://github.com/NeoSymbian/neoui) | The Rust UI server and apps |
+| [qemu-syborg](https://github.com/NeoSymbian/qemu-syborg) | The Symbian Foundation's QEMU with the Syborg board (`ghcr.io/neosymbian/qemu-syborg`) |
+| `oss.*` | The SymbianSource packages the build pins (`build/sources.lock`), forked as they are |
+
+## Where the port's files went
+
+These documents were written in `symbian-pixel` (now archived), so their paths are the old ones. Since 2026-11-06
+the code lives in NeoSymbian/kernel:
+
+| Old path (symbian-pixel) | New path (kernel) |
 |---|---|
 | `port/arm64/a64smp/`, `platform/`, `board/gicv3.*`, `boot/vectors.S` | `kernel/eka/nkernsmp/arm64/`, `kernel/eka/include/nkernsmp/arm64/` |
 | `port/arm64/ekern/`, `boot/` | `kernel/eka/kernel/arm64/`, `kernel/eka/include/kernel/arm64/` |
 | `port/arm64/mm/` | `kernel/eka/memmodel/epoc/flexible/{arm64,mmu/arm64}/` |
+| `port/arm64/prelude/` | `kernel/eka/include/nkern/arm64/` |
 | `port/arm64/nksa/` | `kerneltest/e32test/nkernsa/arm64/` |
-| `port/arm64/board/` (all other files), `probes/` | `baseport/arm64/{common,virt_assp,sdm670_assp,qemu_variant,bonito_variant}/` |
+| `port/arm64/board/`, `probes/` | `baseport/arm64/{common,virt_assp,sdm670_assp,qemu_variant,bonito_variant}/` |
 | `port/arm64/tools/` | `baseport/arm64/tools/` |
+| `zimaos/` | NeoSymbian/build `zimaos/` (the `a64dev` image is now `docker/toolchain`) |
 
-The build-time `sed` patches to 2010 files are now ordinary commits on the kernel's `main`. This repository still
-holds the docs and the ZimaOS build environment until they move too.
+The copies of `execs.h`, `u32exec.h`, `mmtypes.h` and `mpdalloc.cpp` are now `__CPU_ARM64` sections of the
+originals, and the build-time `sed` patches are commits on the kernel's `main`.
 
-## Repositories
+## Licence
 
-Everything the build uses is forked into the [**neosymbian**](https://github.com/neosymbian) organization. Nothing is
-pushed back to the original projects.
-
-| Repository | Forked from | Role |
-|---|---|---|
-| `kernel` (was `oss.FCL.sf.os.kernelhwsrv`) | [SymbianSource](https://github.com/SymbianSource) | The EKA2 kernel with the arm64 port, drivers and boards, all on its `main` branch. |
-| 98 other `oss.*` packages | SymbianSource | The rest of the 2010 Symbian source, at the commits Phorepoc pins (`core/sources.lock`) |
-| `core`, `pdk` | [Phorepoc](https://github.com/Phorepoc) | The build system (`phe`, `fetch.sh`, compile fixes for modern GCC). `core` fetches from neosymbian. |
-| `symbian-pixel` | — (this repo) | Docs and the ZimaOS build environment (the port moved to `kernel`) |
-
-Rule: in every fork, the upstream branches stay untouched and our work is on `main`.
-
-## License
-
-Our code is Apache-2.0 (see `LICENSE`, and the SPDX header in every file). The Symbian sources it builds on are
-EPL-1.0.
+These documents are Apache-2.0 (`LICENSE`).
