@@ -84,6 +84,18 @@ with `toolchain/rust/neo_glue.cpp` by `emitter/build_rust_exe.py` in `NeoSymbian
 Exit: a Rust-only EXE on the C: drive runs from eshell, prints, and exits with its own exit code. A CI job does this
 on every push.
 
+**Status: done (2026-11-06)**, in `e32-rs` `8b903c1` and `symbian-2010` `1161bef`.
+- `tools/gen_execs.py` numbers `execs.txt` the way `genexec.pl` does. All 315 numbers match the 2010 `exec_enum.h`.
+- `e32-sys` makes `swi #N` calls through `asm!` (`DebugPrint` = 86, `ThreadKill` = 115, `UserThreadExiting` = 246).
+- `e32` provides `dprintln!`, `process::exit`/`panic` and `e32::main!`.
+- On Syborg:
+  - `NEOR1.EXE` prints and exits 42; ESHELL shows `Exit type 0,42,Kill`.
+  - `NEOPANIC.EXE`'s `panic!` becomes a Symbian panic; ESHELL shows `Exit type 2,0,RUST`.
+  - The shell survives.
+- The EXEs run from the ROM, not C: (the `KErrCorrupt` issue from R0 is still open).
+- symbian-2010 builds every EXE listed in a manifest (`rust/exes.txt`). Its kernel glue now also logs non-zero exit
+  codes, and `boot.sh` takes several commands per boot.
+
 ### R2: the `e32` core (stream A)
 
 - **Memory allocator** on a private `RChunk`, so `alloc` works without depending on euser's `RHeap`.
