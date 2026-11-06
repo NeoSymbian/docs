@@ -121,7 +121,6 @@ Exit: the tests pass on Syborg.
 - **C: loading is fixed.** The image writer flagged ELF-style import blocks as PE, so the loader's `ValidateImports`
   returned `KErrCorrupt`; the ROM builder ignores that flag, which is why ROM images worked. `NEOR1C.EXE` now runs
   from C:.
-- R3 (an IPC server in Rust) has everything it needs: sessions, descriptors, and threads.
 
 ### R3: an IPC server in Rust (stream A)
 
@@ -130,6 +129,31 @@ Exit: the tests pass on Syborg.
 - Interop tests: a Rust server with a Rust client, and a Rust server with a C++ `RSessionBase` client.
 
 Exit: both pass on Syborg.
+
+**Status: done (2026-11-06)**, in `e32-rs` `47d2a2d` and `symbian-2010` `0f6f5d9`.
+- `e32::server` is the Rust `CServer2`:
+  - `Server::create`, and `receive` as a future (cancelled on drop), so R5 can mix IPC with input and timers in
+    one `block_on`;
+  - `Message`: read and write the client's 8- and 16-bit descriptors, `complete` (it consumes the message, so a
+    stale handle can never complete a newer message), `panic_client`;
+  - `serve` over a `Service` trait: connect with a version check, per-session state, disconnect, and bad clients
+    panicked as CServer2 does.
+- Tested both ways on Syborg:
+  - neotest's `ipc_server`: the NeoEcho service on a thread, with a Rust client using two concurrent sessions;
+    `neotest: 7 passed, 0 failed`.
+  - `NEOCLI.EXE`, plain C++ using only euser (`RProcess::Create` and `Rendezvous`, `RSessionBase`, `TIpcArgs`), starts
+    the Rust `NEOSRV.EXE` and runs 9 checks across the process boundary; the server exits `Kill 0` when its last
+    session closes.
+- ABI notes:
+  - `MessageIpcCopy` (169) is an extended exec: `SIpcCopyInfo` goes in r4–r6.
+  - The kernel writes 32 bytes of `RMessage2`.
+  - `SetSessionPtr` is only allowed on a connect message.
+  - Disconnect (−2) accepts only a complete.
+  - The client's descriptor length changes only when the message completes.
+- `TIpcArgs` now borrows its descriptors. The first on-device run caught a temporary descriptor that died before the
+  send; with the borrow, that mistake no longer compiles.
+- Shortcuts: there's no `CPolicyServer` security policy (needed before third-party apps, R6), and a server handles
+  one message at a time (a `Message` can be kept for a deferred reply).
 
 ### R4: the UI on the Mac (stream B, can start on day 1)
 
