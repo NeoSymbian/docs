@@ -1,31 +1,52 @@
 # File system plan: Symbian's storage on the Pixel 3a XL
 
-Status: plan (2026-11-07). Android is not kept on the phone, so NeoSymbian owns the eMMC, except for the partitions
-listed under "Never touched".
+Status: plan, revised 2026-11-07 after H2.3. Android is not kept on the phone, so NeoSymbian owns the eMMC, except for
+the partitions listed under "Never touched".
+
+The design stays Symbian's own, from the 2010 sources:
+- F32 with its file system plugins;
+- FAT32 on the writable drives;
+- ROFS and the composite file system for `Z:`.
+
+A new file system is written only if one of these fails in daily use (see "Later").
 
 ## Where we start
 
 - **The file server is Symbian's own.** F32 (`efile.exe`) runs on the user side and loads one plugin (`.fsy`) per
   file system. The 2010 tree (`kernel/userlibandfileserver/fileserver`) has:
-  - `srom`, `srofs` and `scomp`: the ROM, ROFS and composite file systems behind `Z:`;
-  - `sfat32`: FAT12/16/32 with long names, rugged FAT, ScanDrive and delete notification (TRIM);
+  - `srom`, `srofs` (`erofs.mmp`) and `scomp` (`ecomp.mmp`): the ROM, ROFS and composite file systems behind `Z:`;
+  - `sfat32` (`efat32.mmp`): FAT12/16/32 with long names, rugged FAT, ScanDrive and delete notification (TRIM). It
+    also needs `fs_utils/filesystem_utils.cpp` and `bit_vector.cpp`;
   - `sfat`: the older FAT12/16 plugin, marked obsolete in its `.mmp`;
   - `smassstorage`, `shostmassstorage` and `automounter`: USB mass storage for a PC, USB sticks plugged into the
     phone, and mounting removable drives.
-- **The drives today.** `baseport/arm64/common/estart.txt` mounts local drive 0 as `C:` with
-  `ELOCAL FAT FS_FORMAT_CORRUPT,FS_SYNC_DRIVE`. `Z:` is the whole ROM, held in RAM inside `boot.img`.
+- **The drives today:**
+  - `baseport/arm64/common/estart.txt` mounts local drive 0 as `C:` with
+    `ELOCAL FAT FS_FORMAT_CORRUPT,FS_SYNC_DRIVE`;
+  - `Z:` is the whole ROM, held in RAM inside `boot.img`.
 - **Our `ELOCAL.FSY` is built from `sfat`, not `sfat32`.** `build/emitter/build_elocal_fsy.py` uses the
   `elocal.mmp` file set, so `C:` is FAT12/16, the obsolete plugin.
-- **The 8.3 names.** The 8.3-only limit on `C:` probably comes from how `c_drive.img` is made, not from the plugin.
-  Both plugins carry `sl_vfat.cpp`.
-- **The phone's `C:` (H2.3).** `qcom_sdhci.cpp` gives `C:` the first 8 GB of `userdata` in `EMMC_C=1` builds. The
-  eMMC runs 1-bit at 19.2 MHz (about 2 MB/s).
-- **Rugged FAT.** It is on unless a drive is flagged `FS_NOT_RUGGED`. `estart` forces ScanDrive on a rugged FAT
-  volume and warns when `FS_SCANDRIVE` is missing.
+  - It cannot make a volume above 2 GB: an 8 GB `C:` stays "Corrupt or unformatted" after its format, on QEMU and on
+    the phone.
+  - `efat32.mmp` keeps the same UID3 (0x100000d6), so `sfat32` can be built under the name `ELOCAL`.
+- **The 8.3 names come from `build/tools/mkfat.py`,** which writes the syborg `c_drive.img` with short names only.
+  The plugins themselves carry `sl_vfat.cpp`, so a `C:` that F32 formats can hold long names.
+- **The phone's `C:` (H2.3, kernel `8629702`):**
+  - in `EMMC_C=1` builds, `qcom_sdhci.cpp` gives `C:` the first 2000 MB of `userdata`, starting at its sector 0, as
+    FAT16;
+  - two guards keep writes inside that window: `a64_blk.cpp` and `A64BlkDev_Write`;
+  - the eMMC runs 1-bit at 19.2 MHz, ADMA2, polled (about 2 MB/s).
+- **The media driver** (`common/specific/a64_medblk.cpp`):
+  - formatting is a no-op (FAT writes its own structures);
+  - it reports 1 GB per format step, and no erase block size.
+- **Rugged FAT** is on unless a drive is flagged `FS_NOT_RUGGED`. `estart` forces ScanDrive on a rugged FAT volume
+  and warns when `FS_SCANDRIVE` is missing. Other `estart.txt` flags used below: `FS_SYSTEM_DRIVE` and
+  `FS_COMPOSITE` (`estart.cpp`).
 
 ## Target layout
 
-Partitions are found by their GPT name, as `qcom_sdhci.cpp` does now. The GPT itself is never rewritten.
+Partitions are found by their GPT name, as `qcom_sdhci.cpp` does now. The GPT itself is never rewritten. The one
+exception, the A/B slot attributes, is a gate in FS5b.
 
 | GPT partition | Use | File system |
 |---|---|---|
@@ -34,12 +55,23 @@ Partitions are found by their GPT name, as `qcom_sdhci.cpp` does now. The GPT it
 | `vendor_a`, `vendor_b` | Spare: crash dumps, recovery tools, later swap for data paging | — |
 | `userdata` (51 GB) | `C:` and `E:`, through our own MBR at the start of the partition | FAT32 |
 
+**Inside `userdata`.** It starts at LBA 17359872, which is only 512 KiB aligned. Every offset below puts the drives
+on 4 MiB boundaries of the whole disk, so FAT's data area can line up with the eMMC's erase groups.
+
+| Userdata sectors | What |
+|---|---|
+| 0 … 7167 | Our MBR (sector 0), then unused |
+| 7168 … +8 GB | `C:` (MBR type 0x0C, FAT32) |
+| next 4 MiB boundary … end | `E:` (MBR type 0x0C, FAT32, large clusters) |
+
+`C:` sits at this offset from FS1 on, so FS3 only adds the MBR and `E:`, and the files on `C:` survive FS3.
+
 | Drive | Size | What | Exposed over USB |
 |---|---|---|---|
 | `Z:` | ROFS + core ROM | System binaries and resources, read-only | no |
-| `C:` | 4–8 GB | Settings, installed apps, `\private\<SID>`, `\sys\bin` for installed code | never |
+| `C:` | 8 GB | Settings, installed apps, `\private\<SID>`, `\sys\bin` for installed code. `FS_SYSTEM_DRIVE` | never |
 | `D:` | RAM | Temporary files | no |
-| `E:` | the rest of `userdata` | User media and documents ("mass memory", as on the N8) | yes |
+| `E:` | the rest of `userdata` (~42 GB) | User media and documents ("mass memory", as on the N8) | yes |
 
 Why `C:` and `E:` are separate:
 - USB mass storage has to unmount the drive it shares. Sharing `E:` keeps `C:`, and so the running system, mounted.
@@ -55,21 +87,131 @@ the same on any file system.
 `devcfg*`, …). They hold the IMEI, radio and sensor calibration, and the bootloaders. Losing them disables the modem
 or bricks the phone.
 
-The block driver keeps an **allow-list** of writable partition names (`userdata`, `system_a/b`, `vendor_a/b`). Writes
-anywhere else fail in the driver, whatever the caller asks for.
+**The allow-list.** The block driver keeps a list of the partition names it may write: `userdata`, `system_a/b` and
+`vendor_a/b`.
+- Writes anywhere else fail in the driver, whatever the caller asks for.
+- Each entry is enabled only when its stage is approved. Today only `userdata` is.
+
+### Safety gates
+
+Some stages go past what is approved today: RAM boot only, and eMMC writes only inside `userdata`. Each needs the
+owner's explicit approval at the time:
+
+| Gate | What it allows | Stage |
+|---|---|---|
+| G1 | Writes to `system_a/b` by our bounded driver | FS4b |
+| G2 | The first write to `boot_a/b`: the phone then boots NeoSymbian without `fastboot boot` | FS5b |
+| G3 | Changing the A/B slot attributes: GPT entry attribute bits, rewritten with both GPT copies and their CRCs, or `fastboot --set-active` from a PC | FS5b |
 
 ## Stages
 
 Each stage is usable on its own. FS1–FS3 complete roadmap stage H2 (storage).
 
-| Stage | Work | Exit |
-|---|---|---|
-| **FS1 FAT32 plugin** | Build `sfat32` (`efat32.fsy`, unmodified) in place of the `sfat` ELOCAL, on QEMU first. Mount `C:` as `FAT` from it. Find and fix the 8.3 limit in `c_drive.img`. Add `FS_SCANDRIVE` to the rugged drives in `estart.txt`. | A long file name round-trips on `C:`. ScanDrive runs at boot. The ROM's f32test FAT tests pass. |
-| **FS2 eMMC speed** | HS200 with an 8-bit bus and tuning in `qcom_sdhci.cpp`, with polled transfers kept. The writable-partition allow-list. | More than 50 MB/s sequential read on the phone. A write outside the allow-list is refused. |
-| **FS3 `C:` and `E:` on `userdata`** | A small MBR at the start of `userdata` with two partitions, read by the media driver as Symbian MMC drivers read partition tables (`drivers/medmmc/emmcptn.cpp`). `C:` and `E:` both FAT32 (E: formatted with large clusters). `estart.txt` lists both. | Files on `C:` and `E:` survive a reboot and a power cut in the middle of a write (pull the battery or force-reset during a copy, then ScanDrive repairs). |
-| **FS4 `Z:` on ROFS** | Split the image: a core ROM in `boot.img` plus ROFS (`rofsbuild` from `oss.FCL.sftools.dev.build`) written to `system_<slot>`. Mount `Z:` through the composite file system (`scomp`). | The phone boots with `Z:` from flash. `boot.img` shrinks to the core. |
-| **FS5 Updates and integrity** | Write updates to the inactive slot's `boot_x` and `system_x`, then switch with ABL's A/B slot attributes, so a failed boot falls back to the old slot. Add a hash tree over the ROFS image, checked block by block in a media driver extension (`DMediaDriverExtension`), with its root hash in `boot.img`. | A bad update rolls back by itself. A changed `Z:` block is caught on read. |
-| **FS6 USB** | `smassstorage` shares `E:` with a PC (USB composite with the debug serial port). | A PC sees `E:` and copies files while the phone keeps running. |
+Every stage is tested on QEMU first (virtio-blk disk), then on the phone with a RAM boot, with the watchdog armed and
+`lastlog` for crashes.
+
+### FS1: the FAT32 plugin
+
+Steps:
+1. **`build/emitter/build_elocal_fsy.py`:** the source set of `efat32.mmp` plus `fs_utils`, still written out as
+   `ELOCAL.FSY` with UID3 0x100000d6. The build's "no writable static data" check stays.
+2. **`build/tools/mkfat.py`:** VFAT long-name entries (the LFN slots and their checksum) for names that are not 8.3,
+   so the syborg `c_drive.img` gets long names too.
+3. **`estart.txt`:** `C: 0 ELOCAL FAT 0 FS_FORMAT_CORRUPT,FS_SYNC_DRIVE,FS_SCANDRIVE,FS_SYSTEM_DRIVE`.
+4. **`qcom_sdhci.cpp`:** the `C:` window moves to userdata + 7168 sectors and grows to 8 GB. The 2000 MB FAT16 test
+   volume is dropped, and the new window is formatted once.
+5. **`a64_medblk.cpp`:** report `iEraseBlockSize` (the eMMC's erase group from EXT_CSD; 0 on virtio). `sfat32`'s
+   format then aligns the first data sector to it (`sl_fatmisc32.cpp` `AdjustFirstDataSectorAlignment`).
+
+**Exit:**
+- A long file name (`md c:\Long Directory Name`) round-trips on `C:` across a reboot.
+- `estart` formats the 8 GB `C:` as FAT32, and ScanDrive runs at boot.
+- QEMU still boots the 256 MB disk, the no-disk (RAM drive) case, and neoui.
+- The f32test FAT tests (`t_fat32`, `t_scan`, `t_vfat`) pass where the ROM carries them.
+
+**Risk:** `sfat32` may carry writable static data, which our DLL format can't hold. If it does, find and fix the
+cause; don't drop the check.
+
+### FS2: eMMC speed
+
+Steps (`qcom_sdhci.cpp`, with Linux `sdhci-msm.c`, `sdhci.c` and `gcc-sdm845.c` as references), each one measured
+before the next:
+1. **8-bit HS52:**
+   - CMD6 sets EXT_CSD `BUS_WIDTH` = 2 and `HS_TIMING` = 1;
+   - the host gets an 8-bit bus and high speed;
+   - the GCC sdcc1 clock goes to 50 MHz (GPLL0_EVEN / 6).
+   - No tuning. About 45 MB/s expected.
+2. **DDR52:**
+   - `BUS_WIDTH` = 6 (8-bit DDR), UHS mode DDR50;
+   - the core clock goes to 100 MHz (GPLL0 / 6), because the msm host runs at twice the card clock in DDR modes.
+   - No tuning. About 90 MB/s expected.
+3. **HS200, only if DDR52 is not enough:**
+   - `HS_TIMING` = 2, core clock 192 MHz (GPLL6 / 2);
+   - the msm DLL init, then CMD21 tuning;
+   - CX voted up to the device tree OPP's level (`Arc_Vote`).
+4. **A larger ADMA bounce buffer** (256 KB, several descriptors), if the per-command cost limits throughput.
+5. **The writable-partition allow-list by GPT name,** with one window per partition. A monitor command checks the
+   guard without issuing I/O.
+6. **`blk speed`:** a monitor command that reads 64 MB and prints MB/s.
+
+**Exit:**
+- More than 50 MB/s sequential read on the phone.
+- A write aimed at `persist` is refused by the guard.
+
+### FS3: `C:` and `E:` on `userdata`
+
+Steps:
+1. **The MBR in userdata sector 0,** laid out as above.
+   - It is written once, and only when `C:`'s window already starts with a FAT boot sector, so `C:` is kept.
+   - It is read the way Symbian's MMC driver reads partition tables (`kernel/eka/drivers/medmmc/emmcptn.cpp`).
+2. **`a64_medblk.cpp`** exposes two partitions as local drives 0 (`C:`) and 1 (`E:`).
+3. **`estart.txt`** adds `E: 1 ELOCAL FAT 0 FS_FORMAT_CORRUPT,FS_SCANDRIVE`. The format picks large clusters by size.
+4. **TRIM:** `sfat32`'s delete notifications (`DLocalDrive::EDeleteNotify`) become eMMC ERASE_GROUP_START/END +
+   ERASE with the TRIM argument, inside the window. On virtio they are a no-op.
+
+**Exit:**
+- Files on `C:` and `E:` survive a reboot.
+- Force-reset the phone during a large copy (the monitor's `wdt`). The next boot's ScanDrive repairs the drive.
+
+### FS4: `Z:` on ROFS
+
+- **FS4a, ROFS from RAM (no new writes):**
+  - build `rofsbuild` from `oss.FCL.sftools.dev.build` in the toolchain image;
+  - split the obey files into a core ROM (kernel, file server, the drivers needed to mount `Z:`) and one ROFS image;
+  - carry the ROFS image in `boot.img` next to the core, behind a read-only RAM media drive;
+  - build `EROFS`/`ECOMP` like `ELOCAL`;
+  - mount `Z:` through the composite file system (`FS_COMPOSITE` in `estart.txt`).
+- **FS4b, ROFS on flash (gate G1):**
+  - `blk load system_a` writes the ROFS image to the slot over the USB debug link, through the bounded driver;
+  - the RAM media drive is replaced by a read-only window on `system_<slot>`.
+
+**Exit:**
+- FS4a: the phone boots with `Z:` composed of the core ROM and the ROFS image.
+- FS4b: `Z:` comes from flash, and `boot.img` shrinks to the core.
+
+### FS5: updates and integrity
+
+- **FS5a, integrity (no gates):** a hash tree over the ROFS image, checked block by block in a media driver
+  extension (`DMediaDriverExtension`). Its root hash is in the core ROM.
+- **FS5b, A/B updates (gates G2 and G3):**
+  - write updates to the inactive slot's `boot_x` and `system_x`;
+  - switch with ABL's A/B slot attributes, so a failed boot falls back to the old slot.
+
+**Exit:**
+- FS5a: a changed `Z:` block is caught on read.
+- FS5b: a bad update rolls back by itself.
+
+### FS6: USB mass storage
+
+- **Spike first:** `smassstorage` speaks to the Symbian USB client LDD (`RDevUsbcClient`, `kernel/eka/drivers/usbc`).
+  Our `qcom_dwc3_acm.cpp` is a standalone polled gadget for the debug console. The spike picks between:
+  - a DWC3 controller driver (PSL) under the usbc framework, with the debug serial port kept as an interface that
+    works before the user side starts;
+  - or the mass-storage protocol (bulk-only transport) inside our gadget, with `E:` dismounted by F32 while it is
+    shared.
+- **Then:** `E:` is shared with a PC on a USB composite device, next to the debug serial port.
+
+**Exit:** a PC sees `E:` and copies files while the phone keeps running.
 
 ## Later (daily-phone stage)
 
@@ -80,14 +222,16 @@ Each stage is usable on its own. FS1–FS3 complete roadmap stage H2 (storage).
 | exFAT on `E:` | For files over 4 GB (video). Not in the 2010 sources; a new plugin. | When FAT32's 4 GB file limit matters |
 | MTP | Replaces mass storage so `E:` stays mounted on the phone too. Symbian's MTP framework (`mw.mtpfws`) was deleted from the org; re-fork it from SymbianSource if this is taken up. | After FS6 |
 | Demand paging | EKA2 pages code in from ROFS (and data, with a swap partition such as `vendor_x`), so `Z:` code needn't stay resident in RAM. | With M4 (performance), if RAM is short |
-| TRIM | `sfat32` already sends delete notifications (`DeleteNotify`). The media driver turns them into eMMC discard (CMD35/36/38). | With FS3 |
+| Command queue (CQHCI) | Several requests in flight on the eMMC; needs interrupts instead of polling. | If FS2's speed is not enough under load |
 
 ## Check before the stage that needs it
 
 | Question | Needed for | How to check |
 |---|---|---|
-| The phone's partition names and sizes, and the slot attributes | FS3–FS5 | `fastboot getvar all`; the GPT dump the eMMC driver already prints |
-| ~~Whether `sfat` formats an 8 GB `C:` today~~ **Answered 2026-11-07: no.** On an 8 GB volume the format "completes" but `C:` stays "Corrupt or unformatted" (QEMU and phone). `C:` is 2000 MB (FAT16) until FS1. Also fixed: format ran in 16 KB steps (`KDefaultMaxBytesPerFormat`); the media driver now reports 1 GB per step | FS1 | done |
-| Where the 8.3 limit comes from | FS1 | Make a long name on `C:` from ESHELL on QEMU; read how `c_drive.img` is written |
+| ~~Whether `sfat` formats an 8 GB `C:`~~ **Answered 2026-11-07: no.** `C:` is 2000 MB (FAT16) until FS1. Also fixed: format ran in 16 KB steps (`KDefaultMaxBytesPerFormat`); the media driver now reports 1 GB per step | FS1 | done |
+| ~~Where the 8.3 limit comes from~~ **Answered 2026-11-07:** `build/tools/mkfat.py` writes short names only; F32's own format and `sl_vfat.cpp` handle long names. FS1 confirms it on `C:` | FS1 | done |
+| The eMMC's erase group size (EXT_CSD `HC_ERASE_GRP_SIZE`, `ERASE_GROUP_DEF`) | FS1, FS3 | `blk info` |
+| The phone's partition names and sizes, and the slot attributes | FS3–FS5 | `blk gpt` (it already prints all 72 entries); `fastboot getvar all` |
 | Whether the 2010 tree's `rofsbuild` and `scomp` run unchanged with our ROM tools | FS4 | Build a small ROFS on ZimaOS and mount it on QEMU |
-| Which A/B slot attributes ABL reads (active, successful, retry count) | FS5 | ABL source for SDM670 (Qualcomm LinuxLoader) and a `fastboot set_active` test |
+| Which A/B slot attributes ABL reads (active, successful, retry count) | FS5b | ABL source for SDM670 (Qualcomm LinuxLoader) and a `fastboot set_active` test |
+| Whether the usbc framework's controller interface fits DWC3, and how the debug console survives the switch | FS6 | Read `kernel/eka/drivers/usbc` and its PSL interface (`usbcshared`) |
