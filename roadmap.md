@@ -114,7 +114,14 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
   - A file made in eshell on one boot is listed after a reset and a fresh RAM boot.
   - Verified with the eshell ROM (persistence) and the neoui ROM (the launcher, with `C:` on the eMMC).
   - `EMMC_C=1` is not the default build yet.
-  - **Next:** FS1 (sfat32), then FS2–FS3, then H3 power.
+- Status (2026-11-07, kernel `6c404ef`, build `584ba4e`, FS1): **`C:` is 8 GB FAT32 with long names**.
+  - `ELOCAL.FSY` is built from `sfat32` (FAT12/16/32, VFAT long names, rugged FAT, ScanDrive); `mkfat.py` writes long
+    names into the Syborg `c_drive.img` too.
+  - `C:` starts on the first 4 MiB boundary inside `userdata` (+7168 sectors), leaving room for FS3's MBR; the
+    format aligns its data area to the eMMC's 512 KB erase group.
+  - Verified: QEMU (8 GB FAT32, 256 MB FAT16, the RAM drive, neoui, the Syborg ROM); the phone (a long-named
+    directory survives a reset, and the neoui ROM reaches the launcher).
+  - **Next:** FS2 (eMMC speed + the partition allow-list), FS3 (`C:` + `E:`), then H3 power.
 - Work, from `port-map.md` §2–§4 and §7:
   - exec gate: read the SVC opcode with `LDTR` at `ELR_EL1-4`; bit 23 = fast/slow; Thumb SVC has an 8-bit immediate;
   - `umemget`/`umemput`, `TExcTrap`, `EpocThreadFunction`, user entry;

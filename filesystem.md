@@ -31,6 +31,8 @@ A new file system is written only if one of these fails in daily use (see "Later
   - `efat32.mmp` keeps the same UID3 (0x100000d6), so `sfat32` can be built under the name `ELOCAL`.
 - **The 8.3 names come from `build/tools/mkfat.py`,** which writes the syborg `c_drive.img` with short names only.
   The plugins themselves carry `sl_vfat.cpp`, so a `C:` that F32 formats can hold long names.
+- **Since FS1 (2026-11-07)** `ELOCAL.FSY` is `sfat32` and `C:` is 8 GB FAT32 at userdata + 7168 sectors; the
+  points below describe the start (H2.3).
 - **The phone's `C:` (H2.3, kernel `8629702`):**
   - in `EMMC_C=1` builds, `qcom_sdhci.cpp` gives `C:` the first 2000 MB of `userdata`, starting at its sector 0, as
     FAT16;
@@ -111,6 +113,9 @@ Every stage is tested on QEMU first (virtio-blk disk), then on the phone with a 
 `lastlog` for crashes.
 
 ### FS1: the FAT32 plugin
+
+**Done 2026-11-07** (kernel `6c404ef`, build `584ba4e`): every exit below passed except the f32test FAT tests, which
+the ROM doesn't carry yet. The on-phone log doesn't show whether ScanDrive ran.
 
 Steps:
 1. **`build/emitter/build_elocal_fsy.py`:** the source set of `efat32.mmp` plus `fs_utils`, still written out as

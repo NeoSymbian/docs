@@ -34,3 +34,10 @@ buffer the writer's in/out sequence really protects.
 - If the writer shows "suspended, critical-section count 0, ready on no CPU" while its sequence says it is in a critical
   section, the critical-section count itself is wrong. Suspect `NKern::ThreadEnterCS`'s plain `++iCsCount` racing a
   cross-CPU reader of it, i.e. memory ordering on TCG.
+
+## Phone: the monitor's `type` can drop the end of a line
+
+`type md c:\Long Directory On Phone` posted all 29 characters (`typed 29 chars`), but eshell on the phone received
+only `md c:\Long Directory On`, so the directory was made without "Phone" (2026-11-07, FS1). The same command typed
+26-character lines on QEMU without losses. Not looked into yet. Suspects: the console's key queue on the phone, or the
+pacing in `A64Key_Type` (`a64_dbgmon.cpp`). Workaround: keep typed lines short.
