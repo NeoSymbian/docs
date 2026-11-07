@@ -186,6 +186,19 @@ before the next:
 
 ### FS3: `C:` and `E:` on `userdata`
 
+**Done 2026-11-07** (kernel `92586a0`). This completes H2.
+- The media driver (`a64_medblk.cpp`) reads our MBR in userdata sector 0, else writes the default layout once. On
+  the phone: `C:` = userdata + 7168, 16777216 sectors (the FS1 drive, kept with its files); `E:` = + 16784384,
+  87998431 sectors (42 GB, FAT32 with 32 KB clusters). The window below it is now all of userdata.
+- ELOCD's partition checks (`CheckAndAdjustForPartition`) keep `C:`, `E:` and the MBR apart.
+- TRIM: sfat32's delete notifications reach the eMMC as CMD35/36/38 (TRIM). They never report an error upward,
+  because a failed DeleteNotify faults the file server.
+- Verified:
+  - QEMU: 9 GB (`C:` + `E:`), 256 MB (`C:` only) and no disk (the RAM drive);
+  - the phone: `C:` kept; `E:` formatted and persistent; TRIM 1 with 0 errors; a watchdog reset during a copy to
+    `E:` leaves both drives clean (`chkdsk`); the neoui ROM.
+- Also fixed: the boot re-init retries, since the first CMD3 after ABL sometimes times out.
+
 Steps:
 1. **The MBR in userdata sector 0,** laid out as above.
    - It is written once, and only when `C:`'s window already starts with a FAT boot sector, so `C:` is kept.

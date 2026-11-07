@@ -127,6 +127,11 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
   - Writes are limited to an allow-list of GPT partitions (`userdata` only enabled; `system_*`/`vendor_*` wait for
     gate G1). New monitor commands: `blk speed [raw]`, `blk guard <lba>`, `blk mode <0-2>`.
   - **Next:** FS3 (`C:` + `E:` on `userdata`, TRIM), then FS4a/FS5a, then H3 power.
+- Status (2026-11-07, kernel `92586a0`, FS3): **H2 storage done: `C:` (8 GB) and `E:` (42 GB) on the eMMC**.
+  - An MBR in userdata sector 0 splits it; `C:` kept its place and files; `E:` is mass memory, FAT32.
+  - TRIM from FAT's delete notifications; files survive a reboot and a watchdog reset during a copy.
+  - **Next:** H3 power; the rest of the storage plan (FS4a `Z:` from ROFS, FS5a integrity, the FS6 spike) alongside.
+    FS4b/FS5b need the owner's approval (gates G1–G3 in [filesystem.md](filesystem.md)).
 - Work, from `port-map.md` §2–§4 and §7:
   - exec gate: read the SVC opcode with `LDTR` at `ELR_EL1-4`; bit 23 = fast/slow; Thumb SVC has an 8-bit immediate;
   - `umemget`/`umemput`, `TExcTrap`, `EpocThreadFunction`, user entry;
