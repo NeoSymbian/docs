@@ -107,6 +107,14 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
   - **H2.2:** the eMMC host (no SDMA on this core: ADMA2) reads EXT_CSD and the real GPT (userdata = 51 GB),
     with the RPMh votes (CX, BCM SN8) that the bootloader drops, re-made by a minimal RPMh client.
   - **Next:** H2.3, writes bounded to userdata and C: on it (the first write is asked for first), then H3 power.
+- Status (2026-11-07, kernel `8629702`, H2.3): **C: is on the phone's eMMC, and files survive a reset**.
+  - `C:` = the first 2000 MB of `userdata`, FAT16, because `ELOCAL.FSY` is still the old `sfat`. It grows to 4–8 GB
+    FAT32 with FS1 ([filesystem.md](filesystem.md)).
+  - Writes are checked twice (the window layer and the eMMC driver), so only that window can be written.
+  - A file made in eshell on one boot is listed after a reset and a fresh RAM boot.
+  - Verified with the eshell ROM. The neoui ROM with `EMMC_C=1` is not verified yet: its one test run ended with the phone off USB.
+  - `EMMC_C=1` is not the default build yet.
+  - **Next:** FS1 (sfat32), then FS2–FS3, then H3 power.
 - Work, from `port-map.md` §2–§4 and §7:
   - exec gate: read the SVC opcode with `LDTR` at `ELR_EL1-4`; bit 23 = fast/slow; Thumb SVC has an 8-bit immediate;
   - `umemget`/`umemput`, `TExcTrap`, `EpocThreadFunction`, user entry;

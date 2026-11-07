@@ -87,7 +87,7 @@ Each stage is usable on its own. FS1–FS3 complete roadmap stage H2 (storage).
 | Question | Needed for | How to check |
 |---|---|---|
 | The phone's partition names and sizes, and the slot attributes | FS3–FS5 | `fastboot getvar all`; the GPT dump the eMMC driver already prints |
-| Whether `sfat` formats an 8 GB `C:` today, and as what (FAT16 tops out at 2–4 GB) | FS1 | `EMMC_C=1` boot log, or a large volume on QEMU |
+| ~~Whether `sfat` formats an 8 GB `C:` today~~ **Answered 2026-11-07: no.** On an 8 GB volume the format "completes" but `C:` stays "Corrupt or unformatted" (QEMU and phone). `C:` is 2000 MB (FAT16) until FS1. Also fixed: format ran in 16 KB steps (`KDefaultMaxBytesPerFormat`); the media driver now reports 1 GB per step | FS1 | done |
 | Where the 8.3 limit comes from | FS1 | Make a long name on `C:` from ESHELL on QEMU; read how `c_drive.img` is written |
 | Whether the 2010 tree's `rofsbuild` and `scomp` run unchanged with our ROM tools | FS4 | Build a small ROFS on ZimaOS and mount it on QEMU |
 | Which A/B slot attributes ABL reads (active, successful, retry count) | FS5 | ABL source for SDM670 (Qualcomm LinuxLoader) and a `fastboot set_active` test |
