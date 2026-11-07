@@ -214,6 +214,15 @@ Steps:
 
 ### FS4: `Z:` on ROFS
 
+**Done 2026-11-07** (FS4a kernel `f93a432`, build `e1239a5`; FS4b kernel `2fd7deb`). The phone is installed:
+- `boot_a` holds the kernel and the core ROM (857 KB);
+- `system_a` holds the ROFS (7.6 MB).
+
+FS4b differs from the plan below:
+- the ROFS is written to `system_a` by an installer kernel image (`ROFS=1 ROFS_INSTALL=1`), which needs no
+  `blk load` over USB. It writes only the 64 KB chunks that differ and reads each one back;
+- the installed core (`ROFS=flash`) carries the ROFS header and mounts `system_a` only if its header matches exactly.
+
 - **FS4a, ROFS from RAM (no new writes):**
   - build `rofsbuild` from `oss.FCL.sftools.dev.build` in the toolchain image;
   - split the obey files into a core ROM (kernel, file server, the drivers needed to mount `Z:`) and one ROFS image;
