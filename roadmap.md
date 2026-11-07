@@ -112,7 +112,7 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
     FAT32 with FS1 ([filesystem.md](filesystem.md)).
   - Writes are checked twice (the window layer and the eMMC driver), so only that window can be written.
   - A file made in eshell on one boot is listed after a reset and a fresh RAM boot.
-  - Verified with the eshell ROM. The neoui ROM with `EMMC_C=1` is not verified yet: its one test run ended with the phone off USB.
+  - Verified with the eshell ROM (persistence) and the neoui ROM (the launcher, with `C:` on the eMMC).
   - `EMMC_C=1` is not the default build yet.
   - **Next:** FS1 (sfat32), then FS2–FS3, then H3 power.
 - Work, from `port-map.md` §2–§4 and §7:
