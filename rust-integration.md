@@ -406,6 +406,32 @@ from H2.1: check that a folder made in Files survives a reboot. Rebuild NEOTEST 
   - the kernel marks the slot successful as Android's boot-control does: Qualcomm keeps the A/B flags in the GPT
     attribute bits of `boot_a`/`boot_b`.
 
+### R10: apps keep running, and an app switcher
+
+**Status: done (2026-11-07)**, in `neoui` `fc54289`. Checked on Syborg CI and on the Pixel.
+- **Back no longer ends an app.** The UI server keeps every app it started, least recently used first
+  (`neoui-proto` `Recents`).
+  - The app whose key is the current screen is in front: it gets input and the screen, and its own keyboard and
+    toolbar claims apply.
+  - The others get `AppEvent::Visible(false)` and keep running.
+  - Reopening an app resumes it, by copying its whole surface; no restart.
+  - Each IPC session is bound to its app, so background apps are still served.
+- **Limits:** at most 4 apps run; a fifth asks the least recently used to quit. An app asked to quit is killed after
+  3 s if it hasn't.
+- **Open apps** (`neoui/ui/screens/switcher.slint`), opened from the Apps menu's toolbar button:
+  - a card per running app, most recent first;
+  - tap to switch, × to close.
+- Clock stops ticking while hidden.
+- **Checked:**
+  - **Syborg CI:** Clock and Terminal go to the background; Terminal comes back with its ESHELL session and output,
+    started once; Open apps closes all three, none killed.
+  - **Pixel:** Files started once, then resumed from the switcher.
+- **Not yet:**
+  - live thumbnails on the cards (icons for now);
+  - a limit sized by free RAM.
+
+**Phone handoff:** rebuild `neoui/symbian` from `fc54289` or later. Nothing else changes in the ROM.
+
 ### R7: the Pixel (needs kernel M3; touch needs H4)
 
 - The same binaries go into the Pixel ROM. The backend finds the Pixel's display (the 1080×2160 splash framebuffer)
