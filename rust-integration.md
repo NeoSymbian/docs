@@ -356,6 +356,56 @@ touch. Nothing else changes in the ROM.
 `NEOFILES.EXE 0xE0002004 libneofiles.a` from `neoui/symbian/exes.txt`. On the Pixel, C: is the persistent eMMC drive
 from H2.1: check that a folder made in Files survives a reboot. Rebuild NEOTEST from e32-rs `ecf8697` (8 tests).
 
+### R9: neoui speed on the phone (measured)
+
+**Status: measurements done (2026-11-07)**, in `e32-rs` `3e443ca` and `neoui` `a33169c`.
+- **The fast counter:** `e32::time::fast_counter` / `fast_counter_hz` / `counter_us`. It runs at 19.2 MHz on the
+  Pixel; on Syborg it is only 100 Hz, so Syborg gives averages, not per-frame times.
+- **Frame timing:** the UI server logs one `neoui: perf N frames/ms: render avg/max, copy avg/max, app avg/max, px`
+  line per second of activity. The boot frame logs its render/copy split. Syborg CI checks both.
+- **Build:** `opt-level 3`, not "s". 5–15% faster on the phone, about 8% bigger.
+
+**Pixel results:** RAM-booted images; the `N:` prefix on each line is the CPU.
+
+| Measure | Silver cores (0–5) | Gold cores (6–7) |
+|---|---|---|
+| Boot frame, 1080×1800 (1.94 Mpx) | render 65 ms, copy 4 ms | — |
+| Menu ↔ home transition (4 frames, 5.66 Mpx), render avg | 60–68 ms | 126–198 ms |
+| Same transition, render max | 140 ms | 360–467 ms |
+| Same transition, copy avg | 3 ms | 7–9 ms |
+| Cost per pixel | 36–43 ns | about 100 ns |
+
+- **The CPU, not the GPU or the framebuffer, is the bottleneck.** The copy to the framebuffer
+  (`EMapAttrBufferedC`) takes a few ms.
+- **The gold cores are about 2.2× slower than the silver ones.** They should be faster (2.0 against 1.7 GHz), so
+  they are almost certainly left at a low clock. The scheduler moves neoui between all eight cores.
+- **The shell's opacity fade is not the cost.** Without it, the cost per pixel stays the same; it only saves one
+  frame per transition.
+- **Taps are lost while frames are slow:** a press from one tap gets paired with a release from a later one.
+
+**Next, in order of measured gain:**
+1. **Kernel: run the gold cluster at full clock** (cpufreq), or keep threads off it until then. That's 2.2×.
+   User code can't set affinity: `NKern::ThreadSetCpuAffinity` is kernel-only in this Symbian.
+2. **Kernel: VFP/NEON for user code** (enable FP at EL0, save it on context switch). Then neoui could use hardware
+   floats inside functions with the soft-float calling convention (a "softfp" custom target). All of Slint's float
+   math is library calls today.
+3. **Rust stream, parked:**
+   - **ARMv7-A code:** `armv7a-none-eabi` with `+no-movt` stops on an inline-asm block that needs the VFP register
+     `s0`. A small gain while soft-float stays.
+   - **Frame pacing at 16.7 ms:** useless while frames take 60–170 ms; worth it once they are under 33 ms.
+
+**Phone handoff: the A/B slot retry count.**
+- ABL takes one retry from the active slot on every boot, `fastboot boot` RAM boots included. Nothing marks our
+  boots successful.
+- After 3 boots, slot A shows `slot-unbootable:a:yes`, `slot-retry-count:a:0`, and every image falls back to
+  fastboot about 15 s after `Booting OKAY`, with no USB console.
+- `fastboot set_active a` restores it (retries back to 3; no partition data changes).
+- The installed system (`boot_a` + `system_a`, FS4) is affected too.
+- Fixes, the kernel session's choice:
+  - `phone.py run` does `set_active` before booting; or
+  - the kernel marks the slot successful as Android's boot-control does: Qualcomm keeps the A/B flags in the GPT
+    attribute bits of `boot_a`/`boot_b`.
+
 ### R7: the Pixel (needs kernel M3; touch needs H4)
 
 - The same binaries go into the Pixel ROM. The backend finds the Pixel's display (the 1080×2160 splash framebuffer)
