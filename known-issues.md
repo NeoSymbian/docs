@@ -1,5 +1,34 @@
 # Known issues
 
+## Phone: after a few normal restarts, ABL switches to slot b and test images die with a black screen
+
+**Status:** open until FS5b ("boot OK" mark, `docs/filesystem.md`). Found 2026-11-07.
+
+**Symptom:**
+- Every `fastboot boot` answers `Booting OKAY`, then the screen stays black (no green kernel text) and the phone is
+  back in fastboot within a minute.
+- Even images that booted fine earlier fail, so it looks like a broken phone or a broken build. It is neither.
+
+**Cause:**
+- `fastboot flash boot_a` clears slot a's "successful" flag. ABL then gives slot a 3 retries.
+- Every **normal** boot of the installed NeoSymbian uses one retry, because our kernel can't yet tell ABL "this boot
+  worked". RAM boots (`fastboot boot`) don't count.
+- At 0 retries, ABL marks slot a unbootable and makes **slot b** current. With slot b current, our images die before
+  their first print. Not investigated further: we stay on slot a.
+
+**Check:** `fastboot getvar current-slot`, `slot-retry-count:a`, `slot-unbootable:a`, `slot-successful:a`.
+
+**Fix:** `fastboot set_active a` (ABL's own slot switch; it writes no partition data). Slot a then has 3 retries
+again.
+
+**Lasting fix:** FS5b. The kernel marks slot a successful when neoui shows the launcher (HAL + monitor `slot ok`), after
+a dry run of the GPT attribute write.
+
+**Not the same thing:** a test image built for an **older** ROFS than the one in `system_a`. It refuses
+`system_a` (`[media] ROFS from system_a: another build's, not used`), ESTART panics (`ESTART_17`), and the screen shows
+`FAULT: KERN 0x00000004`. That is the header check working. Boot an image built from the same ROFS, or rewrite
+`system_a` with a `ROFS=1 ROFS_INSTALL=1` installer image. `lastlog` on the next boot shows which case it was.
+
 ## QEMU only: rare half-written protected buffers in DoRWTest (nkernsa suspend/kill/migrate)
 
 **Status:** open, parked 2026-11-06. It does not block M4. The real Pixel passes the whole suite
