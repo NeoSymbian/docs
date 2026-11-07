@@ -239,6 +239,20 @@ FS4b differs from the plan below:
 
 ### FS5: updates and integrity
 
+**Done 2026-11-08** (FS5a kernel `20b8f44`; FS5b kernel `5b0ba6b`).
+- **FS5a:** a flat SHA-256 per 4 KB block (no tree), carried in `boot.img` (`a64_medverity.cpp`, a
+  `DMediaDriverExtension` derived from Symbian's NFE test extension, with the kernel's own `SHA256`). A changed block
+  fails its read with `KErrCorrupt`. Cost: the plain-C hash runs at ~80 MB/s, so flash reads of `Z:` about halve.
+- **FS5b** (`qcom_bootctrl.cpp`):
+  - the kernel finds its slot from the GPT and reads `system_<slot>`;
+  - it marks the slot "successful" (monitor `slot ok`, HAL `ENeoHalBootOk` for neoui);
+  - **it counts the tries itself**, because this phone's ABL counts them only on fastboot RAM boots;
+  - a kernel fault restarts the phone through the watchdog, so a bad update rolls back.
+  - Updates: `fastboot flash boot_b`; `system_b` is written by a `ROFS_INSTALL` image RAM-booted on slot b, since
+    ABL refuses `system_*` outside fastbootd; then `fastboot set_active b`.
+  - Tested on the phone: update into b, then a broken b rolls back to a by itself.
+  - ABL's quirks are in `known-issues.md`.
+
 - **FS5a, integrity (no gates):** a hash tree over the ROFS image, checked block by block in a media driver
   extension (`DMediaDriverExtension`). Its root hash is in the core ROM.
 - **FS5b, A/B updates (gates G2 and G3):**

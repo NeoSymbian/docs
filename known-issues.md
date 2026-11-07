@@ -2,7 +2,18 @@
 
 ## Phone: slot a runs out of retries (ABL switches to slot b); test images may die with a black screen
 
-**Status:** open until FS5b ("boot OK" mark, `docs/filesystem.md`). Found 2026-11-07.
+**Status:** fixed 2026-11-08 by FS5b (kernel `5b0ba6b`): the kernel marks a slot successful (`slot ok now`, or
+neoui's `ENeoHalBootOk` once that lands) and counts tries itself. Found 2026-11-07.
+
+**ABL facts learned (bonito):**
+- slot state = byte 6 of the `boot_a`/`boot_b` GPT attributes: priority bits 0–1, active 2, retries 3–5,
+  successful 6, unbootable 7;
+- ABL lowers the retry count on **fastboot RAM boots**, not on normal boots, but at 0 it does switch slots;
+- `fastboot set_active x` resets x to 3 retries and **clears its "successful"**;
+- `fastboot flash boot_x` clears "successful" too;
+- `fastboot flash system_x` is refused ("should be flashed in fastbootd");
+- both GPT headers point at one entry array (LBA 2). The array at the disk's end is stale.
+- **After any of these**, boot a test image and run `slot ok now`.
 
 **Symptom:**
 - Every `fastboot boot` answers `Booting OKAY`, then the screen stays black (no green kernel text) and the phone is
@@ -11,8 +22,8 @@
 
 **Cause:**
 - `fastboot flash boot_a` clears slot a's "successful" flag. ABL then gives slot a 3 retries.
-- Every **normal** boot of the installed NeoSymbian uses one retry, because our kernel can't yet tell ABL "this boot
-  worked". RAM boots (`fastboot boot`) don't count.
+- **Correction (2026-11-08):** it was the **RAM boots** (`fastboot boot`) that used the retries, dozens of test boots;
+  normal boots don't count on this ABL.
 - At 0 retries, ABL marks slot a unbootable and makes **slot b** current. A normal restart then boots slot b's own
   system, not NeoSymbian.
 - **Correction (same day):** slot b did **not** cause the black screens. After a cold power-off (Power held ~15 s), the

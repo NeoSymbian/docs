@@ -435,6 +435,31 @@ integer math, so hardware floats (item 2) gain less than expected. Input handlin
 
 **Phone handoff:** rebuild `neoui/symbian` from `fc54289` or later. Nothing else changes in the ROM.
 
+### Dev tools and boot OK: kernel calls for neoui (requests from the kernel stream, 2026-11-08)
+
+The kernel has `EHalGroupVariant` functions for the phone's own tools. They are called with `UserSvr::HalFunction`
+(`EHalGroupVariant`, function, a1, a2) from a process with the capability listed:
+
+| Function | Number | Arguments | Capability |
+|---|---|---|---|
+| `ENeoHalLogRead` | 0x4e00 | a1 = `TUint32*` cursor (in/out, 0 = oldest), a2 = `TDes8*`: this boot's kernel log, up to 1024 bytes per call | ReadDeviceData |
+| `ENeoHalLastLogRead` | 0x4e01 | the same, for the previous boot's log (`lastlog`) | ReadDeviceData |
+| `ENeoHalConsoleSet` | 0x4e02 | a1 = 1 / 0: the kernel log overlaid on screen (dev mode) | WriteDeviceData |
+| `ENeoHalConsoleGet` | 0x4e03 | a1 = `TInt*` out | — |
+| `ENeoHalBootOk` | 0x4e06 | none: "this boot worked", marks the A/B slot successful (FS5b) | WriteDeviceData |
+
+0x4e04/0x4e05 are kept for the dev-mode switch (USB debug console on/off).
+
+**Requests:**
+1. **neoui (SYSSTART.EXE): call `ENeoHalBootOk` once the launcher is first drawn.** This one matters for the
+   installed phone. Without it, every flash or `set_active` leaves the slot unmarked, and the kernel counts it down
+   on each boot. It returns KErrNone if already marked and KErrNotSupported on QEMU; ignore both.
+2. **A Dev tools app:**
+   - show this boot's and the last boot's kernel log;
+   - save them to `E:\logs\`;
+   - switch the on-screen kernel console.
+3. **Later (FS6):** a "Share E: over USB" switch that runs `USBMS.EXE share|unshare`.
+
 ### R7: the Pixel (needs kernel M3; touch needs H4)
 
 - The same binaries go into the Pixel ROM. The backend finds the Pixel's display (the 1080×2160 splash framebuffer)
