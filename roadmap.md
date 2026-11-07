@@ -162,6 +162,7 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
 - **More than 4 GB physical**: widen `TPhysAddr` to 64 bits in the memory model. Only if the RAM map (unverified)
   puts memory we need above 4 GB.
 - Exit: before/after numbers from the nkernsa benchmarks, boot time, and idle current.
+- The UI's needs from M4 (clocks, placement, FP/NEON for user code) are stages S3–S4 of [smooth-ui.md](smooth-ui.md).
 
 ### Track H: hardware
 
@@ -171,7 +172,7 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
 | **H1 platform base** | RPMh (clocks, regulators, bus votes), SPMI PMIC arbiter, TLMM GPIO, GENI I2C/SPI, GPI DMA, SCM calls to TrustZone | Can talk to PM660 and to an I2C device |
 | **H2 storage** | SDHCI-msm eMMC media driver (CQHCI later), read the GPT, `C:` on `userdata`; then the file system plan ([filesystem.md](filesystem.md)): FS1 FAT32 plugin, FS2 HS200, FS3 `C:` + `E:`, FS4 `Z:` on ROFS, FS5 A/B updates, FS6 USB | Files written in Symbian survive a reboot and a power cut |
 | **H3 power** | PM660 charger + RRADC battery reading (Rust policy); suspend and resume (PSCI CPU_SUSPEND / system suspend); screen off | Phone idles a night on battery and wakes on the power key |
-| **H4 display + input** | Synaptics RMI4 touch (I2C; **done 2026-11-06** in kernel C++, polled; Rust behind `hwaccess` later); power and volume keys (**done**, SPMI); WLED backlight on PM660L; DSI panel on/off. Keep the bootloader's splash framebuffer as scan-out until a DPU driver is needed. | Touch coordinates reach a user-side process; backlight dims |
+| **H4 display + input** | Synaptics RMI4 touch (I2C; **done 2026-11-06** in kernel C++, polled; Rust behind `hwaccess` later); power and volume keys (**done**, SPMI); WLED backlight on PM660L; DSI panel on/off. Keep the bootloader's splash framebuffer as scan-out until a DPU driver is needed (vsync, double buffer, hardware planes: [smooth-ui.md](smooth-ui.md) S5). | Touch coordinates reach a user-side process; backlight dims |
 | **H5 audio** | ADSP remote processor; audio path through LPASS + PM660L WCD codec; speaker and earpiece | Play a tone through the earpiece |
 | **H6 haptics, LEDs, sensors** | PM660 haptics, LPG and flash LED, sensors (**unverified** which) | Vibrate on touch |
 
@@ -201,6 +202,7 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
 - Apps talk to it over Symbian IPC: create surface, input events, focus, notifications.
 - UI toolkit: **Slint** with its CPU-only software renderer (needs no GPU or operating system).
 - Exit: a Rust launcher drawn and scrollable by touch. Target 60 fps at 1080×2160; measure it, CPU only.
+  Measured at ~15 fps (R9); the way to 60 fps is [smooth-ui.md](smooth-ui.md).
 
 **U3: system apps in Rust**
 - Launcher, status bar (battery from H3, signal from P2), settings, dialer, messages, contacts, file manager.
@@ -208,7 +210,7 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
 
 **U4: GPU** (stretch)
 - Adreno 615 + GMU + its SMMU. Kernel part in C++; command-stream builder in Rust. Freedreno is the reference.
-- Until then, everything renders on the CPU.
+- Until then, everything renders on the CPU. Stage S6 of [smooth-ui.md](smooth-ui.md); its S2 and S5 cover a 2D UI first.
 
 ### Track P: phone
 
