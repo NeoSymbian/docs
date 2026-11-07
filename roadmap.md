@@ -122,6 +122,11 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
   - Verified: QEMU (8 GB FAT32, 256 MB FAT16, the RAM drive, neoui, the Syborg ROM); the phone (a long-named
     directory survives a reset, and the neoui ROM reaches the launcher).
   - **Next:** FS2 (eMMC speed + the partition allow-list), FS3 (`C:` + `E:`), then H3 power.
+- Status (2026-11-07, kernel `fc0c929`, FS2): **the eMMC runs 8-bit DDR52: 70 MB/s read, 39 MB/s write** (was 2 MB/s).
+  - The mode is raised at boot and verified by re-reading EXT_CSD; a cached DMA bounce buffer doubled the speed.
+  - Writes are limited to an allow-list of GPT partitions (`userdata` only enabled; `system_*`/`vendor_*` wait for
+    gate G1). New monitor commands: `blk speed [raw]`, `blk guard <lba>`, `blk mode <0-2>`.
+  - **Next:** FS3 (`C:` + `E:` on `userdata`, TRIM), then FS4a/FS5a, then H3 power.
 - Work, from `port-map.md` §2–§4 and §7:
   - exec gate: read the SVC opcode with `LDTR` at `ELR_EL1-4`; bit 23 = fast/slow; Thumb SVC has an 8-bit immediate;
   - `umemget`/`umemput`, `TExcTrap`, `EpocThreadFunction`, user entry;

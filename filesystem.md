@@ -139,12 +139,33 @@ cause; don't drop the check.
 
 ### FS2: eMMC speed
 
+**Done 2026-11-07** (kernel `fc0c929`): the eMMC runs 8-bit DDR52 at boot. Measured on the phone with `blk speed`
+(64 MB sequential, through the driver's 64 KB transfers):
+
+| Mode | Read | Write |
+|---|---|---|
+| legacy 1-bit 19.2 MHz | 2.2 MB/s | 2.2 MB/s |
+| HS52 8-bit 50 MHz (non-cached bounce) | 26 MB/s | 19 MB/s |
+| DDR52 8-bit, non-cached bounce | 35 MB/s | 23 MB/s |
+| **DDR52 8-bit, cached bounce** | **70 MB/s** | **39 MB/s** |
+
+- The bus alone reads 79 MB/s (`blk speed raw`). Copying out of a non-cached bounce buffer cost more than the bus,
+  so the data buffer is cached, with `Cache::SyncMemory*` around each transfer; the ADMA descriptors stay
+  non-cached. Bigger transfers (step 4) and HS200 (step 3) were not needed.
+- The 50 MHz clock comes from GPLL0 / 12 (CFG 0x117) and DDR52's 100 MHz core clock from GPLL0 / 6 (0x10b), not
+  GPLL0_EVEN.
+- Each mode step re-reads EXT_CSD and compares it; a failure restarts the card from CMD0 one mode lower.
+  `EMMC_MODE=0..2` caps the mode at build time, and `blk mode <n>` switches it at run time.
+- The allow-list: `blk guard` refuses LBA 0 (the GPT), `persist` (outside the list), `system_a` (listed, not
+  enabled) and the sector after `userdata`, and allows both ends of `userdata`.
+- Three boots in a row reached DDR52; `C:`'s files (written in legacy mode in FS1) read back, and new ones persist.
+
 Steps (`qcom_sdhci.cpp`, with Linux `sdhci-msm.c`, `sdhci.c` and `gcc-sdm845.c` as references), each one measured
 before the next:
 1. **8-bit HS52:**
    - CMD6 sets EXT_CSD `BUS_WIDTH` = 2 and `HS_TIMING` = 1;
    - the host gets an 8-bit bus and high speed;
-   - the GCC sdcc1 clock goes to 50 MHz (GPLL0_EVEN / 6).
+   - the GCC sdcc1 clock goes to 50 MHz (GPLL0 / 12).
    - No tuning. About 45 MB/s expected.
 2. **DDR52:**
    - `BUS_WIDTH` = 6 (8-bit DDR), UHS mode DDR50;
