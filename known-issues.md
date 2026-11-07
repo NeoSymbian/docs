@@ -1,6 +1,6 @@
 # Known issues
 
-## Phone: after a few normal restarts, ABL switches to slot b and test images die with a black screen
+## Phone: slot a runs out of retries (ABL switches to slot b); test images may die with a black screen
 
 **Status:** open until FS5b ("boot OK" mark, `docs/filesystem.md`). Found 2026-11-07.
 
@@ -13,8 +13,12 @@
 - `fastboot flash boot_a` clears slot a's "successful" flag. ABL then gives slot a 3 retries.
 - Every **normal** boot of the installed NeoSymbian uses one retry, because our kernel can't yet tell ABL "this boot
   worked". RAM boots (`fastboot boot`) don't count.
-- At 0 retries, ABL marks slot a unbootable and makes **slot b** current. With slot b current, our images die before
-  their first print. Not investigated further: we stay on slot a.
+- At 0 retries, ABL marks slot a unbootable and makes **slot b** current. A normal restart then boots slot b's own
+  system, not NeoSymbian.
+- **Correction (same day):** slot b did **not** cause the black screens. After a cold power-off (Power held ~15 s), the
+  known-good image booted to the USB console with slot b still current. The black-screen state was cleared by the
+  cold reset; its cause is unknown (no log survives a death before the first print). If it recurs: check the slot
+  first, then cold-reset.
 
 **Check:** `fastboot getvar current-slot`, `slot-retry-count:a`, `slot-unbootable:a`, `slot-successful:a`.
 
