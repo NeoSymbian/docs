@@ -50,7 +50,7 @@ every stage with what really happened.
 | **AOP QMP** | `0xc300000`, SPI 389, mbox bit 0 |
 | **rmtfs** | `0xfc201000` + 2 MB (guard pages on both sides), client-id 1, VMID 15 (MSS_MSA) |
 | **ADSP** | `qcom,sdm670-adsp-pas` at `0x62400000`, memory `0x95800000` + 0x2200000. Watchdog SPI 162; fatal/ready/handover/stop-ack = smp2p-lpass bits 0–3. APR on GLINK channel `apr_audio_svc`, protection domain `avs/audio` (`msm/adsp/audio_pd`). ACDB name `Global_cal.acdb` |
-| **Audio codec** | Digital: `qcom,sdm660-wcd-digital-codec` at `0x62ec0000`, mclk 9.6 MHz. Analog: `qcom,pm660l-wcd-analog-codec` on SPMI at 0xf000 (earpiece, headphones, speaker driver, mic bias; 14 IRQs). Sound card `qcom,sdm660-sndcard`, routing PDM_RX1–3, PDM_TX, AMIC2, MIC BIAS External2/Internal1 |
+| **Audio** (C1, from the pmOS UCM + the live mixer) | **Earpiece and loudspeaker** = two Cirrus Logic **CS35L36** amps ("Top", "Bottom") on I2C bus 2 at 0x40/0x41, fed by the ADSP's `SEC_TDM_RX_0`. **Built-in mic** = DMIC through `PRIMARY_TDM_TX_0` ("Sto1/Sto2 ADC MIXL DMIC"). The PM660L analog codec (`qcom,pm660l-wcd-analog-codec`, SPMI 0xf000) + the digital codec (`0x62ec0000`, mclk 9.6 MHz) serve only the 3.5 mm jack (`LPI_MI2S_RX_0` / `LPI_MI2S_TX_3`). Voice = ADSP `VoiceMMode1` (ALSA card 0 device 4), RX topology 268504967, TX 268500988 |
 | **IPA** | `0x1e40000` (+gsi `0x1e04000`), IRQs SPI 311 / 432 and smp2p ipa bits. SMMU stream IDs 0x720/0x722. Carve-outs ipa-fw `0x97a00000`, ipa-gsi `0x97a10000` |
 | Other carve-outs | hyp `0x85700000`, tz `0x86200000`, cdsp `0x94e00000`, wlan-msa `0x94d00000`, spss `0x97b00000`, qseecom `0x9e400000` |
 
@@ -170,6 +170,39 @@ us the exact sequences to reproduce.
 - **Go/no-go:** if Linux can't place a call with this SIM, find the cause first (network, firmware, provisioning).
   Don't write C2+ against an unknown.
 
+**Result 2026-11-08: GO.** The recipe is in [telephony/c1-linux](https://github.com/NeoSymbian/telephony/tree/main/c1-linux)
+(`build.sh`); the logs are in `private/c1/captures-*`.
+- **Image:** pmOS `linux-postmarketos-qcom-sdm670` 7.2.3 + `firmware-google-sargo` 220505.008 (the same firmware as
+  `modem_a`: no phone dump needed), Alpine userland, 105 MB boot.img, RAM disk only. Boot to an ssh shell takes about
+  30 s.
+- **Modem:**
+  - MBA boot, MPSS load and handover in about 3 s; "up" at 9.8 s.
+  - About 40 QMI services on QRTR node 0, among them VOICE 9 (v2), NAS 3, UIM 11, WMS 5, DMS 2, WDS 1, IMS 33/77
+    and PDC 36.
+  - Firmware MPSS.AT.4.0.2.c4.1-00145.
+- **SIM (UCOM, Armenia):**
+  - USIM ready, PIN1 off, plus an ISIM (the SIM can do IMS/VoLTE).
+  - Registered on **LTE**, MCC 283 MNC 10, CS + PS attached.
+  - The voice domain preference is `cs-only`, so calls use CSFB.
+  - Signal RSRP -96 dBm (96 %).
+- **Incoming call:** ModemManager answers. **Two-way audio confirmed by the owner** through the earpiece/speaker amps
+  and the built-in mic (call 2: 41 s).
+- **Still to do in C1:** an outgoing call, SMS both ways, mobile data, and the q6v5 dyndbg boot trace (that run's
+  dmesg was cleared by mistake).
+- **What it took:**
+  - `/lib/modules` and `/lib/firmware` links plus `depmod` (the packages' scripts were skipped);
+  - `root`/`messagebus`/`polkitd` users;
+  - **polkitd** (ModemManager refuses `enable` without it: "authority not found");
+  - `q6voiced hw:0,4`;
+  - the VoiceCall mixer path set with `amixer` (`voice-route`), because `alsaucm` did not keep it.
+  - On the Mac, the ECM interface needed a static 172.16.42.2 (udhcpd did not answer).
+  - `qmicli` 1.39 has no voice dial or answer; ModemManager does.
+- **The sequence to copy in C6** (from the UCM; register-level facts are in the captured `amixer contents`):
+  1. VoiceMMode1 RX topology, then `SEC_TDM_RX_0 Voice Mixer VoiceMMode1` = 1;
+  2. both CS35L36 amps enabled (gain/ramp settings in the UCM BootSequence);
+  3. VoiceMMode1 TX topology, then `VoiceMMode1 Capture Mixer PRIMARY_TDM_TX_0` = 1 + the DMIC switches;
+  4. open the VoiceMMode1 PCM both ways while the call is active (`q6voiced`).
+
 ### C2: kernel transport
 
 All files are in `kernel/baseport/arm64/sdm670_assp/`. Every file is our own C++, with an Apache-2.0 header and
@@ -280,10 +313,12 @@ shows the number and can be answered and hung up. This needs the owner to place 
         the same name;
      2. CVP creates the full control session on the RX/TX AFE ports;
      3. MVM attaches the vocproc and starts voice. The modem then streams call audio to the ADSP by itself.
-4. **Codec:**
-   - Digital codec registers at `0x62ec0000`: a kernel register-access LDD, or `hwaccess` if it exists by then.
-   - PM660L analog codec over SPMI at 0xf000: earpiece driver and AMIC + mic bias for the primary mic.
-   - The register values come from `mixer_paths*.xml` (vendor_a) and the pmOS UCM VoiceCall profile, as facts.
+4. **Codec and amps** (corrected by C1):
+   - Earpiece/speaker: the two **CS35L36** amps over I2C (bus 2, 0x40/0x41) on `SEC_TDM_RX_0`. Reuse the GENI I2C
+     driver (`qcom_geni_i2c.cpp`). Linux `cs35l36.c` serves as reference.
+   - Mic: the DMIC on `PRIMARY_TDM_TX_0`.
+   - The AFE ports to start are the TDM ones, not the internal codec. The PM660L analog codec is only for the jack.
+   - Values come from the pmOS UCM VoiceCall profile and C1's `amixer contents` capture, as facts.
 5. **Calibration:** ACDB is optional at first. Without it, expect quiet or echoey audio; note it in known-issues.
 
 Fallback if this stalls: port Linux q6afe/q6voice and the msm8916-wcd codec drivers directly (GPL, allowed).
@@ -419,4 +454,5 @@ Direct GPL ports so far: none.
 | Stage | State |
 |---|---|
 | C0 | **done 2026-11-08**: radio partitions backed up, firmware listed, carve-outs safe |
-| C1–C12 | not started |
+| C1 | **GO 2026-11-08**: modem up, LTE on UCOM, an incoming call with two-way audio under mainline Linux; outgoing call, SMS, data still to test |
+| C2–C12 | not started |
