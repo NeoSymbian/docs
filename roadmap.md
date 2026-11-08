@@ -162,11 +162,12 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
   (`board-bonito`), both under `neosymbian`.
 
 **M4: performance** (any time after M3)
-- **big.LITTLE-aware balancing** in `nkernsmp/nk_bal.cpp`: 2 gold + 6 silver cores. Busy threads go to gold, background
-  work to silver.
+- ✅ **big.LITTLE-aware balancing** in `nkernsmp/nk_bal.cpp`: 2 gold + 6 silver cores. Busy threads go to gold, background
+  work to silver. Done for the UI (smooth-ui S3d, 2026-11-08): each CPU weighs by its capacity and clock now.
 - **LSE atomics** (ARMv8.1+ `CAS`/`LDADD`) in `a64s_atomics.cpp` instead of LDXR/STXR loops.
 - **Tickless idle**: don't wake idle cores every 1 ms.
-- **CPU frequency scaling** through the SoC's cpufreq hardware block (needs H1).
+- **CPU frequency scaling** through the SoC's cpufreq hardware block (needs H1). Started (smooth-ui S3c, 2026-11-08):
+  `qcom_cpufreq.cpp` sets the OSM steps, top on input and ABL's 3 s later; a governor comes with power (H3).
 - **More than 4 GB physical**: widen `TPhysAddr` to 64 bits in the memory model. Only if the RAM map (unverified)
   puts memory we need above 4 GB.
 - Exit: before/after numbers from the nkernsa benchmarks, boot time, and idle current.

@@ -1,10 +1,10 @@
 # Smooth UI: from 15 fps redraws to 60 fps on the Pixel
 
-**Status: in progress. S1 is done (2026-11-08); S2–S6 are open.** The plan (2026-11-07) comes from a read-through
-of neoui, e32-rs and the kernel after the R9 speed measurements
+**Status: in progress. S1 and S3 are done (2026-11-08); S2, S4–S6 are open.** The plan (2026-11-07) comes from a
+read-through of neoui, e32-rs and the kernel after the R9 speed measurements
 ([rust-integration.md](rust-integration.md#r9-neoui-speed-on-the-phone-measured)). Stages S1–S6 below are the work
-list. Each stage has an owner, an exit check, and an **estimate** of what it
-gains. Estimates are not measurements until the stage's exit check says so.
+list. Each stage has an owner, an exit check, and an **estimate** of what it gains. Estimates are not measurements
+until the stage's exit check says so.
 
 Paths name the repository first (`neoui`, `e32-rs`, `kernel`), then the path inside it.
 
@@ -108,19 +108,50 @@ the Pixel; Syborg CI not run (being rebuilt).
 
 ### S3: CPU placement and clocks
 
-**Owner:** kernel session; overlaps [roadmap.md](roadmap.md) M4. **Status:** not started.
+**Owner:** kernel; overlaps [roadmap.md](roadmap.md) M4. **Status: done (2026-11-08)**, in `kernel` `6ca665a` (S3a),
+`a584295` (S3b), `9b127ce` (S3c) and `618a9d9` (S3d). Checked on the Pixel and on QEMU. Clock policy chosen by the
+owner: touch boost.
 
-- **Stopgap:** default user-thread affinity on the silver cores, mask `0x8000003F` (CPUs 0–5; bit 31 marks a mask),
-  at `sthread.cpp:614`.
-- **Measure the real clocks** with the PMU cycle counter against `CNTVCT`, per core, before writing cpufreq.
-- **cpufreq** through SDM670's OSM block: gold and silver at full clock. Then vote the L3, memnoc and DDR bandwidth
-  (RPMh BCM) for the UI.
-- **big.LITTLE-aware placement** in `nk_bal.cpp`: the busy UI thread on gold, background work on silver.
-- **Exit:**
-  - the measured MHz per core is recorded in this doc;
-  - gold ns/px < silver ns/px in `neoui: perf`.
-- **Gain (estimate):** 2.2× on gold right away (stopgap). Then 2–3× over silver once gold runs at full clock (a
-  Cortex-A75 does more per clock than an A55).
+- **S3b, the clocks ABL leaves** (monitor `cpus`: PMU cycles against `CNTVCT` per CPU; `EL2` does not trap the
+  PMU; OSM registers read with `peek`):
+
+  | Block | Core (MIDR part) | ABL's step | Clock (PMU) | Top step |
+  |---|---|---|---|---|
+  | Silver, CPUs 0–5 (cpufreq domain 0, `0x17d43000`) | Kryo 385 Silver, `0x803` (A55) | 8 of 0–8 | 1708 MHz | 1708.8 MHz |
+  | Gold, CPUs 6–7 (domain 1, `0x17d45800`) | Kryo 385 Gold, `0x802` (A75) | **0** of 0–9 | **300 MHz** | 1996.8 MHz |
+  | L3 (osm-l3, `0x17d41000`) | — | 5 of 0–10 | 940.8 MHz | 1440 MHz |
+
+  - That is why gold rendered 2.2× slower than silver in R9: it ran at a sixth of silver's clock.
+  - The OSM register layout is Linux `qcom-cpufreq-hw.c` (sdm845): LUT at +0x110, 32-byte rows, `LVAL` × 19.2 MHz,
+    PERF_STATE at +0x920.
+- **S3a, stopgap:** the board sets the user threads' default CPU affinity (`A64_UserCpuAffinity` in `board.h`, used
+  in `sthread.cpp`). The Pixel kept them on CPUs 0–5 until S3d.
+- **S3c, cpufreq with touch boost:** `baseport/arm64/sdm670_assp/qcom_cpufreq.cpp` reads the three step tables.
+  - Every input event (`Kern::AddEvent` → `A64CpuBoost`) puts silver, gold and L3 at their top steps.
+  - 3 s after the last event they go back to ABL's steps.
+  - The monitor's `cpufreq` shows each block's step; the HAL's `ECPUSpeed` reports gold's top step.
+- **S3d, placement by capacity:** each balancing pass in `nk_bal.cpp` scales a CPU's share by `A64CpuCapacity`, which
+  is DTB `capacity-dmips-mhz` (silver 610, gold 1024) × the clock now.
+  - Gold boosted: 1024. Silver: 522. Gold at 300 MHz: 153.
+  - So busy threads move to gold while the user touches the phone, and stay on silver otherwise.
+  - Boards without cpufreq get 1024 for every CPU (QEMU, nkernsa: unchanged). User threads may run anywhere again.
+- **Exit check (Pixel):** passed.
+
+  | Run (two 10 s drags + 20 taps) | neoui on | Frames/s while dragging | Render | Input |
+  |---|---|---|---|---|
+  | S1 only (`38eb607`) | CPU 0–2 or 6 at random | 4–8 on gold, 25–42 on silver | 21–140 ms | 22/22 paired |
+  | S3a (silver only) | CPU 5 | 35–41 | 31.2 ns/px | 22/22 paired |
+  | S3d (boosted gold) | CPU 6–7 | 37–62 | **17.7 ns/px** | 22/22 paired, 0 dropped |
+
+  - Gold ns/px < silver ns/px, the exit condition.
+  - 5.5 minutes of drags and taps: no reset, gold still at 1996 MHz at the end (no LMh throttling seen), 70/70
+    releases.
+  - Menu ↔ home transitions still take 50–55 ms a frame on gold (full redraws): S2's job.
+- **Not done:** DDR / memnoc votes (RPMh BCM `MC0`/`SH0` + `ACV`). A full-frame copy takes 4 ms, so bandwidth isn't
+  the limit yet; `qcom_rpmh.cpp` can't express ACV's bitmask. Lowering silver when idle, a governor and a thermal
+  driver belong to power (H3).
+- **Gain (measured):** gold went from 300 to 1996 MHz under touch; rendering is 1.8× faster per pixel than on silver
+  and about 5.6× faster than gold before (R9: about 100 ns/px).
 
 ### S4: FP/NEON for user code and an ARMv7/ARMv8-AArch32 build
 
@@ -184,7 +215,7 @@ the Pixel; Syborg CI not run (being rebuilt).
 |---|---|---|---|
 | 1 | S1 ✅ | neoui (+2 kernel lines) | No lost taps; touch follows the finger (done 2026-11-08) |
 | 2 | S2 | neoui | Transitions, swipe and scroll at 60 fps on silver |
-| 3 | S3 stopgap → S3 | kernel session | UI on the fast cores; gold faster than silver |
+| 3 | S3 ✅ | kernel session | UI on the fast cores; gold faster than silver (done 2026-11-08) |
 | 4 | S4 | kernel session, then e32-rs/neoui | NEON build; cheap locks |
 | 5 | S5 | kernel session, then neoui | No tearing; free fades and slides |
 | — | S6 | later | Only if 3D is needed |
@@ -204,7 +235,7 @@ graph LR
 
 | Item | Needed by | How |
 |---|---|---|
-| Real CPU and DDR clocks after ABL | S3 | PMU cycle counter vs `CNTVCT` per core (`MDCR_EL2` may block PMU access) |
+| ~~Real CPU clocks after ABL~~ (S3b: silver 1708, gold 300 MHz; the PMU is not trapped). DDR clock | S3 | DDR: not measured yet |
 | Panel video vs command mode; which pipe the splash uses | S5 | The phone's DTB (`private/bonito.dtb`), DPU register dump |
 | AArch32 FP traps at EL2 (Qualcomm hypervisor) | S4 | Enable FPEN, run one VFP instruction at EL0 |
 | How often alignment (LDRD/LDM) and SWP traps fire | S4 | Counters in `a64e_a32fix.cpp` |

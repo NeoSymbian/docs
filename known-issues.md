@@ -102,3 +102,17 @@ pacing in `A64Key_Type` (`a64_dbgmon.cpp`). Workaround: keep typed lines short.
   clears them.
 
 **Effect:** the USB debug console and FS6's E: sharing work only on fastboot RAM boots for now.
+
+## Syborg: an odd screen width shears the picture (seen 2026-11-08)
+
+**Status:** open, for the symbian-qemu work.
+- **What:** neoui's ROM on symbian-qemu at `SCREEN=539x1079` (`-M syborg,width=539,height=1079`, the size neoui's
+  `syborg` CI uses) shows a diagonally sheared screen. Each row is shifted a little further, as when a framebuffer is
+  read with the wrong row stride.
+- **The same ROM at 540x1080 is correct.** Seen with a native QEMU 11.1.2 build on the Mac (`run-syborg`, `FB`
+  screenshot), ROM from `build` with neoui `f1a844b`.
+- **Not the cause:**
+  - neoui reports `display 539x1079, stride 2156` (539 × 4);
+  - `hw/display/syborg_fb.c` reads rows of `width * 4` bytes too.
+- **Still to check:** the 2010 Syborg LCD driver (the stride the guest programs or assumes), and the screenshot path.
+- **Workaround:** an even width (540x1080). CI screenshots at 539x1079 may show the same shear.
