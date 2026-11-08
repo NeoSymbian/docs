@@ -1,6 +1,7 @@
 # Smooth UI: from 15 fps redraws to 60 fps on the Pixel
 
-**Status: in progress. S1 and S3 are done (2026-11-08); S2, S4–S6 are open.** The plan (2026-11-07) comes from a
+**Status: in progress. S1 and S3 are done (2026-11-08); S2 is in progress (S2b, screen-change fades, is in code);
+S4–S6 are open.** The plan (2026-11-07) comes from a
 read-through of neoui, e32-rs and the kernel after the R9 speed measurements
 ([rust-integration.md](rust-integration.md#r9-neoui-speed-on-the-phone-measured)). Stages S1–S6 below are the work
 list. Each stage has an owner, an exit check, and an **estimate** of what it gains. Estimates are not measurements
@@ -86,7 +87,8 @@ the Pixel; Syborg CI not run (being rebuilt).
 
 ### S2: retained layers and a CPU compositor
 
-**Owner:** neoui. **Status:** not started; needs a design first.
+**Owner:** neoui. **Status: in progress.** S2b (screen-change fades) is in `neoui` `7cce590`, `16958f7` and
+`f3ad55c` (e32-rs `e97e2eb`), checked on Syborg only; the phone check and S2c–S2e are open.
 
 - The UI server keeps **layers**: off-screen XRGB8888 buffers that each hold a fully drawn screen, home page or list
   strip.
@@ -95,11 +97,40 @@ the Pixel; Syborg CI not run (being rebuilt).
     layers at offsets (slide) or blending them (fade);
   - **home page swipe:** the pages as one wide layer, copied at the finger's offset;
   - **list scroll:** copy the existing content up or down with `copy_within`, and draw only the newly exposed strip.
-- **Design question to settle first:** how to get layers out of Slint's single `MinimalSoftwareWindow`. Options:
+- **S2a, design (screen changes):** the server snapshots the screen before the switch (the second option below). Slint
+  keeps its one `MinimalSoftwareWindow`. Still open for S2c/S2d, whose layers live inside one screen:
   - a Slint window per layer (the platform's `create_window_adapter` can return several);
-  - rendering a screen into its own buffer before the switch;
   - handling scrolling in the server instead of in Slint's `Flickable`.
-- **App surfaces** (R6) are layers already. Bring them into the same compositor.
+- **S2b, screen changes fade from snapshots** (`7cce590`):
+  - Before: Slint's 250 ms fade + 16 dp rise (`Slot`) redrew both full screens every frame, 50–55 ms a frame on
+    boosted gold (S3).
+  - Now, before a change, the server snapshots the screen: the shell frame with the front app's surface over its
+    body. Slint switches at once (`Shell.server-transitions` → `Theme.instant`, 0 ms `Slot` animations). One render
+    leaves the new screen in the frame. For 250 ms the server then blends old and new row by row straight to the
+    framebuffer, the new body rising 16 dp with ease-out-quad.
+  - `neoui-render` `src/layer.rs`: `blend_row` (integer, no divide), `ease_out_quad`, `Transition`, host-tested
+    against a per-channel reference. `tests/transitions.rs`: with the flag on, one render after a switch redraws the
+    whole body and leaves nothing to animate.
+  - The desktop host, snapshot tests and tests keep Slint's own fade (the property defaults to off).
+  - `neoui: perf` counts composed frames apart: `N layer frames avg … max … us`, after the fields CI greps.
+  - **Memory** (`16958f7`, `f3ad55c`): a 1080×2160 snapshot is 9,331,200 bytes.
+    - Allocating it at start-up crashed the Pixel: SYSSTART panicked, the kernel faulted, the phone restarted.
+    - Now `try_reserve_exact` takes it when a fade starts, a running fade reuses it, and it is freed when the fade
+      ends. When it can't be had, the log says `neoui: no memory for a fade` and the new screen just appears.
+    - With e32's 16 MB heap that happened on every change (seen on the installed slot b), so e32-rs `e97e2eb`
+      reserves 64 MB.
+  - **Checked on Syborg** (native QEMU on the Mac): one Slint render + 11–12 composed frames per screen change; a
+    mid-fade screenshot shows the cross-fade. At 1080×2160 with the 64 MB heap: menu ↔ home fade, 9 composed frames
+    each.
+  - **Not checked on the Pixel:** slot b has neoui `16958f7` with e32 `c5fda36`, so its screen changes appear without
+    a fade. Layer-frame timing on the phone is not measured.
+- **Open:**
+  - **S2b on the Pixel:** RAM-boot neoui `f3ad55c` or later; menu ↔ home; read the `layer frames` line; then install
+    it into a slot.
+  - **S2c, home page swipe:** the pages as one wide layer.
+  - **S2d, list scroll:** shift with `copy_within`, draw only the exposed strip.
+  - **S2e, app surfaces** (R6) are layers already. Bring them into the same compositor.
+  - Syborg CI on the S2 commits.
 - **Exit:**
   - menu ↔ home, home swipe and a menu scroll each log `neoui: perf` render+copy ≤ 16.7 ms per frame on the silver
     cores;
@@ -214,7 +245,7 @@ owner: touch boost.
 | Step | Stages | Who | Checkpoint |
 |---|---|---|---|
 | 1 | S1 ✅ | neoui (+2 kernel lines) | No lost taps; touch follows the finger (done 2026-11-08) |
-| 2 | S2 | neoui | Transitions, swipe and scroll at 60 fps on silver |
+| 2 | S2 (S2b in code) | neoui | Transitions, swipe and scroll at 60 fps on silver |
 | 3 | S3 ✅ | kernel session | UI on the fast cores; gold faster than silver (done 2026-11-08) |
 | 4 | S4 | kernel session, then e32-rs/neoui | NEON build; cheap locks |
 | 5 | S5 | kernel session, then neoui | No tearing; free fades and slides |
