@@ -242,10 +242,12 @@ FS4b differs from the plan below:
 **Done 2026-11-08** (FS5a kernel `20b8f44`; FS5b kernel `5b0ba6b`).
 - **FS5a:** a flat SHA-256 per 4 KB block (no tree), carried in `boot.img` (`a64_medverity.cpp`, a
   `DMediaDriverExtension` derived from Symbian's NFE test extension, with the kernel's own `SHA256`). A changed block
-  fails its read with `KErrCorrupt`. Cost: the plain-C hash runs at ~80 MB/s, so flash reads of `Z:` about halve.
+  fails its read with `KErrCorrupt`. Since kernel `fc4ab26` the hash uses the CPU's SHA-256 instructions (1 MB in 2 ms
+on the phone; `a64_sha256.S`, self-tested at boot, the C one as fallback), so the check costs almost nothing.
 - **FS5b** (`qcom_bootctrl.cpp`):
   - the kernel finds its slot from the GPT and reads `system_<slot>`;
-  - it marks the slot "successful" (monitor `slot ok`, HAL `ENeoHalBootOk` for neoui);
+  - it marks the slot "successful" through HAL `ENeoHalBootOk`. **neoui calls it once the launcher is drawn**
+    (neoui `eb0db62`), so every install marks itself; the monitor's `slot ok now` remains for tests;
   - **it counts the tries itself**, because this phone's ABL counts them only on fastboot RAM boots;
   - a kernel fault restarts the phone through the watchdog, so a bad update rolls back.
   - Updates: `fastboot flash boot_b`; `system_b` is written by a `ROFS_INSTALL` image RAM-booted on slot b, since
@@ -264,6 +266,18 @@ FS4b differs from the plan below:
 - FS5b: a bad update rolls back by itself.
 
 ### FS6: USB mass storage
+
+**Status 2026-11-08:**
+- **Decided:** Symbian's own stack, reused unchanged: usbcc + the usbc LDD + smassstorage (MSFS.FSY), with a new
+  DWC3 PSL derived from `bsptemplate/.../pa_usbc.cpp`. `USBMS.EXE share|unshare` and a "Share E:" switch in the Dev
+  tools app complete it.
+- **Researched, not started.** Things to handle:
+  - E: must report `KDriveAttRemovable`, or MSFS skips it;
+  - the built-in-LDD loader needs an `eusbc`→`usbc` alias;
+  - `usbcsc_bil.dll` must be in the ROM;
+  - the debug console and mass storage take turns owning the controller.
+- **Blocked on the installed phone** by USB power on a normal boot. It works on fastboot RAM boots, where ABL powers
+  USB. See `known-issues.md`.
 
 - **Spike first:** `smassstorage` speaks to the Symbian USB client LDD (`RDevUsbcClient`, `kernel/eka/drivers/usbc`).
   Our `qcom_dwc3_acm.cpp` is a standalone polled gadget for the debug console. The spike picks between:

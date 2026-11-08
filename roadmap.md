@@ -132,6 +132,14 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
   - TRIM from FAT's delete notifications; files survive a reboot and a watchdog reset during a copy.
   - **Next:** H3 power; the rest of the storage plan (FS4a `Z:` from ROFS, FS5a integrity, the FS6 spike) alongside.
     FS4b/FS5b need the owner's approval (gates G1–G3 in [filesystem.md](filesystem.md)).
+- Status (2026-11-08): **FS4 and FS5 done; the phone is installed and updates itself safely.**
+  - **FS4:** `Z:` = the core ROM in `boot_x` + ROFS in `system_x`.
+  - **FS5a:** every `Z:` block hash-checked, with the CPU's SHA-256.
+  - **FS5b:** A/B slots. The kernel picks `system_<slot>` and counts tries; neoui marks a good boot; a bad update
+    rolls back by itself. Tested on the phone.
+  - **Dev tools** app on the phone: the kernel logs, saving them to `E:\logs`, the console overlay, the slot state.
+  - **Parked:** USB power on a normal boot ([known-issues.md](known-issues.md)).
+  - **Next:** FS6 (`E:` over USB), the on-phone updater, H3 power.
 - Work, from `port-map.md` §2–§4 and §7:
   - exec gate: read the SVC opcode with `LDTR` at `ELR_EL1-4`; bit 23 = fast/slow; Thumb SVC has an 8-bit immediate;
   - `umemget`/`umemput`, `TExcTrap`, `EpocThreadFunction`, user entry;
