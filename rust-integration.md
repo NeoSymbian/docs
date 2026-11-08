@@ -510,8 +510,9 @@ QEMU arm64 (Dev tools → Restart → the guest resets) and on the Pixel (RAM bo
   - **Clock app:** Set time, with steppers for date, hour, minute and time zone (15 min steps).
 - **Checked on the Pixel:** RTC control `0x80` (running), counting 1 s/s; the Mac's time saved; after a power-off
   from the menu (screen stayed dark until Power), the next boot's clock came from the RTC alone, within ~2 s.
-- Not yet: Restart from the menu on the phone (the same kernel restart as the A/B slot code; the neoui path is
-  checked on QEMU), an install image, and the clock after the RTC loses power.
+- **Installed** (slot b, 2026-11-08): Restart from the Power menu comes back to the launcher on the installed
+  system; the clock is right after restarts and power-offs.
+- Not yet: the clock after the RTC itself loses power (a fully drained battery).
 
 ### R7: the Pixel (needs kernel M3; touch needs H4)
 
