@@ -88,7 +88,7 @@ the same on any file system.
 `modemst1`, `modemst2`, `fsg`, `persist`, and the boot chain (`xbl*`, `abl*`, `tz*`, `hyp*`, `rpm*`, `keymaster*`,
 `devcfg*`, …). They hold the IMEI, radio and sensor calibration, and the bootloaders. Losing them disables the modem
 or bricks the phone.
-Telephony reads `modemst1/2`, `fsg`, `fsc`, `modem_a` and `dsp_a` read-only ([telephony.md](telephony.md)); writing them is gate G4.
+Telephony reads `modemst1/2`, `fsg`, `fsc`, `modemcal` and `modem_a` read-only ([telephony.md](telephony.md)); writing them is gate G4.
 
 **The allow-list.** The block driver keeps a list of the partition names it may write: `userdata`, `system_a/b` and
 `vendor_a/b`.
@@ -105,7 +105,7 @@ owner's explicit approval at the time:
 | G1 | Writes to `system_a/b` by our bounded driver | FS4b |
 | G2 | The first write to `boot_a/b`: the phone then boots NeoSymbian without `fastboot boot` | FS5b |
 | G3 | Changing the A/B slot attributes: GPT entry attribute bits, rewritten with both GPT copies and their CRCs, or `fastboot --set-active` from a PC | FS5b |
-| G4 | Writes to the radio partitions (`modemst1`, `modemst2`, `fsg`, `fsc`, `persist`, `modem_a`, `dsp_a`), e.g. rmtfs persisting the modem's EFS | [telephony.md](telephony.md) C12 |
+| G4 | Writes to the radio partitions (`modemst1`, `modemst2`, `fsg`, `fsc`, `modemcal`, `persist`, `modem_a/b`), e.g. rmtfs persisting the modem's EFS | [telephony.md](telephony.md) C12 |
 
 ## Stages
 

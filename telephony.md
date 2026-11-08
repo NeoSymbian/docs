@@ -27,7 +27,7 @@ every stage with what really happened.
 ## Safety rules
 
 - **Gate G4** (new; the other gates are in `filesystem.md`): any write to `modemst1`, `modemst2`, `fsg`, `fsc`,
-  `persist`, `modem_a` or `dsp_a` needs the owner's OK at the time. Until G4, rmtfs keeps the modem's EFS writes in
+  `modemcal`, `persist` or `modem_a/b` needs the owner's OK at the time. Until G4, rmtfs keeps the modem's EFS writes in
   RAM.
 - Back up the radio partitions (C0) before the first modem boot of any OS.
 - Never put the IMEI, ICCID, IMSI, phone numbers or the DTB in a repo or a committed log. Monitor commands print
@@ -42,7 +42,7 @@ every stage with what really happened.
 | MSS clocks | GCC: iface, bus, mem, gpll0_mss, snoc_axi, mnoc_axi, prng; plus RPMh xo |
 | MSS power and reset | Power domains rpmhpd cx, mx, mss. Resets: AOSS `0xc2a0000` `mss_restart`, PDC `0xb2e0000` reset 9. Halt registers in TCSR `0x1f60000` at +0x3000 (q6), +0x5000 (modem), +0x4000 (nc). Needs an AOP QMP message (`qcom,qmp`) |
 | MSS memory | mba `0x95600000` + 2 MB, mpss `0x8b000000` + 0x9800000 (152 MB) |
-| Firmware names | `qcom/sdm670/sargo/mba.mbn`, `modem.mbn`, `adsp.mbn`, `ipa_fws.mbn` (Linux names; on the phone they are `modem.mdt` + `.bNN` split files on `modem_a`, **unverified**) |
+| Firmware | `modem_a` (FAT16, 4096-byte sectors) holds only the modem: `IMAGE/MBA.MBN`, `MODEM.MDT` + `MODEM.B00`–`B30`, `MODEMR.JSN` (root PD, QMI instance 180), `QDSP6M.QDB`. Build MPSS.AT.4.0.2.c4.1-00120, radio `g670-00145-220106-B-8048689` (2022-01-06). **There is no `dsp_a`**: the ADSP firmware, the `mcfg` carrier profiles and `ipa_fws` sit on `vendor_a` (`/vendor/firmware`, **unverified**), taken from Google's factory image of that radio build. Linux names: `qcom/sdm670/sargo/{mba,modem,adsp,ipa_fws}.mbn` |
 | **SMEM** | `0x86000000` + 2 MB, hwlock = TCSR mutex 3 |
 | **APCS IPC** | `0x17990000`; doorbell register +0xc. Bits: AOP QMP 0, modem GLINK 12, modem SMP2P 14, ADSP GLINK 24, ADSP SMP2P 26 |
 | GLINK edges | modem: SPI 449, remote pid 1. lpass (ADSP): SPI 170, remote pid 2 |
@@ -114,6 +114,34 @@ C10 2–3 weeks, C11 open, C12 1–2 weeks.
 
 Exit: hashes recorded in `private/radio-backup/SHA256SUMS`. The firmware file list and the carve-out check go into
 this file.
+
+**Done 2026-11-08** (kernel `1253e70` + `5c65051`):
+- `blk dump <lba> <n>` (monitor) and `phone.py dump <partition> <file>`: 2.0 MB/s over the USB console, SHA-256 checked
+  on the phone and on the Mac.
+- No older backup existed.
+- Backed up, hashes matching: `modemst1`, `modemst2`, `fsg`, `fsc`, `modemcal` (radio calibration, not in the first
+  list), `persist`, `modem_a`, `bluetooth_a`.
+  - `vendor_a` is not dumped: it comes from Google's factory image instead.
+  - Test image: `USERSIDE=0 AUTOFASTBOOT=3600`, kernel only, eMMC read-only.
+- GPT sectors:
+
+  | Partition | Sectors |
+  |---|---|
+  | fsg | 27432..31527 |
+  | modem_a | 299816..525095 |
+  | modem_b | 525096..750375 |
+  | fsc | 996480..996735 |
+  | modemst1 | 1029632..1033727 |
+  | modemst2 | 1033728..1037823 |
+  | persist | 1037824..1119743 |
+  | modemcal | 1123584..1127679 |
+  | vendor_a | 14214144..15787007 |
+  | bluetooth_a | 992384..994431 |
+
+- Carve-outs: safe. Symbian's only RAM bank ends at `0x85700000` (`A64_BOOT_RAM_END`, hyp-mem), below every
+  modem/DSP region. The lastlog ring ends exactly where qseecom starts. Any later growth of the bank must skip the
+  carve-outs.
+- Gate G4 now also covers `modemcal`.
 
 ### C1: Linux reference run (throwaway)
 
@@ -390,4 +418,5 @@ Direct GPL ports so far: none.
 
 | Stage | State |
 |---|---|
-| C0–C12 | not started (plan written 2026-11-08) |
+| C0 | **done 2026-11-08**: radio partitions backed up, firmware listed, carve-outs safe |
+| C1–C12 | not started |
