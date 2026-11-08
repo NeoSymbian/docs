@@ -228,39 +228,16 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
 
 ### Track P: phone
 
-**P1: remote processors** (needs H1)
-- Start the modem (MSS) through TrustZone: load and authenticate `mba.mbn` + `modem.mbn` from the phone's own firmware
-  partitions, then the ADSP (also needed for H5).
-- GLINK over SMEM + SMP2P. QRTR router.
-- Exit: the modem reports "ready" and answers a QRTR ping.
+The full runbook, with hardware facts, steps, exit tests and failure modes, is [telephony.md](telephony.md) (stages
+C0–C12). The stage names below are kept because the dependency graph uses them:
 
-**P2: QMI in Rust**
-- QMI framing and the services: control, DMS (device), NAS (network), UIM (SIM), WDS (data), WMS (SMS), VOICE.
-- Behind a thin C++ **ETel TSY**, so Symbian's own telephony API keeps working. Which ETel packages are in Phorepoc's
-  build is **unverified**; check this first.
-- Exit: status bar shows the operator name and signal bars.
-
-**P3: SMS and mobile data**
-- SMS: QMI WMS, through the Symbian SMS stack if it is present in the build (**unverified**), otherwise a Rust messages
-  service.
-- Data: the modem's IP data path (IPA hardware, `qcom,sdm670-ipa`) into ESOCK/TCPIP6 as a packet interface.
-- Exit: send and receive an SMS; fetch a web page over LTE.
-
-**P4: Wi-Fi + Bluetooth**
-- WCN3990: Wi-Fi is managed through the modem subsystem and QMI on this chip family (**unverified for sdm670; not in
-  the DTB**), so it comes after P1/P2. Data goes into ESOCK.
-- Bluetooth over its UART (`qcom,wcn3990-bt`).
-- Exit: join a WPA2 network.
-
-**P5: voice calls**
-- QMI VOICE + audio routing from H5.
-- **Go/no-go risk for "daily phone":** most networks have switched off 2G/3G, so calls need **VoLTE/IMS**. On Qualcomm
-  Android, IMS is a closed user-space stack. An open IMS path on this modem may not exist.
-- Check this first, on your own carrier:
-  1. does the network still allow 2G/3G voice;
-  2. how far postmarketOS on sdm670/sdm845 has got with VoLTE.
-  If both answers are no, calls are out of reach and the goal becomes "data + SMS + VoIP".
-- Exit: make and receive a call with two-way audio.
+| Stage | telephony.md | Exit |
+|---|---|---|
+| **P1 remote processors** (needs H1) | C0–C4: backups, Linux reference run, SCM/SMEM/SMP2P/GLINK, MSS boot, rmtfs/pd-mapper/tqftp | The modem is up and answers QMI |
+| **P2 QMI in Rust** | C5: `modemsrv` + dialer (no ETel at first) | Operator and bars in the status bar; calls ring and answer |
+| **P3 SMS and mobile data** | C9, C10 | SMS round-trip; a web page over LTE |
+| **P4 Wi-Fi + Bluetooth** | not in telephony.md | Join a WPA2 network. WCN3990 Wi-Fi runs through the modem subsystem and QMI (ztOS: "WIFI-HW missing" until rmtfs + tqftpserv ran), so it comes after P1 |
+| **P5 voice calls** | C6–C8, C11 | Two-way call audio. 2026-11-08: the owner's network still has 3G, so calls use CSFB first. VoLTE is the C11 stretch |
 
 ## Dependencies
 
