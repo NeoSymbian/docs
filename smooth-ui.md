@@ -1,8 +1,9 @@
 # Smooth UI: from 15 fps redraws to 60 fps on the Pixel
 
-**Status: plan (2026-11-07).** This comes from a read-through of neoui, e32-rs and the kernel after the R9 speed
-measurements ([rust-integration.md](rust-integration.md#r9-neoui-speed-on-the-phone-measured)). No code has changed
-yet. Stages S1–S6 below are the work list. Each stage has an owner, an exit check, and an **estimate** of what it
+**Status: in progress. S1 is done (2026-11-08); S2–S6 are open.** The plan (2026-11-07) comes from a read-through
+of neoui, e32-rs and the kernel after the R9 speed measurements
+([rust-integration.md](rust-integration.md#r9-neoui-speed-on-the-phone-measured)). Stages S1–S6 below are the work
+list. Each stage has an owner, an exit check, and an **estimate** of what it
 gains. Estimates are not measurements until the stage's exit check says so.
 
 Paths name the repository first (`neoui`, `e32-rs`, `kernel`), then the path inside it.
@@ -50,25 +51,38 @@ NEON and LDREX gains of S4 still count.
 
 ### S1: input and frame pacing
 
-**Owner:** neoui, plus two small kernel changes for the kernel session. **Status:** not started.
+**Owner:** neoui + kernel. **Status: done (2026-11-08)**, in `neoui` `f1a844b` and `kernel` `38eb607`. Checked on
+the Pixel; Syborg CI not run (being rebuilt).
 
-- **neoui main loop:**
-  - after the first event wakes the loop, take every queued event without waiting;
-  - merge consecutive pointer moves into the last one;
-  - never merge Down or Up;
-  - process all of them, then render **once**.
+- **neoui main loop** (`symbian/src/lib.rs`):
+  - after the first event wakes the loop, it takes every queued event without waiting (a fresh `RequestEvent`
+    completes at once when the kernel has one);
+  - runs of pointer moves fold into the last one; Down, Up and keys are never merged (`neoui-proto`
+    `coalesce_moves`, host-tested);
+  - all events are handled, then the UI renders **once**.
 - **Pacing:**
-  - while an animation runs, wake at the next 16.7 ms deadline (`next = last_frame + 16_667 µs`), not 33 ms after
-    the render;
-  - if a frame overruns, skip to the next deadline rather than queueing frames.
+  - frames start on a 16.7 ms grid (`FRAME_US`), not 33 ms after the render;
+  - a frame that overruns skips the starts it missed (`neoui-proto` `next_deadline`).
+- **Logging:** each release logs its own press (`neoui: tap X,Y down Some((X0, Y0))`). One frame can show
+  several taps, so `tap from … redrew` names the last one.
 - **Kernel:**
-  - raise `KMaxEventQueue` (40 → 256);
-  - drop or rate-limit the per-press `Kern::Printf` in `a64_touch.cpp`.
-- **Exit (Pixel, `phone.py`):**
-  - a 10 s `swipe` drag plus 20 taps;
-  - every `EButton1Down` has its `EButton1Up` in neoui's `tap` lines;
-  - the `neoui: perf` frame count per second is ≤ 60.
-- **Gain (estimate):** no lost taps. Response to touch drops to one frame instead of a growing backlog.
+  - `KMaxEventQueue` 40 → 256 (`kernel/eka/kernel/sinit.cpp`);
+  - the touch driver prints only the first 10 presses and releases, and counts events the full queue refused;
+    the monitor's `touch` shows `presses+releases N, events dropped N`;
+  - the monitor's `swipe x1 y1 x2 y2 [moves [ms]]`: `swipe 900 900 180 900 600` is a 10 s drag.
+- **Exit check (Pixel, `phone.py`, RAM boots):** passed.
+
+  | Run | Releases paired with their own press | Screen changes | Events dropped | Frames/s while dragging |
+  |---|---|---|---|---|
+  | Before (R10 `fc54289`, kernel `f93a432`): 20 short swipes + 20 taps | 21 / 40 seen, swipes mostly lost | 17 / 20 | not counted | 8 |
+  | After, scripted: two 10 s drags + 20 taps | 22 / 22 | 20 / 20 | 0 | 28–42 |
+  | After, by hand: swipes + taps through the apps | 28 / 28 (driver: 28 touches) | one per tap on a button | 0 | — |
+
+  - No `neoui: perf` line passes 60 frames per second.
+  - The render times aren't comparable across runs: the scheduler puts neoui on gold (CPU 6, 4–8 fps) or silver
+    (CPU 0–2, 25–42 fps) at random. That is S3.
+  - Since kernel `2692bea` the user side is 1080×2160: Apps is at (540, 2000), Back at (174, 2068).
+- **Gain (measured):** no lost taps. Touch is drawn at the next frame, not after a backlog.
 
 ### S2: retained layers and a CPU compositor
 
@@ -168,7 +182,7 @@ NEON and LDREX gains of S4 still count.
 
 | Step | Stages | Who | Checkpoint |
 |---|---|---|---|
-| 1 | S1 | neoui (+2 kernel lines) | No lost taps; touch follows the finger |
+| 1 | S1 ✅ | neoui (+2 kernel lines) | No lost taps; touch follows the finger (done 2026-11-08) |
 | 2 | S2 | neoui | Transitions, swipe and scroll at 60 fps on silver |
 | 3 | S3 stopgap → S3 | kernel session | UI on the fast cores; gold faster than silver |
 | 4 | S4 | kernel session, then e32-rs/neoui | NEON build; cheap locks |
