@@ -140,6 +140,11 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
   - **Dev tools** app on the phone: the kernel logs, saving them to `E:\logs`, the console overlay, the slot state.
   - **Parked:** USB power on a normal boot ([known-issues.md](known-issues.md)).
   - **Next:** FS6 (`E:` over USB), the on-phone updater, H3 power.
+- Status (2026-11-08): **H3a done: power off, restart, and a clock that survives both** (kernel `bee9830`, neoui
+  `724475a` + `fafb232`, e32 `c5fda36`; [rust-integration.md](rust-integration.md#h3a-power-off-restart-and-the-clock)).
+  On the Pixel (RAM boot): the PM660 RTC reads and counts; a power-off from the Power menu stays off; after it,
+  neoui set the clock from the RTC and `clock.dat` to within ~2 s. The rest of H3 (charger, battery, suspend,
+  screen off) is still open.
 - Work, from `port-map.md` §2–§4 and §7:
   - exec gate: read the SVC opcode with `LDTR` at `ELR_EL1-4`; bit 23 = fast/slow; Thumb SVC has an 8-bit immediate;
   - `umemget`/`umemput`, `TExcTrap`, `EpocThreadFunction`, user entry;

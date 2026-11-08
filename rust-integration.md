@@ -485,6 +485,34 @@ verified on the Pixel. 3 waits for FS6.
 - **Limit:** neoui's `+dirty` and time are refreshed when its HEAD, index or lockfile change, so an edit that touches
   neither can keep an older stamp.
 
+### H3a: power off, restart and the clock
+
+**Status: done (2026-11-08)**, in `kernel` `bee9830`, `neoui` `724475a` + `fafb232`, `e32-rs` `c5fda36`. Checked on
+QEMU arm64 (Dev tools → Restart → the guest resets) and on the Pixel (RAM boot).
+- **Kernel (EHalGroupVariant):**
+  - `ENeoHalPower` 0x4e0b (PowerMgmt): a1 = 0 restart, 1 restart to fastboot, 2 power off (PSCI SYSTEM_OFF).
+    Returns only on a failure.
+  - `ENeoHalRtcRead` 0x4e0c: the PM660 RTC's raw seconds (`qcom_rtc.cpp`, read only). It counts through
+    power-offs; phones don't let the OS set it.
+  - `Kern::Restart` (the end of `Kern::Fault`) now calls the board instead of jumping into the ROM header.
+  - Monitor: `reboot`, `poweroff`, `rtc`, `date <unix UTC> [UTC offset s]`. `phone.py run` sends the Mac's time
+    (`--no-date` skips it).
+- **e32:** `time::{set_utc_and_offset, utc_now, rtc_seconds}`, `sys::ui::neo_power`, `fs::Fs::finalise_drives`.
+- **neoui:**
+  - Power held 1 s opens the Power menu (`ui/components/powermenu.slint`): Power off / Restart / Cancel. It covers
+    a foreground app.
+  - Either way out: save the clock, `RFs::FinaliseDrives`, then `ENeoHalPower`. Apps ask for the same with
+    `proto::POWER` (op 7); Dev tools has a Power row (Restart, Power off, Fastboot).
+  - **Clock:** `C:\private\e0002001\clock.dat` holds UTC − RTC and the UTC offset (`neoui-proto` `clock.rs`,
+    host-tested). At boot the server sets the clock from RTC + offset. Once a minute it saves a time someone set
+    (the Clock app's Set time, the monitor's `date`). Nothing is saved before the time is first set, and an RTC
+    that went back (reset) leaves the time unset. No RTC (QEMU, Syborg): no change.
+  - **Clock app:** Set time, with steppers for date, hour, minute and time zone (15 min steps).
+- **Checked on the Pixel:** RTC control `0x80` (running), counting 1 s/s; the Mac's time saved; after a power-off
+  from the menu (screen stayed dark until Power), the next boot's clock came from the RTC alone, within ~2 s.
+- Not yet: Restart from the menu on the phone (the same kernel restart as the A/B slot code; the neoui path is
+  checked on QEMU), an install image, and the clock after the RTC loses power.
+
 ### R7: the Pixel (needs kernel M3; touch needs H4)
 
 - The same binaries go into the Pixel ROM. The backend finds the Pixel's display (the 1080×2160 splash framebuffer)
