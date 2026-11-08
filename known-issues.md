@@ -88,3 +88,17 @@ buffer the writer's in/out sequence really protects.
 only `md c:\Long Directory On`, so the directory was made without "Phone" (2026-11-07, FS1). The same command typed
 26-character lines on QEMU without losses. Not looked into yet. Suspects: the console's key queue on the phone, or the
 pacing in `A64Key_Type` (`a64_dbgmon.cpp`). Workaround: keep typed lines short.
+
+## Phone: USB power on a normal boot doesn't work yet (parked 2026-11-08)
+
+**Status:** open. The kernel has `qcom_usbpower.cpp` (ABL's captured GCC/QUSB2 values) and the debug monitor's
+`usb cold <mask>`, both in kernel `2692bea`.
+
+**What is known:**
+- after our power-up, GCC matches ABL's fastboot state, but the QUSB2 PHY's registers read 0, with or without the
+  RPMh rail votes;
+- an `ldob7` (3.088 V) vote issued while ABL's USB is live also makes the PHY read 0;
+- **RPMh votes survive a warm reset**, so a debug run can leave a rail off for the next RAM boot. A cold power-off
+  clears them.
+
+**Effect:** the USB debug console and FS6's E: sharing work only on fastboot RAM boots for now.
