@@ -1,7 +1,7 @@
 # Smooth UI: from 15 fps redraws to 60 fps on the Pixel
 
-**Status: in progress. S1 and S3 are done (2026-11-08); S2 is in progress (S2b, screen-change fades, is in code);
-S4–S6 are open.** The plan (2026-11-07) comes from a
+**Status: in progress. S1, S2 and S3 are done (2026-11-08; S2's exit check is met by the home swipe, the fades and
+scrolling are 2–3× faster but just over budget); S4–S6 are open.** The plan (2026-11-07) comes from a
 read-through of neoui, e32-rs and the kernel after the R9 speed measurements
 ([rust-integration.md](rust-integration.md#r9-neoui-speed-on-the-phone-measured)). Stages S1–S6 below are the work
 list. Each stage has an owner, an exit check, and an **estimate** of what it gains. Estimates are not measurements
@@ -87,55 +87,67 @@ the Pixel; Syborg CI not run (being rebuilt).
 
 ### S2: retained layers and a CPU compositor
 
-**Owner:** neoui. **Status: in progress.** S2b (screen-change fades) is in `neoui` `7cce590`, `16958f7` and
-`f3ad55c` (e32-rs `e97e2eb`), checked on Syborg only; the phone check and S2c–S2e are open.
+**Owner:** neoui. **Status: done (2026-11-08)**, in `neoui` `7cce590`, `16958f7`, `f3ad55c` (S2b, e32-rs `e97e2eb`)
+and `07b987c` (S2c, S2d). Checked on the Pixel, installed in slot a. Exit check: the home swipe passes; screen
+fades and list scrolling are 2–3× faster but still 1–4 ms over the frame budget (below). Syborg CI not run locally.
 
-- The UI server keeps **layers**: off-screen XRGB8888 buffers that each hold a fully drawn screen, home page or list
-  strip.
-- **Animations stop redrawing and only copy:**
-  - **screen transitions** (menu ↔ home, open/close app): draw the target screen once, then animate by copying both
-    layers at offsets (slide) or blending them (fade);
-  - **home page swipe:** the pages as one wide layer, copied at the finger's offset;
-  - **list scroll:** copy the existing content up or down with `copy_within`, and draw only the newly exposed strip.
-- **S2a, design (screen changes):** the server snapshots the screen before the switch (the second option below). Slint
-  keeps its one `MinimalSoftwareWindow`. Still open for S2c/S2d, whose layers live inside one screen:
-  - a Slint window per layer (the platform's `create_window_adapter` can return several);
-  - handling scrolling in the server instead of in Slint's `Flickable`.
+The UI server keeps **layers** (off-screen XRGB8888 copies of what is on screen) and animates by copying them. Slint
+keeps its one `MinimalSoftwareWindow`; the server takes snapshots of the screen instead of extra Slint windows.
+
 - **S2b, screen changes fade from snapshots** (`7cce590`):
-  - Before: Slint's 250 ms fade + 16 dp rise (`Slot`) redrew both full screens every frame, 50–55 ms a frame on
-    boosted gold (S3).
-  - Now, before a change, the server snapshots the screen: the shell frame with the front app's surface over its
-    body. Slint switches at once (`Shell.server-transitions` → `Theme.instant`, 0 ms `Slot` animations). One render
-    leaves the new screen in the frame. For 250 ms the server then blends old and new row by row straight to the
-    framebuffer, the new body rising 16 dp with ease-out-quad.
-  - `neoui-render` `src/layer.rs`: `blend_row` (integer, no divide), `ease_out_quad`, `Transition`, host-tested
-    against a per-channel reference. `tests/transitions.rs`: with the flag on, one render after a switch redraws the
-    whole body and leaves nothing to animate.
-  - The desktop host, snapshot tests and tests keep Slint's own fade (the property defaults to off).
-  - `neoui: perf` counts composed frames apart: `N layer frames avg … max … us`, after the fields CI greps.
-  - **Memory** (`16958f7`, `f3ad55c`): a 1080×2160 snapshot is 9,331,200 bytes.
-    - Allocating it at start-up crashed the Pixel: SYSSTART panicked, the kernel faulted, the phone restarted.
-    - Now `try_reserve_exact` takes it when a fade starts, a running fade reuses it, and it is freed when the fade
-      ends. When it can't be had, the log says `neoui: no memory for a fade` and the new screen just appears.
-    - With e32's 16 MB heap that happened on every change (seen on the installed slot b), so e32-rs `e97e2eb`
-      reserves 64 MB.
-  - **Checked on Syborg** (native QEMU on the Mac): one Slint render + 11–12 composed frames per screen change; a
-    mid-fade screenshot shows the cross-fade. At 1080×2160 with the 64 MB heap: menu ↔ home fade, 9 composed frames
-    each.
-  - **Not checked on the Pixel:** slot b has neoui `16958f7` with e32 `c5fda36`, so its screen changes appear without
-    a fade. Layer-frame timing on the phone is not measured.
-- **Open:**
-  - **S2b on the Pixel:** RAM-boot neoui `f3ad55c` or later; menu ↔ home; read the `layer frames` line; then install
-    it into a slot.
-  - **S2c, home page swipe:** the pages as one wide layer.
-  - **S2d, list scroll:** shift with `copy_within`, draw only the exposed strip.
-  - **S2e, app surfaces** (R6) are layers already. Bring them into the same compositor.
-  - Syborg CI on the S2 commits.
-- **Exit:**
-  - menu ↔ home, home swipe and a menu scroll each log `neoui: perf` render+copy ≤ 16.7 ms per frame on the silver
-    cores;
-  - Syborg CI still passes.
-- **Gain (estimate):** the main one. These animations go from ~15 fps to the copy speed (4 ms for a full frame).
+  - Before: Slint's 250 ms fade + 16 dp rise (`Slot`) redrew both full screens every frame.
+  - Now, before a change, the server snapshots the screen (the shell frame with the front app's surface over its
+    body). Slint switches at once (`Shell.server-transitions` → `Theme.instant`). One render leaves the new screen in
+    the frame. For 250 ms the server blends old and new row by row straight to the framebuffer, the new body rising
+    16 dp (`neoui-render` `layer::blend_row`, `ease_out_quad`, `Transition`).
+  - **Memory** (`16958f7`, `f3ad55c`): a 1080×2160 snapshot is 9,331,200 bytes. It is reserved with
+    `try_reserve_exact` only while a fade (or a swipe) runs; without it the log says `neoui: no memory for a fade`
+    and the screen switches at once. e32-rs `e97e2eb` reserves 64 MB for the heap (was 16, too little for it).
+- **S2c, the home page swipe as a slide** (`07b987c`):
+  - Once a press on the home pages moves 8 dp sideways toward a page that exists, the server takes the touch: Slint
+    lets go where it was pressed, the screen as it is becomes the current page's layer (the S2b snapshot), and Slint
+    draws the neighbour once into the frame (`Shell.home-page`, set at once).
+  - Each frame after that only copies the pages band: the current page at the finger's offset (1:1) with the
+    neighbour beside it (`layer::slide_row`, `layer::Slide`), then a 250 ms ease-out settle onto the neighbour (past
+    60 dp) or back. Without memory, Slint's own swipe runs as before.
+  - **Look change:** the wallpaper slides with the page.
+- **S2d, list scrolling** (`07b987c`):
+  - Every `Flickable` is a `NeoList` (`ui/components/scroll.slint`): its `content-y` change handler reports to the
+    `Scroll` global how many whole pixels it moved and where it is.
+  - When exactly one list moved less than its height, the renderer shifts the pixels it showed (`neoui-proto`
+    `shift_rows`, `Scrolling::plan`) and renders by line, skipping the rows the shift filled
+    (`LineBufferProvider`). When the scrolling stops, one full redraw (a change of repaint buffer type drops Slint's
+    cache) repairs what the skipped rows missed (a highlight, a sub-pixel position).
+  - Host test `tests/scroll.rs`: 12 frames of a Contacts drag at 1080×2160 all take the shift path and match a full
+    redraw into a cleared buffer, pixel for pixel.
+  - The same in `neoapp` (`App::draw_scrolled`) for the Files app's lists.
+- **S2e, app surfaces:** the S2b snapshot and fade include the front app's surface (`front_surface`, `app_row`);
+  apps' lists get S2d through `neoapp`.
+- `neoui: perf` counts the server's frames apart: `N layer frames avg … max … us, N shifted`.
+- **Exit check (Pixel, RAM boot of kernel `bee9830`, build `26c6325`, neoui `07b987c`; scripted taps and swipes;
+  neoui on gold, CPU 6–7, touch-boosted):**
+
+  | Animation | Before S2 | After (per frame) | ≤ 16.7 ms |
+  |---|---|---|---|
+  | Home page swipe (33–34 frames a swipe, 61/s while dragging) | Slint redraws the band: 37–62 fps (S3d) | **6.0 ms** avg, 10.8 max | ✅ |
+  | Menu ↔ home fade (7–8 frames in 250 ms) | 50–55 ms | **17.5 ms** avg, 28 max | ❌ |
+  | Contacts scroll (37–39 of 40 frames shifted) | ~36 ms (estimate: 2 M px × 17.7 ns) | render 12.6–14 + copy 7.5 ≈ **20 ms** | ❌ |
+  | Open Files (fade with the app's surface) | — | 20.5 ms avg | ❌ |
+  | Menu scroll (14 of 15 frames shifted; the menu scrolls 48 dp) | — | render 10–11 + copy 7 ms | ❌ |
+
+  - A frame over 16.7 ms misses its start and waits for the next (`next_deadline`), so the fades run at about
+    30 fps, not 57.
+  - **The limit is the framebuffer:** writes to it cost about 3.5 ns/px (≈1.1 GB/s; it is mapped uncached,
+    `EMapAttrBufferedC`), so a full screen is about 8 ms before any drawing. A fade writes the whole screen, and a
+    scroll the whole list.
+  - The rest of a scroll frame is Slint preparing the scene for the whole list each frame (its dirty region),
+    plus the shift itself (`copy_within` over 8 MB).
+- **Next, to meet the budget** (not started):
+  - blend fades and copy scrolled rows straight into the framebuffer (an e32 `Display` row API), saving one
+    intermediate copy per row;
+  - a cacheable framebuffer (write-back + cache clean) or the DPU's own planes and scrolling: S5.
+- **Gain (measured):** the home swipe runs at 60 fps (6 ms a frame); fades are 3× and scrolls about 1.8× faster
+  than full redraws.
 
 ### S3: CPU placement and clocks
 
@@ -245,7 +257,7 @@ owner: touch boost.
 | Step | Stages | Who | Checkpoint |
 |---|---|---|---|
 | 1 | S1 ✅ | neoui (+2 kernel lines) | No lost taps; touch follows the finger (done 2026-11-08) |
-| 2 | S2 (S2b in code) | neoui | Transitions, swipe and scroll at 60 fps on silver |
+| 2 | S2 ✅ | neoui | Swipe at 60 fps; fades and scroll 2–3× faster, still 1–4 ms over (done 2026-11-08) |
 | 3 | S3 ✅ | kernel session | UI on the fast cores; gold faster than silver (done 2026-11-08) |
 | 4 | S4 | kernel session, then e32-rs/neoui | NEON build; cheap locks |
 | 5 | S5 | kernel session, then neoui | No tearing; free fades and slides |

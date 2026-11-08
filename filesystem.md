@@ -253,8 +253,12 @@ on the phone; `a64_sha256.S`, self-tested at boot, the C one as fallback), so th
   - Updates: `fastboot flash boot_b`; `system_b` is written by a `ROFS_INSTALL` image RAM-booted on slot b, since
     ABL refuses `system_*` outside fastbootd; then `fastboot set_active b`.
   - Tested on the phone: update into b, then a broken b rolls back to a by itself.
-  - **Installed 2026-11-08 into slot b** (the current slot): kernel `bee9830`, build `26c6325`, neoui `16958f7`, e32
-    `c5fda36` (H3a power/clock, S1–S3, build info). Slot a keeps the previous install as the successful fallback.
+  - **Installed 2026-11-08 into slot a** (the current slot): kernel `bee9830`, build `26c6325`, neoui `07b987c`, e32
+    `e97e2eb` (smooth-ui S2: fades, home swipe, list scrolling). `system_a`: 10709 KB written, verified; it booted
+    from eMMC to the launcher. Built in isolated ZimaOS copies (`build-s2`, `kernel-s2`, volume `neosymbian-s2`).
+    Slot b keeps the previous install as the successful fallback.
+  - **Installed 2026-11-08 into slot b** (earlier the same day): kernel `bee9830`, build `26c6325`, neoui `16958f7`, e32
+    `c5fda36` (H3a power/clock, S1–S3, build info).
     Steps: `fastboot set_active b`; RAM-boot the `AUTOFASTBOOT=600 ROFS=1 ROFS_INSTALL=1 EMMC_C=1` installer
     (`system_b`: 10460 KB written, verified); back to fastboot at once (the installer's neoui marks b successful,
     while `boot_b` is still old); `fastboot flash boot_b` the `ROFS=flash EMMC_C=1` image; `fastboot reboot`.
