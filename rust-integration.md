@@ -464,6 +464,27 @@ verified on the Pixel. 3 waits for FS6.
    - switch the on-screen kernel console.
 3. **Later (FS6):** a "Share E: over USB" switch that runs `USBMS.EXE share|unshare`.
 
+### Build info: which build is running (2026-11-08)
+
+**Status: done**, in `kernel` `1885e2c`, `build` `269cf8d` and `neoui` `6fec461`. Checked on Syborg; the phone part
+(the kernel line) on QEMU.
+- **Where to see it:**
+  - Settings → About phone, a **Build** group under the rows;
+  - Dev tools → **Build** (with the A/B slot state), and at the head of every log it saves to `E:\logs`;
+  - the boot log: `[neo] kernel …` from the kernel, `neoui: build …` (three lines) from the UI server.
+- **The three stamps** (`+dirty` = the checkout differed from its commit when it was built):
+
+  | Part | Stamp | Made by | On the device |
+  |---|---|---|---|
+  | Kernel | `kernel 1885e2c 2026-11-08T09:46Z bonito` | `baseport/arm64/tools/build-ekern.sh` | HAL `ENeoHalBuildInfo` (`EHalGroupVariant` `0x4e0a`, no capability) |
+  | User-side ROM | `rom 2026-11-08T09:59Z build 269cf8d` | `build.sh` → `kernel/build_rom.sh` | `Z:\Resource\NeoSymbian\build.txt` (the phone keeps it in the core ROM, not the ROFS) |
+  | neoui + e32-rs | `neoui 6fec461 2026-11-08T10:05Z, e32-rs 3e443ca` | `crates/neoui-proto/build.rs` | `neoui_proto::BUILD`, compiled in |
+
+- `neoapp::build::lines()` reads all three; a part that can't be read says why (Syborg's 2010 kernel:
+  `kernel: no build info (-5)`).
+- **Limit:** neoui's `+dirty` and time are refreshed when its HEAD, index or lockfile change, so an edit that touches
+  neither can keep an older stamp.
+
 ### R7: the Pixel (needs kernel M3; touch needs H4)
 
 - The same binaries go into the Pixel ROM. The backend finds the Pixel's display (the 1080×2160 splash framebuffer)
