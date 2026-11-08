@@ -26,7 +26,10 @@ neoui's `ENeoHalBootOk` once that lands) and counts tries itself. Found 2026-11-
   normal boots don't count on this ABL.
 - At 0 retries, ABL marks slot a unbootable and makes **slot b** current. A normal restart then boots slot b's own
   system, not NeoSymbian.
-- **Correction (same day):** slot b did **not** cause the black screens. After a cold power-off (Power held ~15 s), the
+- **Cause found (2026-11-08): the black screen means no bootable slot.** `fastboot boot` answers OKAY, then ABL has
+  no slot it may boot (both unbootable, or the active one at 0 retries) and the phone falls back to fastboot. Check
+  `slot-unbootable:a`/`b`; fix with `fastboot set_active a`. The "cold reset" below only seemed to help.
+- **Earlier note (superseded):** slot b did **not** cause the black screens. After a cold power-off (Power held ~15 s), the
   known-good image booted to the USB console with slot b still current. The black-screen state was cleared by the
   cold reset; its cause is unknown (no log survives a death before the first print). If it recurs: check the slot
   first, then cold-reset.
