@@ -46,7 +46,7 @@ every stage with what really happened.
 | **SMEM** | `0x86000000` + 2 MB, hwlock = TCSR mutex 3 |
 | **APCS IPC** | `0x17990000`; doorbell register +0xc. Bits: AOP QMP 0, modem GLINK 12, modem SMP2P 14, ADSP GLINK 24, ADSP SMP2P 26 |
 | GLINK edges | modem: SPI 449, remote pid 1. lpass (ADSP): SPI 170, remote pid 2 |
-| SMP2P | mpss: SMEM items 435 (out) / 428 (in), SPI 451. lpass: items 443 / 429, SPI 172. Entries "master-kernel", "slave-kernel", "ipa", "sleepstate" |
+| SMP2P | mpss: SMEM items 435 (**in**, the modem's) / 428 (**out**, ours), SPI 451. lpass: in 443 / out 429, SPI 172. Our out entries "master-kernel" (bit 0 = stop), "ipa"; the modem's in entries "smp2p", "slave-kernel" (fatal 0, ready 1, handover 2, stop-ack 3, shutdown-ack 7) |
 | **AOP QMP** | `0xc300000`, SPI 389, mbox bit 0 |
 | **rmtfs** | `0xfc201000` + 2 MB (guard pages on both sides), client-id 1, VMID 15 (MSS_MSA) |
 | **ADSP** | `qcom,sdm670-adsp-pas` at `0x62400000`, memory `0x95800000` + 0x2200000. Watchdog SPI 162; fatal/ready/handover/stop-ack = smp2p-lpass bits 0–3. APR on GLINK channel `apr_audio_svc`, protection domain `avs/audio` (`msm/adsp/audio_pd`). ACDB name `Global_cal.acdb` |
@@ -78,8 +78,8 @@ graph LR
 |---|---|---|
 | C0 | Recon and backups | Radio partitions backed up and hashed; carve-outs safe |
 | C1 | Linux reference run | A call on this phone and SIM under mainline Linux; traces captured |
-| C2 | Kernel transport | SMEM, SMP2P, GLINK working on the phone |
-| C3 | Modem boot | The modem reports ready and says QRTR HELLO |
+| C2 | Kernel transport | SMEM, SMP2P, GLINK working on the phone (**done** 2026-11-08) |
+| C3 | Modem boot | The modem reports ready and talks QRTR (**done** 2026-11-08) |
 | C4 | Modem services | Modem stays up; DMS returns the revision |
 | C5 | QMI + modemsrv + dialer | Calls ring and can be answered, with no audio yet |
 | C6 | Call audio | **Two-way call audio on the earpiece: the first win** |
@@ -203,59 +203,77 @@ us the exact sequences to reproduce.
   3. VoiceMMode1 TX topology, then `VoiceMMode1 Capture Mixer PRIMARY_TDM_TX_0` = 1 + the DMIC switches;
   4. open the VoiceMMode1 PCM both ways while the call is active (`q6voiced`).
 
-### C2: kernel transport
+### C2: kernel transport (done 2026-11-08, kernel `a5283de`)
 
-All files are in `kernel/baseport/arm64/sdm670_assp/`. Every file is our own C++, with an Apache-2.0 header and
-"Written from the protocol as described by Linux `<file>`" in the comment.
+All files are in `kernel/baseport/arm64/sdm670_assp/`: our own C++, with Apache-2.0 headers and "written from the
+protocol as described by Linux `<file>`" comments. Everything is polled. GIC lines come later (C12), because
+`A64_BindSpi` stops at INTID 255 (SPI 449 = INTID 481) and nothing sets edge triggering yet.
 
-| File | Work |
+| File | What it does |
 |---|---|
-| `qcom_scm.cpp` | SMCCC SIP calls to TrustZone: yielding SMC64 with function id `0x42000000 \| (svc << 8) \| cmd`, x1 = arg info, plus an indirect buffer for more than 4 args. Calls: `assign_mem` (svc 0x0c cmd 0x16, the hypervisor memory ownership change), PAS `init_image` / `mem_setup` / `auth_and_reset` / `shutdown` / `is_supported` (svc 0x02, cmds 1/2/5/6/7). |
-| `qcom_smem.cpp` | Map SMEM uncached. Header, partition table (the last 4 KB), per-host-pair partitions (apps=0, modem=1, adsp=2), item get/alloc under TCSR hw mutex 3. |
-| `qcom_ipc.cpp` | APCS doorbell writes. GIC SPIs 449/451/170/172/389 routed to a DFC per edge. |
-| `qcom_smp2p.cpp` | Outbound entry creation, inbound bit changes to callbacks. Used for MSS/ADSP state, later IPA. |
-| `qcom_qmp.cpp` | AOP QMP message RAM at `0xc300000`: link up, then text messages such as `{class: image, res: load_state, name: modem, val: on}`. |
-| `qcom_glink.cpp` | GLINK over SMEM: the TX/RX FIFOs from SMEM items 478/479/480 in the remote's partition; version negotiation, open/open-ack by channel name, intents, TX_DATA (with chunking), RX_DONE. |
-| LDD `glink.ldd` | User-side channel API: `Open(edge, name)`, `Read`, `Write`, notify on receive. User-side Rust can then speak any GLINK channel. |
+| `qcom_scm.cpp` | TrustZone SIP calls: yielding SMC64, function id `0x42000000 \| svc << 8 \| cmd`, x1 = arg info, x2..x5 args. Beyond 4 args, x5 points at an uncached page (it also holds `assign_mem`'s lists). Resumes interrupted calls (x0 = 1) and retries busy ones. `Scm_AssignMem`, `Scm_IsAvailable`. |
+| `qcom_smem.cpp` | SMEM v12: the `$TOC` table, the global partition, and the apps↔remote partitions; item get/alloc under TCSR mutex 3 (`0x1f43000`). First-time init runs under a fast mutex, because the monitor and the boot thread raced and listed a partition twice. |
+| `qcom_ipc.h` | The APCS doorbell `0x17990000 + 0xc`: bit 0 AOP, 12 modem GLINK, 14 modem SMP2P, 24/26 ADSP. |
+| `qcom_smp2p.cpp` | Our out item (version 2, SSR-ack feature) and its entries; read in entries by name; version negotiation and the restart ack. |
+| `qcom_qmp.cpp` | The AOP mailbox: the link/channel handshake, then 64-byte messages; 32-bit accesses only. |
+| `qcom_glink.cpp` | GLINK over SMEM (item 478 = the 4 FIFO pointers, 479 = our TX FIFO 16 KB, 480 = the modem's): version, open/open-ack, intents (4 × 2 KB, regrown on request), TX_DATA/CONT, RX_DONE. Its own thread polls every 1 ms. |
+| `qcom_telmon.cpp` | Monitor commands: `scm`, `smem`, `fw ls\|sha`, `smp2p [start]`, `qmp [modem on\|off]`, `mss [boot]`, `glink [hello]`. |
 
-Monitor commands: `smem [item]`, `smp2p`, `glink`, `qmp <msg>`.
+Measured on the phone:
+- **TrustZone:** `assign_mem` and all the PAS calls are available.
+- **SMEM:** partitions for the modem (1), the ADSP (2) and the CDSP (5).
+- **SMP2P:** negotiated to version 1 with the SSR-ack feature.
+- **QMP:** the handshake works, and `load_state` is acked.
+- **Lesson: never read another host pair's SMEM partition** (entry 3 is 7↔5). The apps CPU stalls on the bus and the
+  watchdog resets the phone. Check the hosts before touching a partition header.
 
-Exit: on a phone RAM boot, `smem` lists the partitions and the items written by the boot chain, with no modem
-running yet.
+### C3: modem boot (done 2026-11-08, kernel `a5283de`)
 
-Failure modes:
-- SMEM partition not found: the host IDs are wrong, or the table is read cached.
-- `assign_mem` returning an error: wrong VMID list or alignment. Compare with the C1 trace.
+**The kernel reads the firmware itself:** `qcom_fat16.cpp` is a read-only FAT16 reader over the GPT (`modem_a` is FAT16
+with 4096-byte sectors). There is no `rprocd` file loading and no `rproc.ldd`. It reads about 17 MB/s; `fw sha`
+matches the Mac's hashes.
 
-### C3: modem boot
+`qcom_mss.cpp` boots the modem on its own DFC thread, following the `sdm845_mss` flow (Linux `qcom_q6v5_mss.c`):
+1. QMP `load_state modem on`. RPMh mx/cx/mss at their highest levels (corners 4/7/8; `Arc_Vote` now falls back to a
+   rail's highest level).
+2. Clocks (GCC, from `gcc-sdm845.c`):
+   - proxy: prng (`0x152004` bit 13);
+   - reset: iface `0x18a000`, snoc_axi `0x18a150`;
+   - active: bus `0x18a154`, mem (boot ROM, `0x152004` bit 10), gpll0_mss (`0x152004` bit 17), mnoc_axi
+     `0x18a004`.
+3. The alt reset: PDC `0xb2e0100` bit 9 on → RMB `+0x44` = 1 → AOSS `0xc2b0000` = 1, 300 µs, = 0 → `+0x44` = 0 → PDC
+   bit 9 off.
+4. `MBA.MBN` into mba `0x95600000`. Then `assign_mem`: mpss and mba to MSS_MSA (VMID 15, RW). `RMB_MBA_IMAGE` = mba.
+5. QDSP6 `+0x3c` sleep clock on → `+0x400` = 1 → `+0x404` = 1 → poll RMB `+0x40` bit 0 → PBL status (`+0x04`) 1 →
+   MBA status (`+0x0c`) 1 or 2. **Got 2.**
+6. `MODEM.MDT` = the 0x414-byte ELF headers + the 0x1d08-byte hash, i.e. the whole 8476-byte file. It goes in a
+   contiguous buffer handed to the modem, then `+0x10` = its address and **command 1** (not 3: 3 is the *status*).
+   Status 3.
+7. 31 segments, all relocatable from `0x8b000000`, filling the 152 MB mpss exactly:
+   - mpss is shared HLOS+MSS while loading and copied through 16 MB non-cacheable mappings; `MODEM.Bnn` for
+     segment n; zero-fill segments 13/19/30;
+   - code start = `0x8b000000` with **command 2** (not 4) on the first segment, then the length grows;
+   - mpss goes back to MSS only. Status 4.
+   - **158 MB in 5.9 s.**
+8. SMP2P `slave-kernel` ready (bit 1). The mba carve-out returns to HLOS.
+9. GLINK starts:
+   - the modem opens `IPCRTR`, `glink_ssr` and `SSM_RTR_MODEM_APPS`;
+   - after our QRTR HELLO (`glink hello`: node 1 → broadcast, control port), it sends `NEW_SERVER` control packets
+     (type 4) from node 0.
 
-`qcom_mss.cpp`, the q6v5 **MBA** flow (Linux `qcom_q6v5_mss.c`, SDM845-family data):
-1. QMP `load_state modem on`. RPMh votes cx, mx, mss (reuse `qcom_rpmh.cpp`). Enable xo, prng and the active clocks.
-2. Deassert the resets (`mss_restart`, PDC reset). Clear the TCSR halt requests.
-3. Copy `mba.mbn` into the mba carve-out, then `assign_mem` it to MSS_MSA (VMID 15). Write `RMB_MBA_IMAGE` (+0x00) =
-   its address.
-4. Start the QDSP6: enable the XO CBCR, `BOOT_CORE_START` = 1, `BOOT_CMD` = 1, poll `BOOT_STATUS`.
-5. Poll `RMB_MBA_STATUS` (+0x0c) until it reads XPU-unlocked (1 or 2). A negative value is an MBA error code: log it.
-6. Load the modem:
-   1. Put the `.mdt` headers + hash segment in a buffer, assign it to the modem, then write `RMB_PMI_META_DATA`
-      (+0x10) and `RMB_MBA_COMMAND` (+0x08) = 3 (meta data ready). Wait for status 3 (auth success).
-   2. Copy each loadable `.bNN` segment into mpss at its offset, adding its size to `RMB_PMI_CODE_LENGTH` (+0x18).
-   3. Write `RMB_PMI_CODE_START` (+0x14) and command 4 (load ready). Assign mpss to the modem.
-   4. Wait for status 4 (auth complete).
-7. Wait for the SMP2P **ready** bit, then **handover**: drop the proxy votes, reclaim the mba region to HLOS.
-8. Stop: SMP2P stop bit, wait for stop-ack, assert the halts and resets, reclaim mpss. Used by C7 crash recovery.
+**Exit met.** The modem boots under our kernel and talks QRTR.
 
-Firmware path: `a64_medblk.cpp` exposes `modem_a` and `dsp_a` as **read-only** FAT drives. Its allow-list stays
-write-protected. The user-side Rust `rprocd` reads the files and hands buffers to the LDD (`rproc.ldd`: `Load`,
-`Start`, `Stop`, state notifications).
+Known gaps:
+- **Handover (bit 2) never came within 5 s.** Linux on this phone logged "Handover signaled, but it already
+  happened". Our proxy votes and clocks stay on anyway (shortcut).
+- **The modem raises fatal (bit 0) about a minute after ready.** Nothing answers rmtfs/tqftp yet; C4 does.
+  - No crash reason appeared in SMEM item 421: neither in the global partition nor in the modem's.
+- **`mss stop` / crash recovery isn't wired up yet** (C7). `Stop()` exists for the failure paths.
 
-Exit: the "ready" fires, the GLINK edge "modem" comes up, the channel `IPCRTR` opens, and a QRTR HELLO arrives.
-
-Failure modes:
-- RMB status stays 0: the MBA never ran. Check the clocks, the resets and the QMP message.
-- Negative RMB status: the MBA rejected the image. Check the hashes and the metadata buffer assignment.
-- SMP2P fatal right after ready, with a crash reason in SMEM item 421 (`SMEM_SSR_REASON_MSS0`): the modem usually
-  crashes when rmtfs or tqftp aren't answering (C4).
+Failure modes seen on the way:
+- A data abort in the clocks step: a wrong GCC address doubled the base, `A64_Io` returned 0, and the write went
+  through a null pointer.
+- `KERN-COMMON 23` in the GLINK thread: `memclr` on a struct holding a `TBuf8` zeroes its max length.
 
 ### C4: modem services (Rust, user side)
 
@@ -269,7 +287,7 @@ Symbian EXE in the ROM, on the `e32` crate:
 | `rmtfs` | QMI service 14: open (`/boot/modem_fs1` = modemst1, `fs2` = modemst2, `fsg`, `fsc`), alloc_buf (gives the shared region `0xfc201000`), rw_iovec, get_dev_error. The kernel maps the region and assigns it to HLOS + MSS_MSA. The partitions are read once at start through a read-only raw-partition LDD op (allow-list: modemst1/2, fsg, fsc). **`shortcut:` writes stay in RAM until gate G4.** Reference: linux-msm `rmtfs` (BSD-3). |
 | `pdmapper` | Service registry locator (QMI service 64): answers which protection domains run where, from the `.jsn` files on `modem_a`/`dsp_a`. Reference: linux-msm `pd-mapper` (BSD-3). |
 | `tqftp` | The TFTP-over-QRTR file service the modem uses for config files: `/readonly/firmware/image/...` maps to `modem_a`, `/readwrite/...` to `C:\private\<uid>\modem` (or RAM until G4). Reference: linux-msm `tqftpserv` (BSD-3). |
-| `rprocd` | Starts the remote processors at boot in order: services first, then the modem, then the ADSP. It watches for crashes. |
+| `rprocd` | Starts the services first, then asks the kernel to boot the modem (the kernel reads the firmware itself, C3), then the ADSP. It watches for crashes. |
 
 Exit:
 - the modem stays up 10 minutes with no fatal;
@@ -455,4 +473,6 @@ Direct GPL ports so far: none.
 |---|---|
 | C0 | **done 2026-11-08**: radio partitions backed up, firmware listed, carve-outs safe |
 | C1 | **GO 2026-11-08**: modem up, LTE on UCOM, an incoming call with two-way audio under mainline Linux; outgoing call, SMS, data still to test |
-| C2–C12 | not started |
+| C2 | **done 2026-11-08** (kernel `a5283de`): SCM, SMEM, SMP2P, QMP, GLINK, monitor commands |
+| C3 | **done 2026-11-08**: the kernel boots the modem from `modem_a` and talks QRTR; the modem dies after ~1 min without rmtfs (C4) |
+| C4–C12 | not started |
