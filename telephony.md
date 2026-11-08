@@ -275,19 +275,40 @@ Failure modes seen on the way:
   through a null pointer.
 - `KERN-COMMON 23` in the GLINK thread: `memclr` on a struct holding a `TBuf8` zeroes its max length.
 
-### C4: modem services (Rust, user side)
+### C4: modem services (Rust, user side) (done 2026-11-08)
 
-These live in the Rust workspace [NeoSymbian/telephony](https://github.com/NeoSymbian/telephony) (created 2026-11-08). Each is a
-Symbian EXE in the ROM, on the `e32` crate:
+One process, `MODEMD.EXE` (uid `0xE0003001`), from the Rust workspace
+[NeoSymbian/telephony](https://github.com/NeoSymbian/telephony). The protocol code is the `no_std` crate `modem-proto`, tested on the Mac
+with vectors from the C1 captures. The `symbian/modemd` glue talks to the kernel through `EHalGroupVariant`
+functions 0x4e0d–0x4e12 (`qcom_telhal.cpp`; table in [rust-integration.md](rust-integration.md)). It doesn't use LDDs.
+Started by hand for now: Terminal, `modemd`. Auto-start is decided in C5.
 
-| Crate | Work |
+| Part | Work |
 |---|---|
-| `qrtr` | Router and nameserver over the GLINK `IPCRTR` channel. QRTR v1 framing, control packets (HELLO, BYE, NEW/DEL_SERVER, NEW_LOOKUP, RESUME_TX). Local clients connect over Symbian IPC. Reference: linux-msm `qrtr` (BSD-3). |
-| `qmi` | QMI encode/decode (header + TLVs), transactions, indications. Service and message tables written from libqmi's JSON service descriptions (facts). Unit-tested on the Mac against the C1 hex dumps. |
-| `rmtfs` | QMI service 14: open (`/boot/modem_fs1` = modemst1, `fs2` = modemst2, `fsg`, `fsc`), alloc_buf (gives the shared region `0xfc201000`), rw_iovec, get_dev_error. The kernel maps the region and assigns it to HLOS + MSS_MSA. The partitions are read once at start through a read-only raw-partition LDD op (allow-list: modemst1/2, fsg, fsc). **`shortcut:` writes stay in RAM until gate G4.** Reference: linux-msm `rmtfs` (BSD-3). |
-| `pdmapper` | Service registry locator (QMI service 64): answers which protection domains run where, from the `.jsn` files on `modem_a`/`dsp_a`. Reference: linux-msm `pd-mapper` (BSD-3). |
-| `tqftp` | The TFTP-over-QRTR file service the modem uses for config files: `/readonly/firmware/image/...` maps to `modem_a`, `/readwrite/...` to `C:\private\<uid>\modem` (or RAM until G4). Reference: linux-msm `tqftpserv` (BSD-3). |
-| `rprocd` | Starts the services first, then asks the kernel to boot the modem (the kernel reads the firmware itself, C3), then the ADSP. It watches for crashes. |
+| QRTR | Node 1's router and nameserver over GLINK `IPCRTR`: HELLO, NEW_SERVER/NEW_LOOKUP, RESUME_TX for `confirm_rx`. Every service is a local port in the one process. Reference: linux-msm `qrtr` (BSD-3). |
+| QMI | Header + TLVs. A small client asks DMS for the revision and the IMEI (masked in the log), and UIM for the card status. |
+| rmtfs | QMI service 14: open (`/boot/modem_fs1` = modemst1, `fs2`, `fsg`, `fsc`; `fsg_oem_1/2` refused as under Linux), alloc_buf (`0xfc201000`), rw_iovec. **`phys_offset` is a physical address** (0xfc201200), not an offset into the buffer. The partitions are read once at start through the read-only HAL op `PartRead`. **`shortcut:` writes stay in RAM until gate G4.** Reference: linux-msm `rmtfs` (BSD-3). |
+| locator | QMI service 64, v1, instance 1: Linux's sdm670 pd-mapper table (modem root_pd + wlan_pd, ADSP audio_pd, CDSP). The domain list is sent only when the service is known. |
+| TFTP | QRTR service 4096: `/readwrite/` writes are kept in RAM and reads refused. Linux refused the same reads (`modem_efs`, `ota_firewall/ruleset`, `mcfg.tmp`, `mbn_*.dig`). |
+
+**What the modem needs from the apps side** besides these services:
+- **SMEM item 134** (`SMEM_ID_VENDOR0`, global partition, 32 bytes): the Pixel's board record `{version 0,
+  modem_flag 0, major_id, minor_id, subtype, platform, efs_magic 0, ftm_magic 0}`.
+  - It comes from socinfo (item 137): `platform` = `hw_plat` (+0x34), `major/minor` = bytes 2 and 0 of `plat_ver`
+    (+0x38), `subtype` = `hw_plat_subtype` (+0x40).
+  - Without it, the modem's RF task faults 0.5 s after ready, right after COEX (34) registers:
+    `:0:[rf]EX:kernel:0:rf:171:PC=d949b6d4`. Handover never comes.
+  - The fact comes from the pmOS sdm670 kernel's `google,modemsmem` driver (DTB `modemsmem { qcom,smem = <134>; }`).
+    The kernel writes the item before the MBA (`qcom_mss.cpp` `BoardInfo`).
+- The LLCC slices, the XO vote, and GLINK started at "ready" all match what Linux does. Voting every BCM to the top
+  crashed the SoC and was dropped.
+
+Result on the phone (kernel `tel-c4` 41b8ddb, telephony `be6b566`):
+- handover 560 ms after ready;
+- 40 modem servers registered, the same set as Linux;
+- DMS returns `MPSS.AT.4.0.2.c4.1-00145` and the IMEI (masked);
+- UIM reports the card present;
+- no fatal after 10 minutes.
 
 Exit:
 - the modem stays up 10 minutes with no fatal;
@@ -475,4 +496,5 @@ Direct GPL ports so far: none.
 | C1 | **GO 2026-11-08**: modem up, LTE on UCOM, an incoming call with two-way audio under mainline Linux; outgoing call, SMS, data still to test |
 | C2 | **done 2026-11-08** (kernel `a5283de`): SCM, SMEM, SMP2P, QMP, GLINK, monitor commands |
 | C3 | **done 2026-11-08**: the kernel boots the modem from `modem_a` and talks QRTR; the modem dies after ~1 min without rmtfs (C4) |
-| C4–C12 | not started |
+| C4 | **done 2026-11-08**: `MODEMD.EXE` serves rmtfs, the locator and TFTP; the modem reaches handover and stays up (SMEM item 134 was the missing piece); DMS + UIM answer |
+| C5–C12 | not started |

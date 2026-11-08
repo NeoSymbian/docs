@@ -447,6 +447,12 @@ The kernel has `EHalGroupVariant` functions for the phone's own tools. They are 
 | `ENeoHalConsoleSet` | 0x4e02 | a1 = 1 / 0: the kernel log overlaid on screen (dev mode) | WriteDeviceData |
 | `ENeoHalConsoleGet` | 0x4e03 | a1 = `TInt*` out | — |
 | `ENeoHalBootOk` | 0x4e06 | none: "this boot worked", marks the A/B slot successful (FS5b) | WriteDeviceData |
+| `ModemBoot` | 0x4e0d | none: boot the modem (`qcom_mss.cpp`, on its own thread) | CommDD |
+| `ModemState` | 0x4e0e | a1 = `TUint32[4]` out: boot step (8 = running), error, SMP2P slave-kernel bits, IPCRTR open | CommDD |
+| `QrtrSend` | 0x4e0f | a1 = packet, a2 = length (<= 8 KB) to GLINK IPCRTR; `KErrNotReady` without a modem intent | CommDD |
+| `QrtrRecv` | 0x4e10 | a1 = buffer, a2 = size: the next queued packet's length, `KErrNotReady` if none (polled) | CommDD |
+| `PartRead` | 0x4e11 | a1 = `{part 0..3 = modemst1, modemst2, fsg, fsc; offset; len; buf}`, read only | CommDD |
+| `RmtfsMem` | 0x4e12 | a1 = `{op 0 info / 1 read / 2 write; offset; len; buf}`: the rmtfs carve-out `0xfc201000` (2 MB, HLOS + VMID 15) | CommDD |
 
 0x4e04/0x4e05 are kept for the dev-mode switch (USB debug console on/off).
 
