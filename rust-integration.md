@@ -26,7 +26,7 @@ move to the phone. Sizes are **GUESSES**.
 | Topic | Decision | Why |
 |---|---|---|
 | Rust target | **`armv5te-none-eabi`** on a pinned nightly (`rust-toolchain.toml`, `-Zbuild-std=core,alloc`), with `panic=abort` | Exact match of the user-side ABI (ARMv5TE, soft-float), so it runs on Syborg and on the Pixel. `armv7a-none-eabi` can come later as a speed option for Pixel-only builds. **Never `eabihf`:** it passes floats differently and breaks calls into Symbian libraries. |
-| Test platform before M3 | QEMU Syborg, through NeoSymbian forks of `symbian-2010` and `qemu-syborg` | Real 32-bit ARM Symbian user side, scriptable, runs in CI, no hardware needed |
+| Test platform before M3 | QEMU Syborg, through NeoSymbian forks of `symbian-2010` (now `build`) and the Syborg package (now [`symbian-qemu`](https://github.com/NeoSymbian/symbian-qemu): QEMU 11.1, the board in C, since 2026-11-08) | Real 32-bit ARM Symbian user side, scriptable, runs in CI, no hardware needed |
 | CI | GitHub Actions on the public repos, using the public `ghcr.io/phorepoc/*` images. Screenshot and serial log kept as artifacts. | Progress is visible to everyone; no ZimaOS dependency |
 | Kernel interface | Rust makes **exec calls directly** (`swi`), with the table generated from `kernelhwsrv/kernel/eka/kernel/execs.txt`. Features that exist only in euser's C++ (leaves, `TRAP`, the active scheduler) go through a thin C shim, and only when unavoidable. | No C++ name mangling; no leave or unwind ever crosses into Rust |
 | Entry point | Rust defines `E32Main` (`#[export_name = "_Z7E32Mainv"]`), linked with symbian-2010's `efile_exe` start-up | Behaves like any other Symbian EXE |
@@ -483,8 +483,9 @@ Exit: the Rust launcher on the phone, driven by touch.
 
 ## Risks
 
-- **QEMU 0.9.1 has no CPU acceleration.** Syborg proves that things work, not how fast they are. Slint will be slow
-  there.
+- **Syborg is emulated (TCG), not accelerated.** It proves that things work, not how fast they are. Since
+  2026-11-08 it runs on QEMU 11.1 (`symbian-qemu`), and test runs wait for the serial log instead of sleeping: the
+  e32-rs suite takes about 20 s, the neoui CI script about 35 s.
 - **`armv5te-none-eabi` is a tier 3 Rust target.** It needs nightly plus build-std, so pin the nightly version.
 - **Only one process can capture the kernel's event hook.** The ROM must not start wserv when the Rust server runs.
-- **Syborg's exact CPU model is unverified.** ARMv5TE code runs on any model it could be.
+- **Syborg's CPU is a Cortex-A8** (`-M syborg` in `symbian-qemu`, as the baseport is built for). ARMv5TE code runs on it.

@@ -123,3 +123,9 @@ Used only by Phorepoc's full Symbian^3 build (core's registry); NeoSymbian/build
 | `oss.FCL.sf.os.wlan` | SymbianSource/oss.FCL.sf.os.wlan | symbian-2010 `7d13c530be`, symbian-rcl3 `d97d09fbe5` |
 | `oss.FCL.sf.os.xmlsrv` | SymbianSource/oss.FCL.sf.os.xmlsrv | symbian-2010 `333ed3d1a8` |
 | `oss.FCL.sftools.dev.ui` | SymbianSource/oss.FCL.sftools.dev.ui | symbian-2010 `969ab3746b` |
+
+## Retired 2026-11-08
+
+| Repository | State | What it was |
+|---|---|---|
+| [`qemu-syborg`](https://github.com/NeoSymbian/qemu-syborg) | archived (read-only) | The Foundation's QEMU 0.9.1 with the Syborg board, built in a Debian squeeze container. Replaced by [`symbian-qemu`](https://github.com/NeoSymbian/symbian-qemu) (QEMU 11.1, the board in C); its `syborg-view.py` moved there. Its images stay on `ghcr.io/neosymbian/qemu-syborg`, so `build` commits before 2026-11-08 still boot. |

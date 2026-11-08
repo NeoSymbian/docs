@@ -196,7 +196,10 @@ Every `arm/*.cia` must be rewritten as A64. The generic `.cpp` (nkernsmp core, f
 - `tools/e32test-driver/` (`qemuruntest.py`, `runtests.py`, `rtest.py`, `rtestreport.py`): automated e32test runs on QEMU with result parsing.
 - `tools/elf4rom/`: turns a ROM into an ELF for gdb.
 - `docs/wiki/*.doc`, including "Flexible Memory Model.doc", "Armv7.doc", "SVP E32-F32 Testing.doc" and "Stop-mode Debugging.doc".
-- `symbian-qemu-0.9.1-12/`
+- `symbian-qemu-0.9.1-12/` (the Foundation's QEMU 0.9.1 fork).
+- **Since 2026-11-08** our fork is [NeoSymbian/symbian-qemu](https://github.com/NeoSymbian/symbian-qemu): QEMU 11.1
+  vendored under `qemu/` with the Syborg board rewritten in C (from CodeSourcery's MIT devices in QEMU 0.11–1.0), an
+  event-driven `run-syborg`, and `symbian-qemu-0.9.1-12/` removed from `main`. It replaces `qemu-syborg`.
 
 **Why it matters.**
 - Syborg is the simplest virtual platform, the closest analogue to `-M virt`.
