@@ -198,7 +198,7 @@ Failure modes:
 
 ### C4: modem services (Rust, user side)
 
-These live in a new Rust workspace (repo `NeoSymbian/telephony`; creating it needs the owner's OK). Each is a
+These live in the Rust workspace [NeoSymbian/telephony](https://github.com/NeoSymbian/telephony) (created 2026-11-08). Each is a
 Symbian EXE in the ROM, on the `e32` crate:
 
 | Crate | Work |
@@ -361,7 +361,7 @@ Exit: ping and an HTTP fetch over LTE, and over 3G with LTE disabled.
 | `kernel/baseport/arm64/sdm670_assp/` | `qcom_scm`, `qcom_smem`, `qcom_ipc`, `qcom_smp2p`, `qcom_qmp`, `qcom_glink`, `qcom_mss`, `qcom_pas`, IPA (C10), the LDDs `glink`, `rproc`, raw read-only partition op |
 | `kernel/.../a64_medblk.cpp` | Read-only drives for `modem_a`/`dsp_a`; G4 write path for `modemst1/2` (C12) |
 | `kernel/.../pixel_bonito.cpp` | MMU entries for SMEM, rmtfs, QMP, APCS, codec; RAM bank carve-out check |
-| `telephony` (new repo, Rust) | `qrtr`, `qmi`, `rmtfs`, `pdmapper`, `tqftp`, `rprocd`, `apr`, `modemsrv` |
+| [`telephony`](https://github.com/NeoSymbian/telephony) (Rust) | `qrtr`, `qmi`, `rmtfs`, `pdmapper`, `tqftp`, `rprocd`, `apr`, `modemsrv` |
 | `neoui` | status bar, dialer, in-call, Recents, Contacts, Messages |
 
 ## Testing

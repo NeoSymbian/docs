@@ -33,6 +33,7 @@ original projects.
 | [build](https://github.com/NeoSymbian/build) | The build system: `neo`, the build image (`ghcr.io/neosymbian/toolchain`), the pinned sources, the 2010 ROM |
 | [e32-rs](https://github.com/NeoSymbian/e32-rs) | Rust crates for the Symbian user side |
 | [neoui](https://github.com/NeoSymbian/neoui) | The Rust UI server and apps |
+| [telephony](https://github.com/NeoSymbian/telephony) | The cellular modem's user side in Rust: QRTR, QMI, rmtfs, call audio, the modem server ([telephony.md](telephony.md)) |
 | [symbian-qemu](https://github.com/NeoSymbian/symbian-qemu) | The Syborg board package (the adapt.Qemu fork): the baseport, QEMU 11.1 with the Syborg board in C, `run-syborg` (`ghcr.io/neosymbian/symbian-qemu`) |
 | `oss.*` | The SymbianSource packages the build pins (`build/sources.lock`), forked as they are |
 
