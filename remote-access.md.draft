@@ -1,0 +1,68 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+# Remote access: SSH from the Mac (draft revision)
+
+**Draft, 2026-11-09.** It is meant to replace `remote-access.md` once the current USB-networking work is finished or
+stopped. Do not build from this yet. Until then, `remote-access.md` and its `README.md` row stay as they are.
+
+## The split
+
+| Goal | Where | Status |
+|---|---|---|
+| **Debug access**: shell, files, launching programs and logs over the USB cable | [debug-access.md](debug-access.md) | Primary. Built from Symbian's own fshell, unchanged |
+| **Remote access**: standard `ssh`, `scp` and `sftp`, later over Wi-Fi too | this document | **Parked** until debug access reaches DA4 and normal-boot USB works (DA6) |
+
+The original plan (CDC-ECM Ethernet next to the ACM console, smoltcp, Sunset SSH, `NEOSSH.EXE`) stays the remote-access
+design. It is no longer the way to get debug access.
+
+## Status as found (2026-11-09)
+
+- **Stages:** only D0 (the contract) is done. Nothing ran on the phone.
+- **Kernel snapshot (uncommitted):** it builds for bonito with `USBNET=0` and `USBNET=1`; the QEMU image boots to the
+  launcher; the host queue test passes with sanitizers.
+- **`neolink` (not in git):** on the host, fmt, clippy and 14 tests pass, and the OpenSSH loopback test passes
+  (Ed25519 login, wrong-key refusal, scp of 4 MiB at about 6–7 MB/s). The ARM build, clippy and its test pass.
+
+## Findings to fix if the work resumes
+
+Ranked. "Confirmed" means traced in the code; "plausible" means it depends on hardware or host behaviour.
+
+1. **The daemon exits when the kernel TX queue is full** (confirmed). The kernel returns `KErrOverflow` (-9)
+   (`qcom_dwc3_acm.cpp`, the net TX path). `neossh/src/usb.rs` treats only -18, -22 and -14 as backpressure, and the
+   daemon is never restarted. The first large download ends SSH until reboot.
+2. **A halt timeout aborts the controller's bring-up, in every build** (plausible). The old `Bringup` went on to the
+   core soft reset; the new one returns, so the debug console never starts.
+3. **SET_INTERFACE clears the Ethernet packet filter** (plausible). The link is ready only once a filter is set.
+   Linux's `f_ecm` sets a default filter instead.
+4. **A quarantined endpoint never recovers** (confirmed). Only a controller restart clears it, so a replug leaves the
+   console or the network dead.
+5. **The authenticated user can reach `C:\private\e0002010\`** (confirmed): the host key can be read and
+   `authorized.key` overwritten. `files.rs` has no private-path rule, and the daemon has every capability.
+6. **A weak (small-order) Ed25519 authorized key is not refused at load** (confirmed path).
+7. **Keepalive without a timeout** (confirmed): a dead peer holds one of the two connection slots for good.
+8. **One session's storage error resets both sessions** (confirmed).
+9. **Throughput is capped at about 1.5 MB/s:** one frame per direction per 1 ms poll, against the 2 MB/s goal.
+10. **Lower:** RX/TX ignore the link generation; a 1514-byte buffer on the 4 KB kernel stack; DMA barriers weaker
+    than Linux's; no Z: check outside `open`; `scp -p` unsupported.
+
+The PRNG clock change in `qcom_mss.cpp` (kept on after handover, `USBNET=1` only) was reviewed as safe for telephony.
+
+## Code disposition
+
+To be applied by the session that owns the code, after its current work stops:
+
+| Code | Decision | Reason |
+|---|---|---|
+| `qcom_dwc3_acm.cpp` rework: composite gadget, endpoint lifecycle, DMA ownership, EP0 recovery | **keep** once findings 2–4 are fixed | the base for debug access DA3 (a second ACM function) |
+| `common/inc/a64_usb_dma.h`, `a64_usb_control.h`, `a64_usb_poll.h`, `a64_usbnet_queue.h` (renamed generic), `tools/test_usbnet_queue.cpp` | **keep** | generic and tested |
+| `common/inc/a64_usbnet.h` (Ethernet HAL), `sdm670_assp/qcom_usbnet_descriptors.h` (ECM), the `USBNET` switch in `variant.conf` and `build/neo` | **remove from main**, keep on a parked branch of the kernel fork | network only |
+| `sdm670_assp/qcom_prng.cpp`, its mapping in `pixel_bonito.cpp`, the PRNG clock hook in `qcom_mss.cpp` | **remove from main**, parked branch | only SSH needs hardware randomness today |
+| `neolink` (smoltcp, Sunset, SFTP, `NEOSSH.EXE`) | **keep outside the build**: a parked NeoSymbian repo, or an archive | host-tested, the base if remote access resumes |
+| `neolink` `files.rs` and `shell.rs` | parked with `neolink` | fshell covers them for debug access |
+| `docs/README.md` row "Mac SSH/SCP over USB Ethernet" | point to `debug-access.md`, and to this document as parked | — |
+
+## If the work resumes
+
+- **Stages:** D0–D6 stay as in `remote-access.md`.
+- **D1:** builds on the gadget that debug access DA3 proves, adding an ECM function beside the two ACM functions.
+- **D6:** shares the normal-boot USB power fix with debug access DA6 and FS6.
+- **First:** findings 1–8 above are fixed before any phone run.
