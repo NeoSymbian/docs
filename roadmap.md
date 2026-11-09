@@ -9,6 +9,17 @@ phone you can use every day.
   magic in the image, then run `dtc -I dtb -O dts`.
 - Anything else marked **unverified** has not been checked.
 
+## Kernel modernization and release readiness
+
+The 2026-11-09 [source assessment](kernel-assessment.md) and [issue register](kernel-issues.md) add a
+[modernization track, KM0–KM6](kernel-modernization.md): trustworthy tests, data preservation, security boundaries,
+time/SMP/ABI correctness, device lifecycle, measured performance and release support. It covers inherited EKA2/F32
+defects as well as port shortcuts and maps every section of known-issues.md.
+
+The milestones below record feature bring-up and historical checks. A supported-release claim additionally needs
+the modernization gates; ROFS hashes and A/B recovery do not by themselves authenticate boot images or updates.
+The audit changed documentation only; its proposed fixes and runtime acceptance remain pending.
+
 ## Goal and fixed decisions
 
 **Goal:** a daily phone: calls, SMS, mobile data, Wi-Fi, a touch UI, and a battery that lasts a day.

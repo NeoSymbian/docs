@@ -12,6 +12,10 @@ NeoSymbian brings the open-source 2010 Symbian (EKA2, the Symbian^3 release) bac
 | Document | What |
 |---|---|
 | [roadmap.md](roadmap.md) | Plan and status: kernel (K), hardware (H), UI (U) and phone (P) tracks |
+| [kernel-assessment.md](kernel-assessment.md) | Source audit: legacy architecture, existing defenses, reviewed baseline, coverage and limits |
+| [kernel-issues.md](kernel-issues.md) | Evidence-based kernel/reliability/security register, with all existing known issues mapped |
+| [kernel-modernization.md](kernel-modernization.md) | Phases KM0–KM6: fixes, owners, dependencies, tests and supported-release gates |
+| [kernel audit verification](verification/kernel-audit-2026-11-09.md) | Exact documentation checks, controlled runner probe, artifacts and unexecuted kernel tests |
 | [rust-integration.md](rust-integration.md) | Rust on the Symbian user side: stages R0–R8 |
 | [smooth-ui.md](smooth-ui.md) | Making the UI smooth (60 fps): why it isn't yet, and stages S1–S6 |
 | [neoui-shell.md](neoui-shell.md) | Shell services design: settings store, notifications, home pages, widgets (planned) |

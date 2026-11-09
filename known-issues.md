@@ -1,5 +1,10 @@
 # Known issues
 
+For the broader legacy-kernel audit, source evidence, priorities and closure tests, see
+[kernel-issues.md](kernel-issues.md) and the [modernization roadmap](kernel-modernization.md).
+The register maps all seven sections below, retaining the resolved slot-retry history and the uncertainty of
+open reports. The 2026-11-09 source audit did not rerun these hardware/emulator observations.
+
 ## Phone: slot a runs out of retries (ABL switches to slot b); test images may die with a black screen
 
 **Status:** fixed 2026-11-08 by FS5b (kernel `5b0ba6b`): the kernel marks a slot successful (`slot ok now`, or
