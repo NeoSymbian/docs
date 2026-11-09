@@ -456,6 +456,10 @@ The kernel has `EHalGroupVariant` functions for the phone's own tools. They are 
 
 0x4e04/0x4e05 are kept for the dev-mode switch (USB debug console on/off).
 
+The phone's own servers written in Rust: **`NeoModem`** (MODEMD.EXE, NeoSymbian/telephony; started by SYSSTART) gives
+apps the modem: `STATUS`, `DIAL`, `ANSWER`, `HANGUP`. The contract is the `no_std` crate `modem-ipc`
+([telephony.md](telephony.md) C5).
+
 **Status (2026-11-08):** 1 and 2 done in neoui: boot OK `eb0db62`; the Dev tools app `NEODEV.EXE` `5b6899c`
 (live log, last boot, save to `E:\logs`, console switch, the slot line from `ENeoHalSlotInfo` 0x4e09). Both were
 verified on the Pixel. 3 waits for FS6.

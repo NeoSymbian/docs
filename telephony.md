@@ -80,8 +80,9 @@ graph LR
 | C1 | Linux reference run | A call on this phone and SIM under mainline Linux; traces captured |
 | C2 | Kernel transport | SMEM, SMP2P, GLINK working on the phone (**done** 2026-11-08) |
 | C3 | Modem boot | The modem reports ready and talks QRTR (**done** 2026-11-08) |
-| C4 | Modem services | Modem stays up; DMS returns the revision |
-| C5 | QMI + modemsrv + dialer | Calls ring and can be answered, with no audio yet |
+| C4 | Modem services | Modem stays up; DMS returns the revision (**done** 2026-11-08) |
+| C5 | QMI + modemsrv + dialer | Calls ring and can be answered, with no audio yet (**done** 2026-11-09) |
+| C5b | IPA (the first half of C10, moved earlier) | The modem stays up on LTE while packet data arrives |
 | C6 | Call audio | **Two-way call audio on the earpiece: the first win** |
 | C7 | Complete calls | Ringtone, speaker, in-call controls, crash recovery |
 | C8 | Call log and contacts | Names on incoming calls |
@@ -315,23 +316,92 @@ Exit:
 - QMI DMS answers the revision and the IMEI (masked in the log);
 - UIM reports the SIM present.
 
-### C5: QMI + modemsrv + dialer (no audio)
+### C5: QMI + modemsrv + dialer (no audio) (done 2026-11-09)
 
-- **QMI clients:**
-  - DMS: operating mode online / low-power, revision, IMEI.
-  - UIM: card status, PIN verify, ICCID.
-  - NAS: system selection (auto, LTE preferred, 3G allowed), serving system, operator name, signal info,
-    indications.
-  - VOICE: indication register, dial, answer, end, all-call-status indication, get-all-call-info, start/stop DTMF.
-- **`modemsrv`** (Rust Symbian server): owns the QMI clients. Its IPC API for apps:
-  - `Status` → operator, technology (3G/LTE), bars, SIM state;
-  - `Dial(number)`, `Answer`, `Hangup`, `SendDtmf`;
-  - a notification stream: incoming call with number, call state changes, registration changes.
-- **neoui:** the status bar shows the operator and the bars. A dial pad, the incoming-call screen, the in-call screen
-  (timer, hang up).
+**What was built:**
+- **MODEMD.EXE is the `modemsrv`.** A separate server process would need a QRTR socket API between processes, so the
+  QMI clients live in MODEMD. It serves the IPC server **`NeoModem`** (v1.0; the contract is the `no_std` crate
+  `modem-ipc` in the telephony repo):
+  - `STATUS` returns a fixed 74-byte snapshot: modem state, SIM, registration, technology, bars 0–4, operator, and
+    one call `{id, state, incoming, number}`;
+  - `DIAL(number)`, `ANSWER` and `HANGUP` complete with `KErrNone`, `KErrNotReady`, `KErrArgument` or
+    `KErrInUse`.
+- **Auto-start.** neoui's SYSSTART spawns MODEMD at boot (`symbian/src/phone.rs`); in NeoSymbian it holds the system
+  starter's role. A second MODEMD finds the server name taken and exits. A ROM without MODEMD (QEMU, CI) gets a
+  phone-less shell.
+- **The shell:**
+  - it polls `STATUS` once a second;
+  - the status bar shows the operator (where the title is empty), "LTE"/"3G"/"2G" and the bars;
+  - the Phone screen dials, answers and ends calls;
+  - an incoming call opens the call view.
+  - `shortcut:` a 1 s poll instead of an async notify (C7).
+- **QMI clients** (`modem-proto`): one client per service, each with its own port, a transaction counter and its
+  pending requests. Responses are matched by transaction, and indications are routed.
+- **Dial safety:** numbers with fewer than 5 digits are refused, so tests can't reach 112/911/101–104. **Don't rely on
+  this phone for emergency calls.**
 
-Exit: the status bar shows the operator and the bars; an outgoing call rings the owner's other phone; an incoming call
-shows the number and can be answered and hung up. This needs the owner to place and answer test calls.
+**QMI facts used.** Ids come from libqmi's JSON. † marks a fact checked against the C1 capture or the phone.
+
+| Service | Message | Layout |
+|---|---|---|
+| DMS 2 | Set Operating Mode 0x2E† | TLV 0x01 = 0 (online). Answers error 52 when the modem is already online. |
+| UIM 11 | Card Status 0x2F† | TLV 0x10: 4 × u16 session indexes, a card count, then per card the state first (1 = present) |
+| NAS 3 | Register Indications 0x03 | 0x13 serving system, 0x19 signal info |
+| NAS 3 | Serving System 0x24† | Response and indication. TLV 0x01 `{reg, cs, ps, net, n, radio[n]}` (radio 4 GSM, 5 UMTS, 8 LTE); 0x10 roaming (0 = on); 0x12 PLMN `{u16 mcc, u16 mnc, len, name}` |
+| NAS 3 | PLMN Name 0x44† | Request `{u16 mcc, u16 mnc}`. Answer: 0x10 SPN, then the short and long names `{enc, ci, spare, len, str}` |
+| NAS 3 | Signal Info 0x4F / indication 0x51† | LTE 0x14 `{i8 rssi, i8 rsrq, i16 rsrp, i16 snr}`; WCDMA 0x13 `{i8 rssi, i16 ecio}`; GSM 0x12 `{i8 rssi}`. **On 3G an invalid LTE TLV still comes**, so read only the current technology's TLV |
+| NAS 3 | System Selection 0x33 / 0x34† | Mode 0x11 (u16 mask), service domain 0x18 (u32, 0 = CS only), duration 0x17 (0 = until power cycle) |
+| VOICE 9 | Indication Register 0x03† | 0x13 call notifications |
+| VOICE 9 | All Call Status indication 0x2E† | TLV 0x01 `n × {id, state, type, dir, mode, multipart, als}`; 0x10 numbers `{id, pi, len, digits}`. States 1 origination, 2 incoming, 3 conversation, 4 cc-in-progress, 5 alerting, 8 disconnecting, 9 end, 10 setup |
+| VOICE 9 | Dial 0x20†, End 0x21†, Answer 0x22† | Dial TLV 0x01 = the number in ASCII; the answer's TLV 0x10 is the call id. End/Answer TLV 0x01 = the call id. Answer is refused during setup. |
+
+**Lessons from the phone:**
+- **QRTR flow control covers control packets too.** The modem marks packets `confirm_rx` and waits for RESUME_TX.
+  MODEMD at first confirmed only data packets, so the modem's NEW_SERVER announcements stalled and DMS or UIM went
+  missing at random. Now every packet type is confirmed, as Linux does.
+- **The modem asserts in its IPA path once LTE packet data flows:**
+  `ipa_dl_opt_lte.c:431:[lte_rlc_dl]IPA Assert: new_free_space > 0`. Nothing on the AP runs IPA yet.
+  - **Interim, `VOICE_ONLY` in `modem-proto`:** once the modem has registered, MODEMD asks NAS for GSM/UMTS with CS
+    only, until a power cycle (nothing is persisted). Calls work on 3G, and packet data stays detached.
+  - Sending that request as soon as NAS appeared was refused (error 25), and the modem never brought up UIM.
+  - C5b removes the interim mode.
+- Calls on LTE drop to 3G (CSFB) and come back afterwards, as under Linux. VoLTE is C11.
+
+**Result on the phone:**
+- MODEMD started by SYSSTART;
+- registered with "Ucom AM" (LTE, then 3G voice-only), with bars;
+- an outgoing call rang the owner's phone;
+- an incoming call showed the number, was answered and hung up;
+- the calls were silent, as expected until C6.
+
+### C5b: IPA (the first half of C10, moved earlier)
+
+The modem needs the AP to run IPA, the hardware that moves packets between it and the AP, even with no data call:
+on LTE data, an idle IPA fills the modem's rings and it asserts (C5). The steps below are facts from Linux
+`drivers/net/ipa` (GPL, reference only). On sdm670 that is IPA v3.5.1, the sdm845 data.
+
+- **I0, recon (read-only):**
+  - `vendor_a` holds `ipa_fws.mdt` + `.b00`–`.b04`. Check that the ext4 superblock is at offset 0: this is a
+    retrofit dynamic partition, and its metadata lived on `system_a`, which now holds our ROFS.
+  - the apps SMMU state for streams 0x720/0x722.
+- **I1, firmware:**
+  - a read-only `ext4ro` crate (MODEMD). `PartRead` gets `vendor_a` in its allow-list.
+  - the kernel's `qcom_pas.cpp`: init_image, mem_setup and auth_and_reset with **PAS id 15** into ipa-fw
+    `0x97a00000`. C6 reuses it for the ADSP.
+- **I2, the kernel side** (`qcom_ipa.cpp`, `qcom_gsi.cpp`, `qcom_smmu.cpp`):
+  - the RPMh IPA clock and its interconnects;
+  - an SMMU context bank with an identity map;
+  - the v3.5.1 register setup, region canaries and SMEM item 497;
+  - GSI channels COMMAND_TX ch4→ep5 and LAN_RX ch5→ep9, plus GENERIC_CMD for the modem channels 0/2/4;
+  - immediate commands (header and processing-context init, route/filter init);
+  - LAN_RX recycling as the default route;
+  - the SMP2P "ipa" clock-query answer.
+- **I3, the IPA QMI handshake** (MODEMD), service 0x31:
+  - we serve instance 1 and are a client of the modem's instance 2;
+  - INIT_DRIVER 0x21 carries the region offsets;
+  - the modem sends DRIVER_INIT_COMPLETE 0x35 and INDICATION_REGISTER 0x20, and we answer with INIT_COMPLETE 0x22.
+
+Exit: `VOICE_ONLY` off; LTE for 30+ minutes, with calls in between, and no fatal.
 
 ### C6: call audio (= roadmap H5 for voice)
 
@@ -497,4 +567,5 @@ Direct GPL ports so far: none.
 | C2 | **done 2026-11-08** (kernel `a5283de`): SCM, SMEM, SMP2P, QMP, GLINK, monitor commands |
 | C3 | **done 2026-11-08**: the kernel boots the modem from `modem_a` and talks QRTR; the modem dies after ~1 min without rmtfs (C4) |
 | C4 | **done 2026-11-08**: `MODEMD.EXE` serves rmtfs, the locator and TFTP; the modem reaches handover and stays up (SMEM item 134 was the missing piece); DMS + UIM answer |
-| C5–C12 | not started |
+| C5 | **done 2026-11-09**: MODEMD serves NeoModem and is started by SYSSTART; registration, operator and bars in the status bar; calls out and in through the Phone screen (silent); 3G voice-only until C5b (IPA) |
+| C5b–C12 | not started |
