@@ -374,34 +374,53 @@ Exit:
 - an incoming call showed the number, was answered and hung up;
 - the calls were silent, as expected until C6.
 
-### C5b: IPA (the first half of C10, moved earlier)
+### C5b: IPA (the first half of C10, moved earlier) (done 2026-11-09, kernel `d003355`)
 
 The modem needs the AP to run IPA, the hardware that moves packets between it and the AP, even with no data call:
-on LTE data, an idle IPA fills the modem's rings and it asserts (C5). The steps below are facts from Linux
-`drivers/net/ipa` (GPL, reference only). On sdm670 that is IPA v3.5.1, the sdm845 data.
+on LTE, an idle IPA makes the modem assert (C5). The facts come from Linux `drivers/net/ipa` (GPL, reference only).
+On sdm670 that is IPA v3.5.1, the sdm845 data.
 
-- **I0, recon (read-only):**
-  - `vendor_a` holds `ipa_fws.mdt` + `.b00`–`.b04`. Check that the ext4 superblock is at offset 0: this is a
-    retrofit dynamic partition, and its metadata lived on `system_a`, which now holds our ROFS.
-  - the apps SMMU state for streams 0x720/0x722.
-- **I1, firmware:**
-  - a read-only `ext4ro` crate (MODEMD). `PartRead` gets `vendor_a` in its allow-list.
-  - the kernel's `qcom_pas.cpp`: init_image, mem_setup and auth_and_reset with **PAS id 15** into ipa-fw
-    `0x97a00000`. C6 reuses it for the ADSP.
-- **I2, the kernel side** (`qcom_ipa.cpp`, `qcom_gsi.cpp`, `qcom_smmu.cpp`):
-  - the RPMh IPA clock and its interconnects;
-  - an SMMU context bank with an identity map;
-  - the v3.5.1 register setup, region canaries and SMEM item 497;
-  - GSI channels COMMAND_TX ch4→ep5 and LAN_RX ch5→ep9, plus GENERIC_CMD for the modem channels 0/2/4;
-  - immediate commands (header and processing-context init, route/filter init);
-  - LAN_RX recycling as the default route;
-  - the SMP2P "ipa" clock-query answer.
-- **I3, the IPA QMI handshake** (MODEMD), service 0x31:
-  - we serve instance 1 and are a client of the modem's instance 2;
-  - INIT_DRIVER 0x21 carries the region offsets;
-  - the modem sends DRIVER_INIT_COMPLETE 0x35 and INDICATION_REGISTER 0x20, and we answer with INIT_COMPLETE 0x22.
+What runs now:
+- **Firmware:** `vendor_a` holds the factory `/vendor/firmware` as an ext4 (written by NeoSymbian's `blk put`,
+  verified by readback). MODEMD reads `ipa_fws.*` with the `ext4ro` crate and passes it to HAL `IpaStart` 0x4e13.
+  The kernel's `qcom_pas.cpp` loads it into ipa-fw `0x97a00000` as **PAS id 15**. The `.mdt` is used as is: the
+  hash segment's `.b01` must not be placed over it.
+- **Kernel** (`qcom_ipa.cpp`, `qcom_smmu.cpp`), in Linux's order, before MODEMD boots the modem:
+  - RPMh votes: SN10 and SN1 only, plus IP0 = 1875 (75 MHz / (unit 40 × 1000)). Voting the shared DDR/NoC BCMs
+    from the AP's DRV replaces the whole AP's vote (a data abort);
+  - an identity SMMU context for streams 0x720 and 0x722;
+  - ipa_config;
+  - GSI event rings 0/1 and channels 4 (AP_COMMAND_TX→ep5) and 5 (AP_LAN_RX→ep9);
+  - the immediate commands (header, processing-context and modem SRAM init; route/filter tables);
+  - LAN_RX buffers and the default route;
+  - a 1 ms poll that recycles LAN_RX and answers the modem's SMP2P clock query.
+- **MODEMD:** with IPA up, it serves the IPA QMI service (0x31, instance 1), sends INIT_DRIVER to the modem's
+  instance 2, and doesn't set voice-only. The modem attaches on LTE.
 
-Exit: `VOICE_ONLY` off; LTE for 30+ minutes, with calls in between, and no fatal.
+The bugs that held it up, all fixed:
+- **RPMh:** the TCS message length was 4, not 8; every vote was acked and none applied.
+- **SCM:**
+  - the resume path must pass `x6` back;
+  - `x7 = 0`;
+  - one call at a time.
+- **SMMU, under the hypervisor:**
+  - **only exact stream matches are used** (one SMR per stream, mask 0); a masked SMR was ignored, and IPA's reads
+    never reached our context;
+  - **the table must start at level 0** (T0SZ 16, a table descriptor → level-1 1 GB blocks). A T0SZ 32 table with
+    blocks at the top faulted at level 0;
+  - both were found by diffing against Linux's live context bank (C1, `/dev/mem` after pinning IPA's runtime PM
+    on: reading GSI or IPA with IPA suspended stalls the CPU, and the GSI global area always stalls).
+
+Checked on the phone (2026-11-09):
+- about 20 minutes on LTE (the 30-minute run was cut short);
+- an incoming and an outgoing call, each CSFB to 3G and back to LTE;
+- no modem fatal;
+- GSI error log 0, and channels 4/5 started.
+
+Open, needed for data (C10):
+- **The IPA QMI handshake is half done.** The modem sends INDICATION_REGISTER, but it hasn't answered INIT_DRIVER
+  or sent DRIVER_INIT_COMPLETE, and IPA shows no uC-loaded interrupt.
+- The AP_MODEM_TX/RX endpoints (ch3/ch6) aren't set up yet.
 
 ### C6: call audio (= roadmap H5 for voice)
 
@@ -568,4 +587,5 @@ Direct GPL ports so far: none.
 | C3 | **done 2026-11-08**: the kernel boots the modem from `modem_a` and talks QRTR; the modem dies after ~1 min without rmtfs (C4) |
 | C4 | **done 2026-11-08**: `MODEMD.EXE` serves rmtfs, the locator and TFTP; the modem reaches handover and stays up (SMEM item 134 was the missing piece); DMS + UIM answer |
 | C5 | **done 2026-11-09**: MODEMD serves NeoModem and is started by SYSSTART; registration, operator and bars in the status bar; calls out and in through the Phone screen (silent); 3G voice-only until C5b (IPA) |
-| C5b–C12 | not started |
+| C5b | **done 2026-11-09** (kernel `d003355`): IPA runs (GSI firmware via PAS 15, SMMU identity context, command and LAN_RX channels); the modem stays on LTE, calls CSFB to 3G and back; the IPA QMI handshake is still half done (needed for data) |
+| C6–C12 | not started |
