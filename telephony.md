@@ -83,7 +83,7 @@ graph LR
 | C4 | Modem services | Modem stays up; DMS returns the revision (**done** 2026-11-08) |
 | C5 | QMI + modemsrv + dialer | Calls ring and can be answered, with no audio yet (**done** 2026-11-09) |
 | C5b | IPA (the first half of C10, moved earlier) | The modem stays up on LTE while packet data arrives |
-| C6 | Call audio | **Two-way call audio on the earpiece: the first win** |
+| C6 | Call audio | **Two-way call audio on the earpiece: the first win** (**done** 2026-11-09) |
 | C7 | Complete calls | Ringtone, speaker, in-call controls, crash recovery |
 | C8 | Call log and contacts | Names on incoming calls |
 | C9 | SMS | SMS round-trip, Unicode |
@@ -266,7 +266,7 @@ matches the Mac's hashes.
 
 Known gaps:
 - **Handover (bit 2) never came within 5 s.** Linux on this phone logged "Handover signaled, but it already
-  happened". Our proxy votes and clocks stay on anyway (shortcut).
+  happened". (Since C4 it comes about 0.55 s after ready; since C6 the proxy votes are released then, as Linux.)
 - **The modem raises fatal (bit 0) about a minute after ready.** Nothing answers rmtfs/tqftp yet; C4 does.
   - No crash reason appeared in SMEM item 421: neither in the global partition nor in the modem's.
 - **`mss stop` / crash recovery isn't wired up yet** (C7). `Stop()` exists for the failure paths.
@@ -459,6 +459,41 @@ Failure modes:
 - The call connects but is silent: AFE port not started, wrong port IDs, codec not powered, or MVM not attached to
   the modem session.
 
+**Result 2026-11-09: done** (kernel `b12d1ba`, telephony `3f4af12`, neoui `2d55d01`).
+- **The result on the phone:**
+  - calls connect (CSFB to 3G) with two-way audio on the earpiece and the loudspeaker;
+  - Mute, Speaker, the volume keys and in-call DTMF work;
+  - Dev tools → Audio loops the mic back to the loudspeaker or the earpiece with no call (an AFE loopback).
+- **As built:**
+  - the kernel boots the ADSP (PAS 1, streamed from `vendor_a` by MODEMD) **before the modem**, and opens its
+    `IPCRTR` and `apr_audio_svc`;
+  - APR runs in Rust (`modem-proto/src/apr.rs`), as one state machine (Off / Call / Test) that never cuts a sequence
+    short;
+  - the codecs are a kernel board driver (`a64_audio.cpp`, HAL 0x4e18).
+- **What it took, each found against a kprobe trace of a working Linux call (C1 image + `apr_send_pkt` /
+  `apr_callback` kprobes):**
+  - **SSCTL events**, as Linux sysmon: the modem hears `{"adsp", after powerup}` and the ADSP `{"modem", …}` (QMI
+    service 43 v2, instances 0x12 / 0x14, message 0x23).
+  - **Linux's order.** The mic's clock and port start before the voice sessions; the speaker's port starts after
+    START_VOICE. With both ports started first, START_VOICE was never answered.
+  - **The voice path stops at END**, not at "disconnecting". Stopping earlier overlapped the modem's own teardown
+    with the ADSP, and the ADSP stopped answering.
+  - **The built-in topologies** 0x10F71 / 0x10F77. C1's UCM ids (0x1000FFFC / 0x10010F87) commit under Linux, but
+    here they fail (status 1) even with Linux's exact bytes.
+  - **Both amps on TDM slot 0.** The AFE channel map {0, 4} is in byte offsets, so channel 2 lands in slot 2 and
+    Bottom on slot 1 was silent. Analog gain 17 and 0 dB digital, Linux's live values (`0x6C04 = 0x633`,
+    `0x6000 = 0x8000`).
+  - **GLINK** opens our side of a remote-opened channel only when it is used here. A full remote-intent table now
+    drops its smallest idle intent.
+  - **The modem's proxy votes** (mss/mx/cx at their highest, xo) are released at handover, as Linux's
+    `qcom_msa_handover`. Held, they made the modem assert in `rpmh_image_os.c:162` after voice calls.
+  - **e32's `sleep`/`delay` take microseconds.** MODEMD passed milliseconds, so its send retry to a busy modem gave
+    up after a few ticks and dropped the hangup.
+  - The loopback test stops its speaker port before its mic port; the other order jammed the AFE.
+- **Open** (`known-issues.md`):
+  - after a connected call the modem stays on 3G (Linux: back on LTE 1.7 s after the call);
+  - no ACDB calibration.
+
 ### C7: complete calls
 
 - **Ringing:**
@@ -588,4 +623,5 @@ Direct GPL ports so far: none.
 | C4 | **done 2026-11-08**: `MODEMD.EXE` serves rmtfs, the locator and TFTP; the modem reaches handover and stays up (SMEM item 134 was the missing piece); DMS + UIM answer |
 | C5 | **done 2026-11-09**: MODEMD serves NeoModem and is started by SYSSTART; registration, operator and bars in the status bar; calls out and in through the Phone screen (silent); 3G voice-only until C5b (IPA) |
 | C5b | **done 2026-11-09** (kernel `d003355`): IPA runs (GSI firmware via PAS 15, SMMU identity context, command and LAN_RX channels); the modem stays on LTE, calls CSFB to 3G and back; the IPA QMI handshake is still half done (needed for data) |
-| C6–C12 | not started |
+| C6 | **done 2026-11-09** (kernel `b12d1ba`, telephony `3f4af12`, neoui `2d55d01`): the ADSP boots (PAS 1), APR in Rust, CS35L36 x2 + RT5514 board driver; two-way call audio on the earpiece and loudspeaker, Mute / Speaker / volume / DTMF; Dev tools audio loopback test; the modem stays on 3G after a connected call (open) |
+| C7–C12 | not started |

@@ -89,6 +89,30 @@ only `md c:\Long Directory On`, so the directory was made without "Phone" (2026-
 26-character lines on QEMU without losses. Not looked into yet. Suspects: the console's key queue on the phone, or the
 pacing in `A64Key_Type` (`a64_dbgmon.cpp`). Workaround: keep typed lines short.
 
+## Phone: the modem stays on 3G after a connected call (seen 2026-11-09)
+
+**Status:** open (telephony C7).
+
+**What is known:**
+- calls on LTE drop to 3G (CSFB);
+- a call hung up while ringing comes back to LTE within seconds;
+- a call that connected (its voice path ran through the ADSP) stays on 3G. The modem stays up and calls keep working;
+- Linux on this phone returns to LTE 1.7 s after a connected call;
+- our APR teardown matches Linux's packet for packet, and since kernel `b12d1ba` the modem no longer crashes after
+  the call.
+
+**Next to check:**
+- the CDSP, which Linux runs and we don't;
+- a PDR listener on the audio PD (Linux's `apr.c` registers one);
+- what the modem still holds with the ADSP after END (a CVS session it created).
+
+## Phone: call audio has no calibration (2026-11-09)
+
+**Status:** known limit.
+- Without ACDB, the voice path uses the ADSP's built-in topologies (single-mic echo cancellation, default RX), so
+  levels and echo are untuned.
+- Dev tools' loudspeaker loopback howls when the phone is held near the mic. That is acoustic feedback, expected.
+
 ## Phone: USB power on a normal boot doesn't work yet (parked 2026-11-08)
 
 **Status:** open. The kernel has `qcom_usbpower.cpp` (ABL's captured GCC/QUSB2 values) and the debug monitor's

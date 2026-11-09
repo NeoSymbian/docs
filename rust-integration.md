@@ -454,6 +454,11 @@ The kernel has `EHalGroupVariant` functions for the phone's own tools. They are 
 | `PartRead` | 0x4e11 | a1 = `{part 0..4 = modemst1, modemst2, fsg, fsc, vendor_a; offset; len; buf}`, read only | CommDD |
 | `RmtfsMem` | 0x4e12 | a1 = `{op 0 info / 1 read / 2 write; offset; len; buf}`: the rmtfs carve-out `0xfc201000` (2 MB, HLOS + VMID 15) | CommDD |
 | `IpaStart` | 0x4e13 | a1 = `{.mdt length; 0; image length; image}`: IPA's GSI firmware; the kernel brings IPA up (`qcom_ipa.cpp`), 0 = running. MODEMD calls it before it boots the modem | CommDD |
+| `AdspLoad` | 0x4e14 | a1 = `{op 0 mdt / 1 segment / 2 end \| segment << 8; offset; len ≤ 64 KB; buf}`: the ADSP's firmware streamed into PAS 1; "end" authenticates and starts it (`qcom_adsp.cpp`) | CommDD |
+| `AdspState` | 0x4e15 | a1 = `TUint32[4]`: step, error, SMP2P slave-kernel bits, open channels (bit 0 IPCRTR, bit 1 APR) | CommDD |
+| `ChanSend` | 0x4e16 | a1 = `{ring 1 ADSP IPCRTR / 2 APR; 0; len; buf}`: one message to the ADSP, `KErrNotReady` until it gave a receive intent | CommDD |
+| `ChanRecv` | 0x4e17 | a1 = `{ring; 0; size; buf}`: the next message's length, `KErrNotReady` if none (polled) | CommDD |
+| `Audio` | 0x4e18 | a1 = `{op; arg}`: the board's codecs (`a64_audio.cpp`): 0 probe, 1 start (arg 1 = loudspeaker), 2 stop, 3 route, 4 volume 0..10, 5 mic mute | CommDD |
 
 0x4e04/0x4e05 are kept for the dev-mode switch (USB debug console on/off).
 
