@@ -1,6 +1,6 @@
 # neoui shell services: settings, notifications, home pages and widgets
 
-**Status: planned (design agreed 2026-11-09), nothing implemented yet.** This is the design for four shell services
+**Status: Part 1 (settings) done 2026-11-09 on neoui branch `shell-services`; the rest planned.** This is the design for four shell services
 in neoui, written so that a later session can build any one part from this page alone. The parts are:
 - step 0: knowing who is calling;
 - part 1: one settings store;
@@ -13,7 +13,7 @@ It belongs to roadmap stage U3 ("system apps in Rust", [roadmap.md](roadmap.md))
 | Part | What | Status |
 |---|---|---|
 | 0 | Know who is calling: the client's secure ID, service sessions | Planned |
-| 1 | One settings store for the shell and every app | Planned |
+| 1 | One settings store for the shell and every app | **Done** (2026-11-09, neoui `shell-services`) |
 | 2 | Notification service: status bar icons, badges, shade list, urgent banner | Planned |
 | 3 | Home pages of widgets and shortcuts (Belle style), pin and unpin, dock, edit mode | Planned |
 | 4 | Widgets: drawn by the shell from data the app sends | Planned |
@@ -93,70 +93,68 @@ session" (marked `shortcut:` there). Two things follow:
 **Not needed at first for phone notifications.** The shell already talks to `NeoModem`, so it can post missed-call
 and SMS notifications itself from modem events. Step 0 is needed for third-party apps and other background services.
 
-## Part 1: settings store
+## Part 1: settings store (done 2026-11-09)
 
-### Model (`neoui-proto::settings`)
-- **Key:** ASCII `namespace.name`, at most 32 bytes. The namespace is a global one (`display`, `sound`, `clock`,
-  `radio`, `home`, `notify`, `widget`) or an app key (`clock`, `files`…).
-- **Value:** `enum Value { Bool(bool), Int(i32), Str(String /* ≤ 64 B UTF-8 */), Bytes(Vec<u8> /* ≤ 2 KB */) }`.
-  Bytes holds structured blobs such as the home layout and widget content.
-- **Defaults:** a `DEFAULTS: &[(&str, Value)]` table in code. The store saves only values that differ from the
-  default, so new defaults reach existing phones.
-- **File format:**
-  - Header: magic `NSET`, a format version (u16), a count (u16).
-  - Then one record per key: key length (u8), key, type (u8), value length (u16), value. All little-endian.
-  - `decode` rejects a bad magic, a wrong version, a record that runs past the end, an over-long key or value, and an
-    unknown type. It keeps the records read before the error, so a corrupt tail loses only the tail.
-  - Total size limit 16 KB.
+As built. It changes the first sketch: typed keys, a registry, change subscriptions per prefix, and the pure logic
+in `neoui-proto`.
 
-### Server (`symbian/src/settings.rs`)
-- Loads at boot, before the shell's first frame, so the first frame already shows the saved theme and layout.
-- Keeps everything in RAM. Saves to `C:\private\e0002001\settings.dat`:
-  1. write `settings.new` with `File::replace`;
-  2. `Fs::delete` the old file;
-  3. `Fs::rename` the new one into place.
-- On load, if only `settings.new` exists, a save was interrupted; use it. Never leave a half-written
-  `settings.dat`.
-- Saves 1 s after the last change (a slider makes many changes). Always saves before `POWER` and before the Power
-  menu acts, next to `clock::power` in `symbian/src/clock.rs`.
+### Where it is
+| Path | What |
+|---|---|
+| `neoui-proto/src/settings/value.rs` | `Value` (`Bool`, `Int(i32)`, `Str` ≤ 64 B, `Bytes` ≤ 2 KB), `ValueType`; one encoding (tag byte + payload) for IPC and the file |
+| `…/key.rs` | Key names (`ns.name`, `[a-z0-9_]`, ≤ 32 B), typed `Key<T>` (checked at compile time; invalid names don't compile), the sealed `Setting` trait for `bool`/`i32`/`String`/`Bytes` |
+| `…/registry.rs` | **The registry:** one `registry!` row per system setting (type, default, limit, owner). It generates `keys::*` and `REGISTRY` and checks at compile time that each default has the key's type |
+| `…/store.rs` | `Store`: get (stored, else the default), set with validation; a value equal to its default is removed; a change journal (64 entries) for notifications |
+| `…/file.rs` | File format v1: `NSET`, version, count, then records (key length, key, value length, value). Decode keeps every valid record and skips damaged or retyped ones; `migrate()` is the hook for later versions |
+| `…/access.rs` | `Caller::{Shell, App(key)}`: the shell writes everything; an app writes registered keys it owns and unregistered keys in its own namespace. Step 0 extends it here |
+| `…/service.rs` | `Service<B: Backend>`: store + backend + a 1 s save delay (each change restarts it; a failed save retries a delay later) + `flush()` + watches per session (≤ 8 prefixes) |
+| `neoui/symbian/src/settings.rs` | `FileBackend`: `C:\private\e0002001\settings.dat`, atomic replace (write `settings.new`, delete, rename; load falls back to `.new`). `UiMirror` keeps the shell's view in step |
+| `neoui/ui/system-settings.slint`, `neoui-render/src/settings.rs` | The `SystemSettings` Slint global (the shade and Settings bind to it two-way) and the binding table to registry keys |
+| `neoui/symbian/neoapp` | `App::setting(key)`, `set_setting`, `setting_raw`/`set_setting_raw`, `watch_settings(prefix)` |
 
-### Protocol (additions to `ipc.rs`)
+### Protocol (`NeoUi` 1.1, additive)
 | Opcode | Arguments | Result |
 |---|---|---|
-| `SETTING_GET = 8` | `[Des8 key, Des8 out value]` | 0 and the encoded value (type byte + value); `KErrNotFound` for an unknown key with no default |
-| `SETTING_SET = 9` | `[Des8 key, Des8 value]` | 0, `KErrPermissionDenied`, `KErrArgument` (too long, wrong type for a defaulted key) |
+| `SETTING_GET = 8` | `[Des8 key, Des8 out value]` | the value's length; `KErrNotFound`, `KErrArgument`, `KErrOverflow` (short buffer) |
+| `SETTING_SET = 9` | `[Des8 key, Des8 value]` | 0; `KErrPermissionDenied`, `KErrArgument`, `KErrTooBig` |
+| `SETTING_WATCH = 10` | `[Des8 prefix]` (empty = every key) | 0; `KErrArgument`, `KErrOverflow` (more than 8) |
 
-- **Write rights:**
-  - An app may write `<its key>.*` and `widget.<its key>.*`.
-  - `notify.<app>.*` and the global namespaces are written by the shell. A ROM EXE with the `WriteDeviceData`
-    capability may also write global keys (later check: `MessageClient` + `HasCapability`).
-  - Reading is open to every session.
-- **Change event:** `AppEvent::Settings`, kind 7, no payload. It is sent to every connected app after a batch of
-  changes, at most once per frame. Apps re-read the keys they care about. The shell reacts in its own loop, without
-  an event.
+`AppEvent::Settings { seq }` (kind 7) is sent at most once per frame to a session whose prefix matches a changed
+key. The app reads its keys again.
 
-### First global keys
-| Key | Type | Default | Used by |
+### Registered keys
+| Key | Type | Default | Shown in |
 |---|---|---|---|
-| `display.brightness` | Int 0–255 | 160 | Settings → Display; the backlight HAL on the phone (H4 WLED) |
-| `display.dark` | Bool | true | Theme |
-| `sound.silent`, `sound.vibrate` | Bool | false, true | Status bar icons now; sounds later |
-| `clock.24h` | Bool | true | Status bar clock, Clock widget |
-| `radio.airplane`, `radio.wifi`, `radio.bt`, `radio.data` | Bool | false, true, false, true | Shade toggles and Settings → Connectivity. UI only until there are drivers; `airplane` later tells MODEMD to go offline |
-| `home.layout` | Bytes | (built-in default) | Part 3 |
-| `notify.<app>.on`, `notify.<app>.banner` | Bool | true, true | Part 2 |
+| `radio.wifi`, `radio.bt`, `radio.data`, `radio.airplane` | Bool | true, false, true, false | Shade toggles, Settings → Connectivity (UI only until there are drivers) |
+| `sound.silent`, `sound.vibrate` | Bool | false, true | Shade (Silent) |
+| `display.dark` | Bool | true | Settings → Display (stored; there is no light palette yet) |
+| `display.brightness` | Int 0–255 | 160 | Shade slider, Settings → Display (not applied to the backlight until there's a HAL call, H4) |
+| `clock.24h` | Bool | true | Settings → Display; the status bar clock and the Clock app follow it |
 
-### UI wiring
-- The `in-out` properties in `settings.slint` and the shade toggles load from the store at start and write back
-  through a callback when they change.
-- Add a **Notifications** view under Settings: one row per app with two switches, "Show" and "Banner".
-- Clock's `clock.dat` stays as it is. It is time state (UTC offset against the RTC), not a preference.
+### Adding a setting
+1. Add a row to `registry!` in `registry.rs`.
+2. If the shell shows it, add a property and a `changed` handler in `system-settings.slint`, and a row in
+   `BINDINGS` in `neoui-render/src/settings.rs`. Tests check every binding against the registry.
+
+An app's private settings need neither step: it writes `<its key>.*` through `App::set_setting`.
+
+### Log lines (for CI)
+- `neoui: settings loaded N keys (vV, D dropped)`, or `neoui: settings: none saved yet, using defaults`.
+- `neoui: setting KEY = VALUE (by WHO)`.
+- `neoui: settings saved (N bytes)` and `neoui: settings save failed (E)`.
+- In the Clock app: `clock: settings changed (SEQ): 24-hour B`.
 
 ### Tests
-- Host (`neoui-proto`): the encode/decode round trip, defaults not saved, unknown keys kept, each kind of corrupt
-  input, size limits.
-- Syborg: toggle Dark in Settings, reboot without `SNAPSHOT`, and check that it is kept (the serial log prints
-  `neoui: settings loaded N keys`).
+- **Host:** 37 settings tests in `neoui-proto`: codec, names, registry, store, journal, file (truncated, corrupt,
+  retyped, oversize, newer version), access, and the service (save delay, retry, flush, watches).
+- **Renderer** (`neoui-render/tests/settings.rs`): the binding table against the registry; values from the store
+  show in the shade; a tap on the shade's Wi-Fi tile comes back as `("radio.wifi", true)`.
+- **Still to do:** a Syborg boot check in `symbian/taps.sh`: toggle Wi-Fi, reboot, the tile stays off; 24-hour off,
+  the Clock app shows 12-hour time.
+
+### Deferred to later parts
+- `notify.<app>.*` and Settings → Notifications: Part 2.
+- Capability-checked writes to global keys by ROM EXEs: step 0.
 
 ## Part 2: notification service
 
