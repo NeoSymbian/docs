@@ -221,6 +221,8 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
 **U3: system apps in Rust**
 - Launcher, status bar (battery from H3, signal from P2), settings, dialer, messages, contacts, file manager.
 - Old Symbian text apps keep running from a terminal app.
+- Shell services (settings store, notifications, home pages with widgets, pin/unpin): designed in
+  [neoui-shell.md](neoui-shell.md), planned.
 
 **U4: GPU** (stretch)
 - Adreno 615 + GMU + its SMMU. Kernel part in C++; command-stream builder in Rust. Freedreno is the reference.

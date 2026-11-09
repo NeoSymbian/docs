@@ -14,6 +14,7 @@ NeoSymbian brings the open-source 2010 Symbian (EKA2, the Symbian^3 release) bac
 | [roadmap.md](roadmap.md) | Plan and status: kernel (K), hardware (H), UI (U) and phone (P) tracks |
 | [rust-integration.md](rust-integration.md) | Rust on the Symbian user side: stages R0–R8 |
 | [smooth-ui.md](smooth-ui.md) | Making the UI smooth (60 fps): why it isn't yet, and stages S1–S6 |
+| [neoui-shell.md](neoui-shell.md) | Shell services design: settings store, notifications, home pages, widgets (planned) |
 | [port-map.md](port-map.md) | How EKA2 maps onto AArch64: what was reused, adapted and written new |
 | [ekern-backend.md](ekern-backend.md) | The full kernel's AArch64 backend |
 | [filesystem.md](filesystem.md) | File system plan: drives, flash layout, stages FS1–FS6 |
