@@ -83,7 +83,7 @@ placeholders, not linked working drivers.
 |---|---|---|
 | D0 inventory | Sanitized DTB inspection, reconcile roadmap, pin reference/firmware provenance; probe exact silicon before using it | Reproducible report plus explicit unknowns; no public firmware/calibration |
 | D1 foundations | Explicit bus startup, validated bus requests; resource votes, async streams and per-device DMA follow | Existing call/storage/input regressions pass; cancellation and OOM bounded |
-| D2 power | Fuel gauge/RRADC, charging telemetry, TSENS, conservative policy; OLED brightness/blanking and input wake; cold USB | Compared telemetry, thermal shutdown and cold-boot logs; power baseline |
+| D2 power | Read-only TSENS telemetry phone-tested (21/21 valid; Dev tools display and check verified); fuel gauge/RRADC, charging telemetry and conservative policy; OLED brightness/blanking and input wake; cold USB | Compared telemetry, thermal shutdown and cold-boot logs; power baseline |
 | D3 audio/haptics | Independent audio lifecycle; conservative amplifier gain and fault mute; ASM/ADM 48 kHz S16 playback and mono capture; typed audio service; DRV2624; 3.5 mm jack later | Tone/WAV playback, recorded WAV, ringtone→call, volume/mute/routes; audio with no SIM/radio off and radio failures; bounded vibration |
 | D4 sensors | Sensor PD/FastRPC/reverse file service; discover actual sensor protocol; proximity/light→accel/gyro→compass/barometer→batching/fusion | Six-orientation gravity, gyro zero/motion, call proximity/light transitions, calibrated units/timestamps and wake |
 | D5 cameras | CAMCC/power/CCI/CAMSS/isolated DMA; ID→testgen→sensor pattern→scene; IMX355 first, IMX363/focus next | Reduced preview >=10 fps and recognizable persistent JPEG, correct format/orientation, bounded RAM/latency, no SMMU faults |
@@ -130,7 +130,12 @@ fixes starvation by unrelated IPC, not hard real-time behavior.
 Implementation status is intentionally split: documentation/inventory tooling can
 be complete while hardware probes and the later milestones remain pending. See
 [the implementation verification record](verification/driver-support-2026-11-10.md)
-for this change's actual commands and limitations.
+for the initial foundation commands and limitations. The subsequent read-only
+TSENS addition has a [separate verification record](verification/tsens-2026-11-10.md).
+
+The subsequent [battery telemetry implementation](battery-telemetry.md) includes
+live status-bar/Settings/Dev tools and retained history; physical acceptance is
+tracked separately in its verification record.
 
 ## Primary hardware references
 

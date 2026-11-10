@@ -13,6 +13,7 @@ NeoSymbian brings the open-source 2010 Symbian (EKA2, the Symbian^3 release) bac
 |---|---|
 | [roadmap.md](roadmap.md) | Plan and status: kernel (K), hardware (H), UI (U) and phone (P) tracks |
 | [driver-support.md](driver-support.md) | Pixel hardware inventory, kernel integration and daily-phone driver milestones D0–D8 |
+| [battery-telemetry.md](battery-telemetry.md) | PM660 read-only battery measurements, live UI and persisted 24-hour history |
 | [kernel-assessment.md](kernel-assessment.md) | Source audit: legacy architecture, existing defenses, reviewed baseline, coverage and limits |
 | [kernel-issues.md](kernel-issues.md) | Evidence-based kernel/reliability/security register, with all existing known issues mapped |
 | [kernel-modernization.md](kernel-modernization.md) | Phases KM0–KM6: fixes, owners, dependencies, tests and supported-release gates |
