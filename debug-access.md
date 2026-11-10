@@ -61,8 +61,11 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
     - **USB driver layering (T2, kernel `96f60d6`):** a controller core (`sdm670_assp/qcom_dwc3.cpp`: bring-up,
       events, EP0, endpoint DMA buffers) runs function drivers through `common/inc/a64_usb_function.h`. Today there is
       one, the monitor ACM (`common/specific/a64_usb_acm_monitor.cpp`); the debug ACM that this PDD sits on comes in
-      T8. The USB rework's DMA ownership, EP0 recovery, controller restart, wrapper-clock and queue code is
-      re-added on top (T3, T4), without ECM.
+      T8. **T3 (kernel `b7133e2`)** added, without ECM: endpoint DMA ownership (a stop frees a buffer only on its
+      ENDTRANSFER command-complete event; failures quarantine), SET_CONFIGURATION deferred until its stops end, a
+      controller restart (halt, core reset, bring-up) as the only recovery for a live control transfer or a quarantine,
+      and the UTMI/PIPE clock mux restore that `usb cold` needs (a GCC reset leaves QSCRATCH GENERAL_CFG at 04, not
+      0d). Verified on bonito: `usb cold 7`, replug, Mac sleep/wake, a 5-minute soak. The queue code comes in T4.
     - Later, a DWC3 controller driver for Symbian's own USB client framework (`kernel/eka/drivers/usbcc`,
       `usbc.ldd`) gives the standard `RDevUsbcClient` for usbman and MTP (roadmap L1).
     - `DComm` is shaped for a UART (characters moved from interrupt handlers), so the PDD bridges to the USB queues
