@@ -93,6 +93,11 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
 - **Started on demand**, by SYSSTART or a monitor command, as
   `fshell --console vt100busdevcons --console-title pdd=<ours>,ldd=ecomm,port=<n>`.
 - **`econs.dll` stays.** No `FSHELL_REPLACE_ECONS`: eshell and the Terminal use the real console.
+- **fshell on the serial port (T7):** `fshell --console vt100busdevcons --console-title
+  pdd=euart1,ldd=ecomm,port=1,rate=115200,sizedetect=0` (QEMU; the loader aliases `ecomm`/`euart1` name the built-in
+  drivers). The host client is kernel `tools/fshell_link.py`: wait for fshell's prompt before each command (earlier
+  input loses its first bytes), and put `$?` straight into the END record (`export X $?` reads a negative status as an
+  option). Every builtin needs its `.cif` in the ROM.
 - **fshell on econs (T6, build `faf8f8c`):** fshell's default console is `defcons` (it picks econs on a text
   configuration), so `defcons.dll` must be in the ROM. The minigui console (`econswserv`, the QEMU/window-server
   `ECONS.DLL`) didn't complete a cancelled read; fshell's consoleproxy waits for that on every console mode change,
