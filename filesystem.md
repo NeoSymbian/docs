@@ -255,7 +255,12 @@ on the phone; `a64_sha256.S`, self-tested at boot, the C one as fallback), so th
   - Updates: `fastboot flash boot_b`; `system_b` is written by a `ROFS_INSTALL` image RAM-booted on slot b, since
     ABL refuses `system_*` outside fastbootd; then `fastboot set_active b`.
   - Tested on the phone: update into b, then a broken b rolls back to a by itself.
-  - **Installed 2026-11-09 into slot b** (now current): telephony C6, calls with two-way audio. Kernel `792d36e`
+  - **Installed 2026-11-10 into slot a** (now current): kernel `090bb5e` (device status registry, HAL `0x4e19`),
+    build `269ec50` (Old apps: `LEGACY.EXE`, its UID moved to `0xE0002006` off MODEMD's), neoui `ed9202f` (Dev tools,
+    Clock and the settings store rebuilt), telephony `54a8114`, e32 `e97e2eb`. `system_a`: 19991 KB written,
+    verified; `boot_a` flashed (1060 KB). A RAM test boot showed Dev tools listing the drivers and the modem on LTE.
+    This replaced the USB-SSH session's slot-a install of the same morning. Slot b keeps the 2026-11-09 install.
+  - **Installed 2026-11-09 into slot b**: telephony C6, calls with two-way audio. Kernel `792d36e`
     (`b12d1ba` + the GLINK fix that lost the modem's VOICE announcement on the first install),
     build `a1e418d` (+ the kernel override), neoui `2d55d01`, telephony `3f4af12` (MODEMD in the ROM: the modem and
     the ADSP start at every boot). `system_b`: 11106 KB written, verified; `boot_b` flashed (984 KB). Slot a keeps
