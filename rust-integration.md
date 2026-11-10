@@ -447,6 +447,10 @@ The kernel has `EHalGroupVariant` functions for the phone's own tools. They are 
 | `ENeoHalConsoleSet` | 0x4e02 | a1 = 1 / 0: the kernel log overlaid on screen (dev mode) | WriteDeviceData |
 | `ENeoHalConsoleGet` | 0x4e03 | a1 = `TInt*` out | — |
 | `ENeoHalBootOk` | 0x4e06 | none: "this boot worked", marks the A/B slot successful (FS5b) | WriteDeviceData |
+| `ENeoHalSlotInfo` | 0x4e09 | a1 = `TDes8*`: the booted A/B slot and both slots' state, one line (≤ 400 bytes) | ReadDeviceData |
+| `ENeoHalBuildInfo` | 0x4e0a | a1 = `TDes8*`: "kernel <commit>[+dirty] <UTC time> <board>" | — |
+| `ENeoHalPower` | 0x4e0b | a1 = 0 restart, 1 fastboot, 2 power off; returns only on failure | PowerMgmt |
+| `ENeoHalRtcRead` | 0x4e0c | a1 = `TUint32*`: the PMIC RTC's raw seconds; `KErrNotSupported` without one | — |
 | `ModemBoot` | 0x4e0d | none: boot the modem (`qcom_mss.cpp`, on its own thread) | CommDD |
 | `ModemState` | 0x4e0e | a1 = `TUint32[4]` out: boot step (8 = running), error, SMP2P slave-kernel bits, IPCRTR open | CommDD |
 | `QrtrSend` | 0x4e0f | a1 = packet, a2 = length (<= 8 KB) to GLINK IPCRTR; `KErrNotReady` without a modem intent | CommDD |
@@ -459,12 +463,20 @@ The kernel has `EHalGroupVariant` functions for the phone's own tools. They are 
 | `ChanSend` | 0x4e16 | a1 = `{ring 1 ADSP IPCRTR / 2 APR; 0; len; buf}`: one message to the ADSP, `KErrNotReady` until it gave a receive intent | CommDD |
 | `ChanRecv` | 0x4e17 | a1 = `{ring; 0; size; buf}`: the next message's length, `KErrNotReady` if none (polled) | CommDD |
 | `Audio` | 0x4e18 | a1 = `{op; arg}`: the board's codecs (`a64_audio.cpp`): 0 probe, 1 start (arg 1 = loudspeaker), 2 stop, 3 route, 4 volume 0..10, 5 mic mute | CommDD |
+| `ENeoHalDeviceList` | 0x4e19 | a1 = `TUint32*` cursor (in/out, 0 = the first), a2 = `TDes8*` (1024 bytes): the device registry as lines `tag \t state \t name \t driver \t detail`, whole lines per call, none past the end. State: absent, off, starting, ok, partial, error. Each driver adds one `A64_DEVICE` (`baseport/arm64/common/inc/a64_device.h`); the monitor's `drivers` command lists the same (kernel `device-registry` `090bb5e`) | ReadDeviceData |
+| `UsbNetState` / `UsbNetRx` / `UsbNetTx` | 0x4e20–0x4e22 | the USB network (`USBNET=1` builds): state (16 bytes), one Ethernet frame in or out | CommDD |
+| `Prng` | 0x4e23 | a `TDes8` whose length (1..256) is the bytes wanted: hardware entropy (`USBNET=1`) | CommDD |
 
 0x4e04/0x4e05 are kept for the dev-mode switch (USB debug console on/off).
 
 The phone's own servers written in Rust: **`NeoModem`** (MODEMD.EXE, NeoSymbian/telephony; started by SYSSTART) gives
 apps the modem: `STATUS`, `DIAL`, `ANSWER`, `HANGUP`. The contract is the `no_std` crate `modem-ipc`
 ([telephony.md](telephony.md) C5).
+
+**Status (2026-11-10):** Dev tools rebuilt (neoui `b5943f4`, branch `shell-services`): Home, Devices, Console, Procs,
+More (Settings, Tools, About). Devices merges the kernel's device registry (0x4e19) with the app's probes and the
+log's tags; see [neoui-shell.md](neoui-shell.md) "Dev tools". Open: the modem (`qcom_mss`) and USB (`qcom_dwc3_acm`)
+entries; per-thread CPU time (the arm64 kernel is built without `MONITOR_THREAD_CPU_TIME`, so CPU load shows "-").
 
 **Status (2026-11-08):** 1 and 2 done in neoui: boot OK `eb0db62`; the Dev tools app `NEODEV.EXE` `5b6899c`
 (live log, last boot, save to `E:\logs`, console switch, the slot line from `ENeoHalSlotInfo` 0x4e09). Both were

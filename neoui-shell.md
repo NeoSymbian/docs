@@ -156,6 +156,77 @@ An app's private settings need neither step: it writes `<its key>.*` through `Ap
 - `notify.<app>.*` and Settings → Notifications: Part 2.
 - Capability-checked writes to global keys by ROM EXEs: step 0.
 
+## Apps rebuilt on Part 1 (2026-11-09/10)
+
+Two apps were rebuilt before Part 2, on branch `shell-services`. Each follows one pattern: pure models in
+`neoui-proto` (host-tested), one `State` global in Slint, and one module per page in Rust and in Slint
+(`src/pages/*.rs` with `bind` and `show`, `ui/pages/*.slint`).
+
+### Clock (`NEOCLOCK.EXE`, neoui `9e400e3`)
+- **Pages:** Clock (face, Set time), Alarms (editor: days, label, snooze), World (a catalogue of 21 cities with fixed
+  offsets; shortcut: no DST), Timer, Stopwatch.
+- **Kept state:** every page's state is kept in settings rows owned by `App("clock")`: `clock.tab`, `clock.alarms`,
+  `clock.cities`, `clock.timer`, `clock.stopwatch`. The timer and stopwatch count from wall-clock UTC, so they keep
+  running across app restarts and reboots.
+- **Time without an RTC:** the UI server's keeper falls back to the boot clock (the kernel's UTC at boot plus elapsed
+  time) when a board has no RTC, such as Syborg. It saves within 5 s of a set.
+- **Alarms:** the server checks once a minute and rings even while the app is closed. It brings Clock to the front
+  and sends `AppEvent::Alarm` (kind 8, `NeoUi` 1.2).
+- **Home widget:** the `ClockWidget` on home is the first widget of Part 4. It is live, fed through the `Now` global,
+  and opens Clock on a tap.
+- **Open:** a two-boot check on Syborg of every page's saved state.
+
+### Dev tools (`NEODEV.EXE`, neoui `b5943f4`)
+- **Tabs:** Home · Devices · Console · Procs · More. More opens Settings, Tools and About. Sub-views replace the
+  tabs rather than covering them, because a cover lets taps through to the page underneath. Back closes a sub-view.
+- **Home:** cards for uptime, memory and CPU (both with 30-second bar graphs), storage, processes and threads, a
+  device summary, the modem, and the kernel and slot. Below them, a list of every page.
+- **Devices:** every component a phone has (`neoui-proto::devtools::device::CATALOGUE`, in sections). Each state
+  comes from the best of three sources:
+  1. the kernel's device registry: HAL `ENeoHalDeviceList` 0x4e19, with one `A64_DEVICE` per driver in the arm64
+     baseport (kernel branch `device-registry`, `090bb5e`);
+  2. the app's probes: memory, display, drives, RTC, NeoModem `STATUS`, ModemState, AdspState, slots;
+  3. the log's tags.
+
+  Without a registry (the 2010 kernel on Syborg), parts that some board's driver reports show "Unknown" rather than
+  "No driver". "Run checks" runs every check without side effects; the only write is a 4 KB file on C:.
+- **A device's view:** the driver, source, state, live values, its check, its log lines, and its tests:
+  - Touch: a grid that lights each cell a finger crosses;
+  - Display: R/G/B/white/black/grey fills, and the kernel console on or off;
+  - Storage: a 1 MB speed test on C:;
+  - Audio and ADSP: the mic looped back to the loudspeaker or the earpiece (NeoModem `AUDIO_TEST`);
+  - Modem: refresh the status.
+- **Console:** the live log, or the last boot's. Only the rows that fit go to Slint. Drag scrolls by whole rows; there
+  are Follow, tag chips (All plus the 8 commonest tags), Clear and Save.
+- **Procs:** processes (exec `ObjectNext`, `FindHandleOpen`, `ProcessGetMemoryInfo`), sorted by CPU time, then
+  memory. A process's view lists its threads with their priority and CPU time. CPU time needs a kernel built with
+  `MONITOR_THREAD_CPU_TIME`; the arm64 kernel is not, so it shows "-".
+- **More:**
+  - Settings: every registered key with its value, owner, type, limit and default; read-only, and live.
+  - Tools: save both logs to `E:\logs` (or `C:\logs` without E:), the kernel console overlay, and power, each power
+    action behind an inline confirm.
+  - About: the builds, slots, display, CPUs, RAM and uptime.
+- **Code:** `neoui-proto::devtools` (device, log, stats), `neoapp::hal` (the variant HAL calls, typed), `neoapp::sys`
+  (memory, CPUs, processes and threads; shortcut: raw exec calls until e32 wraps them), and
+  `symbian/apps/devtools/src/{state,probe,pages/*}.rs`.
+- **Log lines (for CI):**
+  - `devtools: devices N (kernel K, probe P, log L); procs N threads M; …`;
+  - `devtools: kernel registry Listed { devices, bad } | Missing(e)`;
+  - `devtools: tab N`, `devtools: view X`;
+  - `devtools: check <key> pass|fail|skip <why>`, `devtools: checks P pass, F fail, S skipped`;
+  - `devtools: touch test cell c,r (n of 72)`;
+  - `devtools: saved …`.
+- **Verified:**
+  - Syborg on the Mac: every tab and sub-view, Run checks (3 pass, 20 skipped), the colour and touch tests, Back.
+  - QEMU arm64 with the registry kernel: `drivers` lists display ok, kbd ok and blk absent (no disk), and Dev tools
+    reports `devices 23 (kernel 3, probe 3, log 0)`.
+  - Not yet on the phone.
+- **Open:**
+  - the modem (`qcom_mss`) and USB (`qcom_dwc3_acm`) registry entries, which wait for the kernel stream's edits to
+    those files;
+  - per-thread CPU time;
+  - the battery and other parts with no driver at all.
+
 ## Part 2: notification service
 
 ### Model (`neoui-proto::notify`)
