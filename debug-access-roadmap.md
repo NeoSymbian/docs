@@ -167,5 +167,6 @@ port, with the kernel monitor kept. This file is the work list. Do **one task at
 | Task | State | PR / commit |
 |---|---|---|
 | T1 | done 2026-11-10: gates and Syborg CI (`fs_ops`, `timer_high_res`) pass | `e32-rs` #1, `82e3143` |
-| T2 | done 2026-11-10: descriptors byte-identical, QEMU and bonito RAM boot unchanged | `kernel` #1, `96f60d6`; pin `build` #8 |
-| T3–T12 | not started | — |
+| T2 | done 2026-11-10: descriptors byte-identical, QEMU and bonito RAM boot unchanged | `kernel` #1, `96f60d6`; pin `build` #9 |
+| T3 | done 2026-11-10: host test (sanitizers), `usb cold 7`, replug, Mac sleep/wake, 5-minute soak on bonito | `kernel` #2, `b7133e2`; pin `build` #9 |
+| T4–T12 | not started | — |
