@@ -27,7 +27,7 @@ what was kept is in `remote-access.md.draft`.
 The monitor stays: it is the **kernel and bring-up channel**, and it works when the user side is dead. This design adds
 a **user-side channel** next to it.
 
-**When USB runs.** `A64StartUsbConsole` (`sdm670_assp/qcom_dwc3_acm.cpp`) starts USB only when ABL left it powered
+**When USB runs.** `A64StartUsbConsole` (`sdm670_assp/qcom_dwc3.cpp`) starts USB only when ABL left it powered
 (fastboot RAM boots) or in dev mode. Normal-boot USB power is parked
 ([known issues](known-issues.md#phone-usb-power-on-a-normal-boot-doesnt-work-yet-parked-2026-11-08)). Until that is
 fixed, every stage below works on RAM boots only.
@@ -58,10 +58,10 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
 - **A serial PDD per board** (a `DComm`, `kernel/kernel/eka/include/drivers/comm.h`). The models are
   `symbian-qemu/baseport/syborg/serial/syborg_serial.cpp` and `kernel/kernel/eka/drivers/ecomm/uart16550.cpp`.
   - **bonito:** a PDD over a **second CDC-ACM function** in the USB composite gadget.
-    - **USB driver layering:** today one file (`qcom_dwc3_acm.cpp`) is both the DWC3 controller and the monitor's
-      ACM function. It is split into a controller core (`qcom_dwc3.cpp`: bring-up, events, EP0, DMA ownership, a
-      function interface) and function drivers: the monitor ACM, and the debug ACM that this PDD sits on (roadmap
-      T2, T8). The USB rework's DMA ownership, EP0 recovery, controller restart, wrapper-clock and queue code is
+    - **USB driver layering (T2, kernel `96f60d6`):** a controller core (`sdm670_assp/qcom_dwc3.cpp`: bring-up,
+      events, EP0, endpoint DMA buffers) runs function drivers through `common/inc/a64_usb_function.h`. Today there is
+      one, the monitor ACM (`common/specific/a64_usb_acm_monitor.cpp`); the debug ACM that this PDD sits on comes in
+      T8. The USB rework's DMA ownership, EP0 recovery, controller restart, wrapper-clock and queue code is
       re-added on top (T3, T4), without ECM.
     - Later, a DWC3 controller driver for Symbian's own USB client framework (`kernel/eka/drivers/usbcc`,
       `usbc.ldd`) gives the standard `RDevUsbcClient` for usbman and MTP (roadmap L1).

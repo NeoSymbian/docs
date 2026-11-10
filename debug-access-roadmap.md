@@ -13,9 +13,9 @@ port, with the kernel monitor kept. This file is the work list. Do **one task at
 
 ## Rules for every task
 
-1. **Where:** a git worktree from `origin/main` for each repo you touch, never a shared checkout (other sessions use
-   them). One PR per repo per task, rebased on current `main` just before merging. Build pins (`sources.lock`) last,
-   after the source PR is merged.
+1. **Where (owner, 2026-11-10):** edit the existing checkouts directly; no worktrees. Commit each task separately
+   in each repo. One PR per repo per task, rebased on current `main` just before merging. Build pins (`sources.lock`)
+   last, after the source PR is merged.
 2. **Not allowed:** SSH, ECM/Ethernet, PRNG or neolink code, and no `USBNET` switch.
 3. **The archive is a source to copy from, never applied whole.** It is `private/codex-archive-20261110/` (see its
    `INDEX.md`). Its kernel patches are based on Codex's local `main`, not `origin/main`.
@@ -53,7 +53,8 @@ port, with the kernel monitor kept. This file is the work list. Do **one task at
 - **Done when:**
   - the descriptors are byte-identical (dump them before and after);
   - `neo kernel qemu && neo qemu 60` is unchanged;
-  - a bonito RAM boot gives `phone.py cmd log`, a SHA-256-checked `phone.py dump` and `phone.py shot` as before.
+  - a bonito RAM boot gives `phone.py cmd log`, a SHA-256-checked `phone.py dump` and `phone.py shot` as before
+    (a RAM image without `EMMC_C` starts the eMMC only on the monitor's `blk init`; run it before `dump`).
 - **Not in this task:** any fix or new function.
 
 ### T3. USB robustness
@@ -165,4 +166,6 @@ port, with the kernel monitor kept. This file is the work list. Do **one task at
 
 | Task | State | PR / commit |
 |---|---|---|
-| T1–T12 | not started | — |
+| T1 | done 2026-11-10: gates and Syborg CI (`fs_ops`, `timer_high_res`) pass | `e32-rs` #1, `82e3143` |
+| T2 | done 2026-11-10: descriptors byte-identical, QEMU and bonito RAM boot unchanged | `kernel` #1, `96f60d6`; pin `build` #8 |
+| T3–T12 | not started | — |
