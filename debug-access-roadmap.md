@@ -172,4 +172,5 @@ port, with the kernel monitor kept. This file is the work list. Do **one task at
 | T2 | done 2026-11-10: descriptors byte-identical, QEMU and bonito RAM boot unchanged | `kernel` #1, `96f60d6`; pin `build` #9 |
 | T3 | done 2026-11-10: host test (sanitizers), `usb cold 7`, replug, Mac sleep/wake, 5-minute soak on bonito | `kernel` #2, `b7133e2`; pin `build` #9 |
 | T4 | done 2026-11-10 (re-scoped): link tracking, writer spin (`shot` 9.6 → 2.1 s; `dump` 2.0 → 1.5 MB/s, open); T3 checks pass | `kernel` #3 |
-| T5–T12 | not started | — |
+| T5 | done 2026-11-10: interrupt-driven PL011 PDD + ECOMM; `test-serial-qemu.py` 4/4 (256-byte echo, `[serial] PASS`) | `kernel` #4 `326fffc`; `build` #11 |
+| T6–T12 | not started | — |

@@ -54,7 +54,14 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
 
 ### Kernel (C++, new)
 
-- **`ECOMM.LDD`**, Symbian's serial channel, built unchanged from `kernel/kernel/eka/drivers/ecomm/d_comm.cpp`.
+- **`ECOMM.LDD`**, Symbian's serial channel, from `kernel/kernel/eka/drivers/ecomm/d_comm.cpp` (one marked fix: a pointer
+  compared with `< 0`). It is linked into the kernel and installed at boot with the board PDD
+  (`common/specific/a64_ecomm.cpp`), so `RBusDevComm::Open(1)` works; `User::Load*Device("ecomm"/"euart1")` needs the
+  loader aliases (T7).
+- **A PDD must call ECOMM from interrupt context (T5 finding).** ECOMM's `RxComplete`, drain and `TxComplete` complete
+  requests inline unless `NKern::CurrentContext()==EInterrupt`; from a thread they self-deadlock on ECOMM's spinlock.
+  A polled PDD cannot work. The bonito ACM PDD (T8) needs the same: call the `...Isr` functions from a real or
+  pended interrupt.
 - **A serial PDD per board** (a `DComm`, `kernel/kernel/eka/include/drivers/comm.h`). The models are
   `symbian-qemu/baseport/syborg/serial/syborg_serial.cpp` and `kernel/kernel/eka/drivers/ecomm/uart16550.cpp`.
   - **bonito:** a PDD over a **second CDC-ACM function** in the USB composite gadget.
@@ -71,7 +78,10 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
     - `DComm` is shaped for a UART (characters moved from interrupt handlers), so the PDD bridges to the USB queues
       through a DFC.
   - **QEMU:** a PDD for virt's second PL011 (`VIRT_UART1` at `0x09040000`, `symbian-qemu/qemu/hw/arm/virt.c:206`),
-    so CI can test the user side; UART0 stays the kernel console (roadmap T5).
+    so CI can test the user side; UART0 stays the kernel console. Done in T5 (kernel `326fffc`,
+    `virt_assp/a64_pl011_comm.cpp`, SPI 8): QEMU's PL011 raises TX only after a DR write and RX only when the FIFO crosses
+    its trigger, so the PDD pends its own SPI (GICD_ISPENDR) to start TX and to drain leftovers.
+    `run-qemu.sh SERIAL1=<chardev>`; test `NEOCOM.EXE` + `tools/test-serial-qemu.py`.
 - The first ACM port stays the monitor, unchanged.
 
 ### Phone user side (2010 C++, unchanged)
