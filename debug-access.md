@@ -1,14 +1,14 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Debug access: shell, files and logs from the Mac over USB
 
-Written 2026-11-09. **Status: design (DA0). Nothing below is built yet.**
+Written 2026-11-09, revised 2026-11-10. **Status: design (DA0). Work list: [debug-access-roadmap.md](debug-access-roadmap.md) (T1–T12).**
 
 The goal is what `adb` gives an Android developer: a shell, pushing and pulling files, launching programs and
 reading logs, from the Mac through the USB cable. NeoSymbian gets it from Symbian's own 2010 tools, unchanged.
 There is no TCP/IP, no SSH and no comms framework (c32) in the first stages.
 
-Remote access with standard `ssh`/`scp` is a separate, later goal ([remote-access.md](remote-access.md), and the
-proposed revision in `remote-access.md.draft`).
+**This is the only access route (owner, 2026-11-10).** The USB SSH work was dropped and archived; what it taught and
+what was kept is in `remote-access.md.draft`.
 
 ## What exists today
 
@@ -58,13 +58,17 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
 - **A serial PDD per board** (a `DComm`, `kernel/kernel/eka/include/drivers/comm.h`). The models are
   `symbian-qemu/baseport/syborg/serial/syborg_serial.cpp` and `kernel/kernel/eka/drivers/ecomm/uart16550.cpp`.
   - **bonito:** a PDD over a **second CDC-ACM function** in the USB composite gadget.
-    - It reuses the endpoint, DMA ownership, controller-restart, boot-policy and queue code of the USB rework
-      (`qcom_dwc3_acm.cpp`, `common/inc/a64_usb_dma.h`, `a64_usb_control.h`, `a64_usb_policy.h`, `a64_usbnet_queue.h`),
-      with ACM descriptors instead of ECM. What to keep is listed in `remote-access.md.draft`.
+    - **USB driver layering:** today one file (`qcom_dwc3_acm.cpp`) is both the DWC3 controller and the monitor's
+      ACM function. It is split into a controller core (`qcom_dwc3.cpp`: bring-up, events, EP0, DMA ownership, a
+      function interface) and function drivers: the monitor ACM, and the debug ACM that this PDD sits on (roadmap
+      T2, T8). The USB rework's DMA ownership, EP0 recovery, controller restart, wrapper-clock and queue code is
+      re-added on top (T3, T4), without ECM.
+    - Later, a DWC3 controller driver for Symbian's own USB client framework (`kernel/eka/drivers/usbcc`,
+      `usbc.ldd`) gives the standard `RDevUsbcClient` for usbman and MTP (roadmap L1).
     - `DComm` is shaped for a UART (characters moved from interrupt handlers), so the PDD bridges to the USB queues
       through a DFC.
-  - **QEMU:** a PDD for a second serial device, so CI can test the user side. Our `virt` board has one PL011, used
-    by the kernel console (`qemu_variant/specific/qemu_virt.cpp`); which second device to use is open (DA2).
+  - **QEMU:** a PDD for virt's second PL011 (`VIRT_UART1` at `0x09040000`, `symbian-qemu/qemu/hw/arm/virt.c:206`),
+    so CI can test the user side; UART0 stays the kernel console (roadmap T5).
 - The first ACM port stays the monitor, unchanged.
 
 ### Phone user side (2010 C++, unchanged)
@@ -102,7 +106,7 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
 | DA2 serial, QEMU | `ECOMM.LDD` and a QEMU serial PDD; fshell answers on the second serial device; a CI boot runs `ls`, `hash` and a `ymodem` transfer. |
 | DA3 serial, phone | Second ACM function and its PDD on bonito. The Mac sees two `cu.usbmodem` ports. The monitor still works (`phone.py cmd log`, `dump`, `shot`), and fshell answers on the other port. |
 | DA4 files and programs | `phone.py push`/`pull` round-trips a binary file and a Unicode-named file with matching SHA-256; an EXE pushed to `C:` starts from the shell. Speed is measured against the 2 MB/s baseline. |
-| DA5 robustness | Unplug and replug, RAM reboot, and a long transfer while the shell is used all work, and the monitor never goes away. The USB rework's quarantine recovery (a controller restart) and resume refresh after Mac sleep come with its kept core; `Bringup` keeps stopping USB on a failed halt ([remote-access.md.draft](remote-access.md.draft)). |
+| DA5 robustness | Unplug and replug, RAM reboot, and a long transfer while the shell is used all work, and the monitor never goes away. Quarantine recovery, resume refresh after Mac sleep and `Bringup`'s stop on a failed halt come from roadmap T3/T4. |
 | DA6 installed boot | Needs the normal-boot USB power fix, shared with FS6. The USB rework's wrapper-clock fix (`qcom,select-utmi-as-pipe-clk`, tested with the monitor's `usb cold`) is its first step. |
 | Later | memoryaccess LDD port (`top`, `objinfo`, `fdb`); TRK with c32, a `TrkDriver` port and `runonphone`; OST traces; coredumps. |
 
@@ -110,7 +114,6 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
 
 - **fshell's library closure** against our minimal ROM (DA1). This may pull in more 2010 packages than its list
   suggests.
-- **The second serial device on QEMU** (DA2): a second PL011 if our QEMU's `virt` offers one, or another device.
 - **The USB PDD:** `DComm`'s UART model over bulk USB endpoints needs a DFC bridge and flow control (DA3).
 - **macOS naming of two ACM functions** on one device, which decides how `phone.py` finds each port (DA3).
 - **ymodem speed:** 1 KB blocks, each acknowledged. If it is far below 2 MB/s, a bulk mode can follow (DA4). The USB rework found transfers bound by idle CPU clocks; its

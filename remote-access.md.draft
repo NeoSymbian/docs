@@ -1,17 +1,19 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
-# Remote access: what to keep from the USB SSH work (draft revision)
+# Remote access: the USB SSH work, dropped (draft revision)
 
-**Draft, revised 2026-11-10.** It is meant to replace `remote-access.md` once the USB-networking session stops. Do
-not build from it yet. Until then, `remote-access.md` and its `README.md` row stay as they are.
+**Draft, revised 2026-11-10.** It replaces the USB SSH design (Codex's `remote-access.md`, archived, never
+committed) as the record of what was tried, what was learned and what was kept. Promote it to `remote-access.md` when
+convenient.
 
 ## Decision (owner, 2026-11-10)
 
 **[debug-access.md](debug-access.md) is the only way to reach the phone from the Mac.** That means fshell over
-`ECOMM.LDD` and a second CDC-ACM function, from Symbian's own tools, with no TCP/IP.
+`ECOMM.LDD` and a second CDC-ACM function, from Symbian's own tools, with no TCP/IP. The work list is
+[debug-access-roadmap.md](debug-access-roadmap.md).
 
-The USB SSH work (CDC-ECM Ethernet, smoltcp, Sunset SSH, `NEOSSH.EXE`) does not go into main. Its USB, power and
-user-side improvements are useful for debug access, and are taken out of it below. The network and SSH parts are
-parked.
+The USB SSH work (CDC-ECM Ethernet, smoltcp, Sunset SSH, `NEOSSH.EXE`) is **dropped**: no SSH, ECM or PRNG code is
+committed anywhere public. Its USB, power and user-side improvements come back one roadmap task at a time, taken
+from the private archive `private/codex-archive-20261110/` (`INDEX.md` there maps every file).
 
 ## Status as found (2026-11-10)
 
@@ -45,10 +47,10 @@ The 2026-11-09 findings, against the code as of 2026-11-10. `acm` = `sdm670_assp
 | 9 | Throughput about 1.5 MB/s | fixed: 2.7 MB/s (activity boost) | — |
 | 10 | Lower items | not rechecked | — |
 
-Findings 3, 5, 6 and 8, and the ECM-only items of 10, are in parked code. Finding 2 and the DMA-barrier item of 10
+Findings 3, 5, 6 and 8, and the ECM-only items of 10, are in dropped code. Finding 2 and the DMA-barrier item of 10
 come along with the kept USB core and are reviewed again when it lands.
 
-## Keep: useful for debug access
+## Keep: useful for debug access (re-added by roadmap tasks T1–T10)
 
 | Piece | Files | What it gives debug access | Stage |
 |---|---|---|---|
@@ -63,31 +65,24 @@ come along with the kept USB core and are reviewed again when it lands.
 | `e32` file and timer APIs: `File::read_at64`, `write_at64`, `set_size64`, `flush`, `set_att`, `set_modified`; `Fs::replace_file`, `read_dir_page`, `entry`; `Timer::wait_high_res`; the new neotest cases | `e32-rs/crates/e32/src/{fs,time}.rs`, `e32-sys`, `neotest` | general user-side APIs (Files, future Rust tools) | — |
 | Mac acceptance method: hash-checked round trip, Unicode filename, interrupted transfer, 5-minute stability, sleep/wake | `private/usbssh/` (scripts and results) | the model for the DA4/DA5 exit tests in `phone.py` | DA4, DA5 |
 
-## Park: not in main
+## Dropped and archived (2026-11-10)
 
-Kept on a pushed kernel branch `usbnet-parked`, or in an archived repo.
+Everything Codex had was moved into `private/codex-archive-20261110/`, and every checkout went back to `origin`:
+- the 7 unpushed commits (kernel 6 on the shared `main`, build 1 on `legacy-gui`), the `e32-rs` commits, the docs
+  commit `aac91f8`;
+- the uncommitted kernel, build, neoui and docs changes;
+- `neolink`.
 
-| Piece | Files |
+| Piece | Status |
 |---|---|
-| ECM Ethernet | `common/inc/a64_usbnet.h` (HAL `ENeoHalUsbNetState/Rx/Tx`), `sdm670_assp/qcom_usbnet_descriptors.h`, the net TX/RX/filter/notification paths in `acm`, the `USBNET` switch in `variant.conf`, `a64_variant.cpp` and `build/neo` |
-| Hardware random numbers | `sdm670_assp/qcom_prng.cpp`, HAL `0x4e23`, `A64StartPrng`, its mapping in `pixel_bonito.cpp`, the PRNG clock hook in `qcom_mss.cpp` (reviewed safe for telephony) |
-| SSH and SFTP | `neolink` as a whole (smoltcp, Sunset, SFTP, shell, `NEOSSH.EXE`): pushed as `NeoSymbian/neolink` and archived, or a bundle listed in `retired-repos.md` |
+| ECM Ethernet: `a64_usbnet.h` (HAL `ENeoHalUsbNetState/Rx/Tx`), `qcom_usbnet_descriptors.h`, the net paths in `acm`, the `USBNET` switch | dropped; the ECM descriptors are reference for roadmap L2 |
+| Hardware random numbers: `qcom_prng.cpp`, HAL `0x4e23`, `A64StartPrng`, the `qcom_mss.cpp` clock hook | dropped |
+| SSH, SFTP and shell: `neolink` (smoltcp, Sunset, `NEOSSH.EXE`) and the SYSSTART `NEOSSH.EXE` spawn | dropped; not published |
+| fshell patches (hash binary mode, ymodem UTF-8, xmodem readiness, vt100busdevcons carrier and size detection) | kept: pushed to `NeoSymbian/fshell` `main` (`8536b2c`); roadmap T6/T7 keep only those a test needs |
 
-## How to split
+## Neolink
 
-Done by the session that owns the code, or by the owner, once that session stops:
-
-1. **Save everything:** commit the kernel work as it is to `usbnet-parked` and push it, so nothing is lost.
-2. **Kernel main:** a commit with only the "Keep" rows, built without `USBNET`. It must boot on QEMU and on bonito with
-   the monitor working (`phone.py cmd log`, `dump`, `shot`, `usb cold`). Then re-pin `build/sources.lock`.
-3. **`e32-rs`:** a commit of the file and timer APIs and their tests.
-4. **`neolink`:** push and archive it.
-5. **Docs:** promote this draft over `remote-access.md`, and point the `README.md` row to `debug-access.md`.
-
-## If remote access returns
-
-For example SSH over Wi-Fi, or ECM again:
-- start from `usbnet-parked` and `neolink`;
-- fix findings 5, 6 and 8 first;
-- add ECM as a third USB function beside the two ACM functions of debug access;
-- D6 shares the normal-boot USB power fix with debug access DA6 and FS6.
+Neolink is not used. If networking comes later (Wi-Fi, or USB Ethernet), it goes through **Symbian's own network
+stack** (`oss.FCL.sf.os.networkingsrv`: ESOCK, TCPIP6) with an Ethernet NIF over a USB ECM/NCM function (roadmap L2),
+in the same way debug access uses Symbian's fshell instead of new tools. Neolink's smoltcp adapter and host tests
+stay in the archive as reference only.
