@@ -1,6 +1,6 @@
 # neoui shell services: settings, notifications, home pages and widgets
 
-**Status: Part 1 (settings) done 2026-11-09 on neoui branch `shell-services`; the rest planned.** This is the design for four shell services
+**Status: Part 1 (settings) done 2026-11-09 (neoui `main` `22af6ac`); the rest planned.** This is the design for four shell services
 in neoui, written so that a later session can build any one part from this page alone. The parts are:
 - step 0: knowing who is calling;
 - part 1: one settings store;
@@ -13,7 +13,7 @@ It belongs to roadmap stage U3 ("system apps in Rust", [roadmap.md](roadmap.md))
 | Part | What | Status |
 |---|---|---|
 | 0 | Know who is calling: the client's secure ID, service sessions | Planned |
-| 1 | One settings store for the shell and every app | **Done** (2026-11-09, neoui `shell-services`) |
+| 1 | One settings store for the shell and every app | **Done** (2026-11-09, neoui `22af6ac`) |
 | 2 | Notification service: status bar icons, badges, shade list, urgent banner | Planned |
 | 3 | Home pages of widgets and shortcuts (Belle style), pin and unpin, dock, edit mode | Planned |
 | 4 | Widgets: drawn by the shell from data the app sends | Planned |
@@ -158,11 +158,11 @@ An app's private settings need neither step: it writes `<its key>.*` through `Ap
 
 ## Apps rebuilt on Part 1 (2026-11-09/10)
 
-Two apps were rebuilt before Part 2, on branch `shell-services`. Each follows one pattern: pure models in
+Two apps were rebuilt before Part 2 (neoui `main`, 2026-11-10). Each follows one pattern: pure models in
 `neoui-proto` (host-tested), one `State` global in Slint, and one module per page in Rust and in Slint
 (`src/pages/*.rs` with `bind` and `show`, `ui/pages/*.slint`).
 
-### Clock (`NEOCLOCK.EXE`, neoui `9e400e3`)
+### Clock (`NEOCLOCK.EXE`, neoui `872e6dc`)
 - **Pages:** Clock (face, Set time), Alarms (editor: days, label, snooze), World (a catalogue of 21 cities with fixed
   offsets; shortcut: no DST), Timer, Stopwatch.
 - **Kept state:** every page's state is kept in settings rows owned by `App("clock")`: `clock.tab`, `clock.alarms`,
@@ -176,7 +176,7 @@ Two apps were rebuilt before Part 2, on branch `shell-services`. Each follows on
   and opens Clock on a tap.
 - **Open:** a two-boot check on Syborg of every page's saved state.
 
-### Dev tools (`NEODEV.EXE`, neoui `b5943f4`)
+### Dev tools (`NEODEV.EXE`, neoui `ed9202f`)
 - **Tabs:** Home · Devices · Console · Procs · More. More opens Settings, Tools and About. Sub-views replace the
   tabs rather than covering them, because a cover lets taps through to the page underneath. Back closes a sub-view.
 - **Home:** cards for uptime, memory and CPU (both with 30-second bar graphs), storage, processes and threads, a

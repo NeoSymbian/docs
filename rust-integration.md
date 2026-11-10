@@ -473,7 +473,7 @@ The phone's own servers written in Rust: **`NeoModem`** (MODEMD.EXE, NeoSymbian/
 apps the modem: `STATUS`, `DIAL`, `ANSWER`, `HANGUP`. The contract is the `no_std` crate `modem-ipc`
 ([telephony.md](telephony.md) C5).
 
-**Status (2026-11-10):** Dev tools rebuilt (neoui `b5943f4`, branch `shell-services`): Home, Devices, Console, Procs,
+**Status (2026-11-10):** Dev tools rebuilt (neoui `ed9202f` on `main`): Home, Devices, Console, Procs,
 More (Settings, Tools, About). Devices merges the kernel's device registry (0x4e19) with the app's probes and the
 log's tags; see [neoui-shell.md](neoui-shell.md) "Dev tools". Open: the modem (`qcom_mss`) and USB (`qcom_dwc3_acm`)
 entries; per-thread CPU time (the arm64 kernel is built without `MONITOR_THREAD_CPU_TIME`, so CPU load shows "-").
