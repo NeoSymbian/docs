@@ -498,9 +498,8 @@ Failure modes:
 
 - **Ringing:**
   - a ringtone file played through ASM → ADM → AFE to the loudspeaker;
-  - the speaker path follows the pmOS UCM (whether it is the PM660L speaker driver or an external amp is
-    **unverified**);
-  - vibration through PM660 haptics (roadmap H6);
+  - the speaker path uses the two CS35L36 amplifiers established in C6; media gain/protection still needs validation;
+  - vibration through TI DRV2624 ([driver support D3](driver-support.md));
   - a missed-call notification.
 - **In-call:**
   - mute (CVS mute), DTMF;
@@ -509,7 +508,8 @@ Failure modes:
 - **Proximity:** the sensor is served by the ADSP sensor PD over FastRPC (ztOS needed `hexagonrpcd`), which is a large
   piece of work. **Fallback (my call):** turn the screen off when a call is answered and turn it on with the power
   key, until a FastRPC client exists.
-- **Wired headset:** USB-C analog audio (the codec MBHC plus the USB PHY mux); last in this stage.
+- **Wired headset:** the native 3.5 mm jack, with codec/MBHC routing and hotplug; last in this stage.
+  Shared audio ownership, PCM and sensor prerequisites are tracked in [driver support](driver-support.md).
 - **Robustness:**
   - On SMP2P fatal or the watchdog, `rprocd` stops the modem, reloads it and restarts the services, and `modemsrv`
     reconnects. The UI shows "no service" meanwhile.
