@@ -93,6 +93,11 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
 - **Started on demand**, by SYSSTART or a monitor command, as
   `fshell --console vt100busdevcons --console-title pdd=<ours>,ldd=ecomm,port=<n>`.
 - **`econs.dll` stays.** No `FSHELL_REPLACE_ECONS`: eshell and the Terminal use the real console.
+- **fshell on econs (T6, build `faf8f8c`):** fshell's default console is `defcons` (it picks econs on a text
+  configuration), so `defcons.dll` must be in the ROM. The minigui console (`econswserv`, the QEMU/window-server
+  `ECONS.DLL`) didn't complete a cancelled read; fshell's consoleproxy waits for that on every console mode change,
+  so fshell stopped after one command. Fixed in graphics `9513de1`. Check `econs_twin` (the neoui UI ROM's console)
+  for the same before fshell runs on the phone's screen.
 - **Missing libraries:** those on fshell's list that our ROM lacks are added from the 2010 sources, or the feature
   that needs them is turned off in fshell's `platform.mmh`.
 
