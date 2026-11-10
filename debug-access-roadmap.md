@@ -173,4 +173,5 @@ port, with the kernel monitor kept. This file is the work list. Do **one task at
 | T3 | done 2026-11-10: host test (sanitizers), `usb cold 7`, replug, Mac sleep/wake, 5-minute soak on bonito | `kernel` #2, `b7133e2`; pin `build` #9 |
 | T4 | done 2026-11-10 (re-scoped): link tracking, writer spin (`shot` 9.6 → 2.1 s; `dump` 2.0 → 1.5 MB/s, open); T3 checks pass | `kernel` #3 |
 | T5 | done 2026-11-10: interrupt-driven PL011 PDD + ECOMM; `test-serial-qemu.py` 4/4 (256-byte echo, `[serial] PASS`) | `kernel` #4 `326fffc`; `build` #11 |
-| T6–T12 | not started | — |
+| T6 | done 2026-11-10: 14 fshell components (+ `defcons`); on QEMU fshell runs `echo`, `ls`, `hash`, `ps`; econs `ReadCancel` fixed | `build` #12 `faf8f8c`; graphics #1 `9513de1` |
+| T7–T12 | not started | — |
