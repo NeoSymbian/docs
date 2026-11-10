@@ -464,10 +464,16 @@ The kernel has `EHalGroupVariant` functions for the phone's own tools. They are 
 | `ChanRecv` | 0x4e17 | a1 = `{ring; 0; size; buf}`: the next message's length, `KErrNotReady` if none (polled) | CommDD |
 | `Audio` | 0x4e18 | a1 = `{op; arg}`: the board's codecs (`a64_audio.cpp`): 0 probe, 1 start (arg 1 = loudspeaker), 2 stop, 3 route, 4 volume 0..10, 5 mic mute | CommDD |
 | `ENeoHalDeviceList` | 0x4e19 | a1 = `TUint32*` cursor (in/out, 0 = the first), a2 = `TDes8*` (1024 bytes): the device registry as lines `tag \t state \t name \t driver \t detail`, whole lines per call, none past the end. State: absent, off, starting, ok, partial, error. Each driver adds one `A64_DEVICE` (`baseport/arm64/common/inc/a64_device.h`); the monitor's `drivers` command lists the same (kernel `device-registry` `090bb5e`) | ReadDeviceData |
+| `RprocStop` (C7) | 0x4e1a | a1 = `{mask; 0; 0; 0}`, mask 1 MSS / 2 ADSP / 3 both; queues shutdown with bounded retry waits, poll `RprocState` before reload | CommDD |
+| `RprocState` (C7) | 0x4e1b | a1 = `TUint32[4]` out: phase (0 idle / 1 stopping / 2 stopped / 3 failed), signed error, MSS generation, ADSP generation | CommDD |
+| `AudioMem` (C7) | 0x4e1c | a1 = `{op; arg; len; buf}`: 0 returns the kernel-owned PCM region info; 1 copies bounded PCM; 2 publishes a ticket; 3 releases that ticket after DSP acknowledgement. No overwrite while published; successful ADSP shutdown invalidates ownership | CommDD |
+| `Haptic` (C7) | 0x4e1d | a1 = `{duration_ms; amplitude; 0; 0}`: 0 stops, duration at most 2000 ms, amplitude 0..127; TI DRV2624 on bonito | CommDD |
 | `UsbNetState` / `UsbNetRx` / `UsbNetTx` | 0x4e20–0x4e22 | the USB network (`USBNET=1` builds): state (16 bytes), one Ethernet frame in or out | CommDD |
 | `Prng` | 0x4e23 | a `TDes8` whose length (1..256) is the bytes wanted: hardware entropy (`USBNET=1`) | CommDD |
 
 0x4e04/0x4e05 are kept for the dev-mode switch (USB debug console on/off).
+The C7 additions are implementation candidates until the phone acceptance in
+[telephony.md](telephony.md#c7-complete-calls); compilation does not establish DSP or panel behavior.
 
 The phone's own servers written in Rust: **`NeoModem`** (MODEMD.EXE, NeoSymbian/telephony; started by SYSSTART) gives
 apps the modem: `STATUS`, `DIAL`, `ANSWER`, `HANGUP`. The contract is the `no_std` crate `modem-ipc`

@@ -496,27 +496,137 @@ Failure modes:
 
 ### C7: complete calls
 
+**Implementation scope agreed 2026-11-10:** one integrated deliverable on
+`feat/c7-complete-calls` in the existing repositories. Implement first, then one
+final build/test/independent-review pass, followed by owner-assisted phone testing.
+No worktrees, duplicate source trees, or replacement build/phone scripts.
+
 - **Ringing:**
-  - a ringtone file played through ASM → ADM → AFE to the loudspeaker;
-  - the speaker path follows the pmOS UCM (whether it is the PM660L speaker driver or an external amp is
-    **unverified**);
-  - vibration through PM660 haptics (roadmap H6);
+  - one original built-in PCM ringtone through ASM → ADM → AFE to the loudspeaker,
+    with ring volume, silent and vibration controls;
+  - reuse C6's CS35L36 speaker path and its single APR/audio owner;
+  - vibration through **TI DRV2624**, I2C10 at 0x5a, reset GPIO24 (roadmap H6);
   - a missed-call notification.
 - **In-call:**
-  - mute (CVS mute), DTMF;
+  - preserve C6's working mute, DTMF, volume and speaker controls;
   - hold/resume, call waiting, swap and merge (QMI VOICE manage-calls);
-  - a speakerphone switch (CVP device change).
+  - track all calls by modem call ID; ending one must not end another's audio;
+  - asynchronous status notification and visible pending/error results.
 - **Proximity:** the sensor is served by the ADSP sensor PD over FastRPC (ztOS needed `hexagonrpcd`), which is a large
   piece of work. **Fallback (my call):** turn the screen off when a call is answered and turn it on with the power
   key, until a FastRPC client exists.
-- **Wired headset:** USB-C analog audio (the codec MBHC plus the USB PHY mux); last in this stage.
+- **Screen fallback:** actual Samsung SOFEF00 OLED display-off/on, touch suppressed
+  while off, power key restores the screen. Keep the AP running; suspend is C12/H3.
+- **Wired headset:** deferred by the owner for C7. The board's analog jack is
+  3.5 mm, as recorded in C1; the earlier USB-C analog requirement was unverified.
 - **Robustness:**
-  - On SMP2P fatal or the watchdog, `rprocd` stops the modem, reloads it and restarts the services, and `modemsrv`
-    reconnects. The UI shows "no service" meanwhile.
-  - Airplane mode = DMS low-power.
-  - SIM PIN prompt, SIM removed and inserted.
+  - MODEMD owns modem and ADSP recovery (the logical rprocd/modemsrv roles remain
+    in this one process). Keep NeoModem responsive and show recovering/no service.
+  - Quiesce GLINK/SMP2P, invalidate stale rings and APR handles by generation,
+    confirm shutdown/ownership before memory reuse, then reuse the existing loaders.
+    Preserve RAM EFS. Replay retained ADSP services/SSCTL after modem-only recovery.
+  - Three automatic recovery attempts, backoff 1/3/10 seconds, then visible failure
+    with manual retry. ADSP failure uses coordinated ADSP-before-modem recovery.
+  - Airplane mode = DMS low-power; preserve desired state through SIM/recovery events.
+  - SIM PIN prompt and retry counts, SIM removed/inserted; never store or auto-retry PINs.
+  - Fix the post-connected-call return-to-LTE issue in `known-issues.md`; no forced
+    radio cycling presented as a root-cause correction.
 
-Exit: a day of normal use with calls and no reboot.
+**Hardware correction:** the C1 reference image's embedded bonito DTB enables
+`samsung,sofef00-bonito` (DSI 0x0ae94000, reset GPIO75) and `ti,drv2624` on
+`i2c@a88000`. PM660L WLED and PM660 haptics are disabled. This supersedes the
+earlier H4/H6 guesses; derive command/register semantics from primary references.
+
+**Implementation order and source ownership:**
+
+1. Telephony locks IPC v2 in `crates/modem-ipc/src/lib.rs`; update MODEMD,
+   SYSSTART and Dev tools together. Keep all shared contracts in the existing crate.
+2. Kernel adds lifecycle/reset and safe PCM ownership through the existing
+   `qcom_mss`, `qcom_adsp`, `qcom_glink`, `qcom_smp2p`, `qcom_telhal` paths.
+   MODEMD builds recovery around them before new audio users are integrated.
+3. Telephony extends VOICE/UIM/DMS and existing APR; neoui consumes confirmed
+   status in its existing phone client, Phone screen, Settings and shade.
+4. Integrate ringtone/vibration and OLED state transitions, preserving every C6
+   sequencing constraint above. Persistent call history/contacts remain C8.
+5. Final host/ARM builds, QEMU boot evidence, bonito build and fresh independent
+   review. Push coordinated feature commits and dependency pins. Phone tests then
+   validate behavior; record exact commands, exit codes, artifacts and gaps.
+
+Exit: a day of normal use with calls and no reboot, plus successful recovery,
+physical screen-off/wake and LTE return. Code completion alone is not this exit.
+
+**Implementation candidate 2026-11-10 (phone acceptance pending).**
+
+| Repository | Commit | Main implementation |
+|---|---|---|
+| kernel | `8dbcc89f` | [Recovery HAL](https://github.com/NeoSymbian/kernel/blob/8dbcc89f1ddd83871140f818d880e1cdc9731f01/baseport/arm64/sdm670_assp/qcom_telhal.cpp#L439), [OLED](https://github.com/NeoSymbian/kernel/blob/8dbcc89f1ddd83871140f818d880e1cdc9731f01/baseport/arm64/bonito_variant/specific/a64_panel.cpp#L105), [haptics](https://github.com/NeoSymbian/kernel/blob/8dbcc89f1ddd83871140f818d880e1cdc9731f01/baseport/arm64/bonito_variant/specific/a64_haptics.cpp#L92) |
+| telephony | `63a2b1f9` | [IPC v2](https://github.com/NeoSymbian/telephony/blob/63a2b1f900bf9b45af42613f5e316ffacd557646/crates/modem-ipc/src/lib.rs#L17), [MODEMD recovery](https://github.com/NeoSymbian/telephony/blob/63a2b1f900bf9b45af42613f5e316ffacd557646/symbian/modemd/src/lib.rs#L230), [APR](https://github.com/NeoSymbian/telephony/blob/63a2b1f900bf9b45af42613f5e316ffacd557646/crates/modem-proto/src/apr.rs#L414) |
+| neoui | `bf930514` | [Async modem client](https://github.com/NeoSymbian/neoui/blob/bf9305140eaf004ee041604a0188175aee0004bc/symbian/src/phone.rs#L27); Phone, Settings, shade and Dev tools updated together |
+| build | `b52e502a` | Kernel pin and default-off diagnostic option; existing `build.sh`, `neo` and `phone.py` remain the build/run path |
+
+- IPC v2 reports up to eight calls, pending/errors, SIM PIN attempts, desired and
+  confirmed radio mode, ring settings and recovery generation. Old IPC major versions
+  are rejected; install MODEMD and SYSSTART together. Settings are saved under
+  MODEMD's private directory, PINs are not saved or logged.
+- Recovery retains RAM EFS and a quiescent healthy ADSP. A fatal during unfinished
+  voice/ringtone teardown requires coordinated recovery; `Off` alone does not prove
+  the DSP has relinquished resources. SMP2P generations rearm IPA clock replies.
+- Review corrected mutex initialization/ordering, DRV2624 identification, stale
+  SMP2P writes, both delayed-DIAL cancellation orderings and failed codec controls.
+  The final independent source review found no remaining blocking/high/medium issue.
+- **Still open:** the connected-call LTE retention has no established root cause or
+  corrective change. APR's successful voice teardown is preserved. This candidate
+  must return to LTE after ordinary END/acknowledged teardown **without recovery**
+  before C7 can be accepted; recovery after every call is not a fix.
+- Hardware checks remain pending: ASM/ADM/PCM mapping and audible ringtone, physical
+  OLED off/on (unknown DSI revisions fail explicitly), DRV2624 vibration, actual
+  modem/ADSP restart and carrier-supported multi-call behavior.
+
+**Final source checks (all exit 0):**
+
+| Checkout | Commands | Result |
+|---|---|---|
+| telephony | `cargo fmt --all --check`; `cargo clippy --offline -- -D warnings`; `cargo test --offline` | 79 tests: 4 ext4ro, 3 IPC, 72 modem-proto |
+| telephony/symbian | `cargo fmt --all --check`; `cargo arm --workspace --offline` | `libmodemd.a` built |
+| neoui | `cargo fmt --check`; `cargo clippy --all-targets --offline -- -D warnings`; `cargo test --offline` | 126 tests |
+| neoui/symbian | `cargo fmt --all --check`; `cargo arm --workspace --offline` | All apps built; final build uses the pushed IPC revision, without a local patch |
+
+Raw repair host evidence is local/private at `private/c7/repair-telephony-*.log`,
+`private/c7/repair-neoui-*.log` and `private/c7/repair-phone-selftest.log`. Kernel/ROM validation runs only on ZimaOS using the
+already-existing clean `kernel-final`, `build-final` and `neosymbian-final` volume;
+the unrelated dirty `kernel`/`build` checkouts are preserved. Remote logs are under
+`/DATA/AppData/symbian-build/logs/c7/`.
+
+**Repair and installation run (2026-11-10; call acceptance deferred):**
+
+- The first repair-session RAM boot used the hash-checked image containing kernel
+  `888b6105`, ROM `2c5d869`, and neoui `5d7d0c8`, including current Clock and Dev tools.
+  MSS reached step 8, ADSP step 4, and NAS registered on LTE. `lastlog` was captured
+  first with `--no-date`; it belonged to older kernel `090bb5e5`, not the latest freeze.
+- The existing phone tool now persists partial data and command replies during capture,
+  requires completion markers and exits nonzero on timeout/disconnect. Its selftest
+  covers fragmented replies, missing markers, EOF and partial-output preservation.
+- Repair code gives kernel stop retries one shared 30-second elapsed wait budget and
+  MODEMD a 35-second watchdog. A still-running or unreadable stop remains quarantined;
+  timeout alone cannot authorize reload or another stop. MSS-only recovery requires
+  positively healthy ADSP state and quiescent APR.
+- Default-off `TEL_DIAGNOSTICS=1` adds `mss fault` and `adsp fault` to the existing
+  monitor. These synthesize detection only; MODEMD performs actual stop/reload through
+  its normal lifecycle. Results must be labelled separately from genuine firmware faults.
+- OLED, call/audio, haptic and recovery transitions receive bounded diagnostics.
+  Post-final-END NAS queries observe actual LTE return for up to 30 seconds; they do
+  not change system selection or cycle radio power. No freeze/LTE root cause is claimed fixed.
+- Owner has one other line, keeps SIM PIN disabled, and selected connected 24-hour use.
+  Successful call waiting/swap/merge and PIN unlock remain unaccepted until the required
+  call legs/test SIM are available. The owner subsequently stopped phone testing and
+  requested a persistent latest-ROM install; no calls or 24-hour acceptance were run.
+- The final build was installed persistently into `system_a` and `boot_a` with
+  diagnostic fault injection disabled. The installer wrote/read-back-verified 21,003 KB;
+  a RAM boot of the exact flashed image mounted the matching flash-backed ROFS,
+  showed the launcher and LTE, and marked slot a successful. Slot b was preserved.
+  A normal reboot was then sent successfully; its final visible boot was not independently
+  observed because normal-boot USB debug access remains limited. This is installation
+  evidence, not call/recovery acceptance. See [FS5](filesystem.md#fs5-updates-and-integrity).
 
 ### C8: call log and contacts
 
@@ -624,4 +734,5 @@ Direct GPL ports so far: none.
 | C5 | **done 2026-11-09**: MODEMD serves NeoModem and is started by SYSSTART; registration, operator and bars in the status bar; calls out and in through the Phone screen (silent); 3G voice-only until C5b (IPA) |
 | C5b | **done 2026-11-09** (kernel `d003355`): IPA runs (GSI firmware via PAS 15, SMMU identity context, command and LAN_RX channels); the modem stays on LTE, calls CSFB to 3G and back; the IPA QMI handshake is still half done (needed for data) |
 | C6 | **done 2026-11-09** (kernel `b12d1ba`, telephony `3f4af12`, neoui `2d55d01`): the ADSP boots (PAS 1), APR in Rust, CS35L36 x2 + RT5514 board driver; two-way call audio on the earpiece and loudspeaker, Mute / Speaker / volume / DTMF; Dev tools audio loopback test; the modem stays on 3G after a connected call (open) |
-| C7–C12 | not started |
+| C7 | **implementation in progress 2026-11-10** on `feat/c7-complete-calls`; phone acceptance pending; wired headset deferred |
+| C8–C12 | not started |
