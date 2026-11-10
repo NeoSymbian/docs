@@ -67,12 +67,13 @@ port, with the kernel monitor kept. This file is the work list. Do **one task at
   - Mac sleep then wake recovers;
   - a 5-minute monitor soak (`log` every 10 s) has no loss.
 
-### T4. Queues, activity boost, resume refresh
-- **Archive:** `commits/0003`; `uncommitted.patch` for `a64_usb_activity.h`.
-- **Done when:**
-  - host tests pass, with single-byte and partial-consume cases;
-  - the suspend→on refresh uses no ECM notifications;
-  - the T3 checks pass again.
+### T4. Link tracking and a faster monitor writer (re-scoped 2026-11-10)
+- **Owner, 2026-11-10:** the archive's queue, boost and resume helpers served only ECM. The byte queue
+  (`commits/0003` `a64_usb_queue.h` + test) moves to **T8**, with its user. A CPU boost on large transfers was tried
+  and dropped: no gain, the limit was the writer's tick sleep.
+- **Goal:** the core logs and counts link suspend/resume (a host asleep); the monitor's writer polls up to 200 us
+  before it sleeps a tick.
+- **Done when:** host tests pass; `shot`/`dump` speed measured before and after; the T3 checks pass again.
 
 ### T5. ECOMM and a second serial port on QEMU
 - **Goal:**
@@ -115,7 +116,8 @@ port, with the kernel monitor kept. This file is the work list. Do **one task at
 - **First:** read `GHWPARAMS3` (endpoint count) and `GTXFIFOSIZ0..n` on bonito through the monitor. Write the FIFO
   budget for two ACM functions at 512-byte HS bulk into `RESULT.md`. If it doesn't fit, stop.
 - **Goal:** a second ACM function (interfaces 2/3) through the T2 function interface, plus an ECOMM PDD over it
-  (`a64_debug_serial.h` from the archive). DTR maps to carrier.
+  (`a64_debug_serial.h` from the archive). DTR maps to carrier. Its RX/TX buffering uses the archive's byte queue
+  (`commits/0003` `a64_usb_queue.h`, host test with single-byte and partial-consume cases), moved here from T4.
 - **Done when:**
   - the Mac shows two `cu.usbmodem` ports;
   - the monitor port still does `log`, `dump` and `shot`;
@@ -169,4 +171,5 @@ port, with the kernel monitor kept. This file is the work list. Do **one task at
 | T1 | done 2026-11-10: gates and Syborg CI (`fs_ops`, `timer_high_res`) pass | `e32-rs` #1, `82e3143` |
 | T2 | done 2026-11-10: descriptors byte-identical, QEMU and bonito RAM boot unchanged | `kernel` #1, `96f60d6`; pin `build` #9 |
 | T3 | done 2026-11-10: host test (sanitizers), `usb cold 7`, replug, Mac sleep/wake, 5-minute soak on bonito | `kernel` #2, `b7133e2`; pin `build` #9 |
-| T4–T12 | not started | — |
+| T4 | done 2026-11-10 (re-scoped): link tracking, writer spin (`shot` 9.6 → 2.1 s; `dump` 2.0 → 1.5 MB/s, open); T3 checks pass | `kernel` #3 |
+| T5–T12 | not started | — |
