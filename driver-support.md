@@ -30,7 +30,7 @@ do not prove hardware absence. Keep full DTBs and firmware under `private/`.
 |---|---|---|
 | CPU, interrupt, timer | Eight-core boot recorded; GICv3, virtual timer | Focused timer/wake correctness before deep suspend |
 | Storage | eMMC, persistent C:/E:, ROFS and A/B recorded | Preserve partition allow-list and recovery gates |
-| Display/input | Bootloader OLED framebuffer, Synaptics RMI4 touch, PMIC keys | Independent panel initialization, brightness/blanking, IRQ/wake |
+| Display/input | Bootloader OLED framebuffer, Synaptics RMI4 touch, PMIC keys; panel brightness and on/off, touch sleep, screen timeout and power key (2026-11-11, below) | Independent panel initialization, IRQ/wake from suspend |
 | PMIC/power | SPMI, RPMh, RTC and reboot code | Fuel gauge (`qcom,pmi8998-fg`), PM660 RRADC, charger, TSENS, policy |
 | USB | DWC3 debug console on RAM boots | Cold/installed-boot power remains open; see known-issues |
 | Audio | ADSP, dual CS35L36 amps, RT5514 mic; C6 two-way calls recorded | Independent audio lifecycle, amplifier protection, ASM/ADM PCM, native jack |
@@ -136,6 +136,28 @@ TSENS addition has a [separate verification record](verification/tsens-2026-11-1
 The subsequent [battery telemetry implementation](battery-telemetry.md) includes
 live status-bar/Settings/Dev tools and retained history; physical acceptance is
 tracked separately in its verification record.
+
+## D2 display: brightness, screen off, wake (done 2026-11-11)
+
+Phone-tested in RAM boots (kernel #13, neoui #6; evidence in `private/display/`):
+- **What ABL leaves:** DSI0 (`0xae94000`, 6G v2.2; controller registers at +4) in **command mode**, 4 lanes, with
+  the DPU pushing the splash framebuffer and command DMA from memory, low power, a software trigger.
+- **Panel commands:** `qcom_dsi.cpp` sends DCS writes through that DMA from **ABL's own packet page `0x9a027000`**.
+  The DMA reads through the SMMU (stream 0x880); a page in the framebuffer region (`0x9c8f0000`) was not reachable:
+  the commands completed with no effect.
+- **Panel:** `panel_sofef00.cpp` (DTB `samsung,sofef00-bonito`): brightness DCS `0x51`, 16 bits, 0..1023; off
+  `0x28` + `0x10`; on `0x11` + `0x29`. The supplies and reset stay ABL's.
+- **Kernel interface:** Symbian's display HAL: `EDisplayHalMax/Set/DisplayBrightness` and `EDisplayHalSetState`
+  (a mutex serialises them). The monitor's `panel on|off|bright N`. While off, the touchscreen sleeps (RMI4 F01
+  sensor sleep, no polling).
+- **neoui:**
+  - `display.brightness` (0..255) is scaled to the panel;
+  - `display.timeout` (default 60 s, 0 = never; no timeout without a panel);
+  - a short Power press toggles the screen, and a 1-s hold is the Power menu;
+  - Power or a ringing call wakes it, and a tap doesn't;
+  - nothing is drawn while dark.
+- **Never read the SMMU's S2CR table (`0x15000c00`) from the monitor:** it hangs the phone.
+- **Not done:** wake on a call not phone-tested; no suspend (H3); tearing (no TE/vsync; smooth-ui S5).
 
 ## Primary hardware references
 
