@@ -87,6 +87,18 @@ buffer the writer's in/out sequence really protects.
   section, the critical-section count itself is wrong. Suspect `NKern::ThreadEnterCS`'s plain `++iCsCount` racing a
   cross-CPU reader of it, i.e. memory ordering on TCG.
 
+## CI: neoui's `syborg` check is red (seen 2026-11-11)
+
+**Status:** open. neoui #5 (battery UI) was merged past it by the owner.
+- **What:** the QEMU boot test counts the Clock app's `clock: tick` lines and wants at least 2. It logs 1: the
+  script taps as soon as Clock shows its surface, then goes back. Both runs of neoui #5 failed this way. Everything
+  else in the run passes (boot, launcher, Terminal with `neotest` 10/0, Files, the switcher).
+- **History:** red on `main` since `ed9202f` (Dev tools rebuild; a boot timeout then). `4beec4f` (T10) didn't
+  compile (clippy `collapsible_if` in `usb_debug.rs`, fixed in #5). So #5 is the first run past compile in a day.
+- **Not known:** whether the battery poller (every 5 s, a history file on C:) slows the Clock app on QEMU, or the
+  check is only timing-sensitive.
+- **Likely fix:** the script waits for a second tick (`expect "clock: tick"` twice) before tapping.
+
 ## Phone: fshell over USB: a typed flood, and a full C: (seen 2026-11-11, debug access T11)
 
 **Status:** open, skipped by the owner in T11.
