@@ -108,13 +108,28 @@ Each is written here before its code.
     and logs it).
 - **ztOS on this phone** fixed "WIFI-HW missing" by running rmtfs and **tqftpserv** (ztOS FIXES #9).
 
-Two differences remain:
-1. TFTP reads are refused. Linux serves `/readonly/firmware/image/*`.
-2. ath10k_snoc powers the WCN3990 before it waits for service 69: the four LDOs and RF_CLK2 above (the kernel has
-   `Vrm_Vote` and `Rpmh_Set`).
+**TFTP is not the difference.** C1's tqftpserv logs every read it opens ("opened for reading", checked in its
+binary). Its log has none, only refusals and one write, so the Linux modem read no Wi-Fi file either.
 
-**W0b (one RAM boot):**
-- MODEMD's TFTP serves reads read-only: `/readonly/firmware/image/X` from `modem_a` (the kernel's FAT16 reader), and
-  `/readonly/vendor/X` from `vendor_a` (`ext4ro`).
-- The kernel votes the WLAN supplies and RF_CLK2 before the modem boots.
-- Log every RRQ name and the QRTR services. If 69 appears, bisect the two changes later.
+**W0b, power (RAM boot 2026-11-12, kernel `670a24fa` + votes, user side of 2026-11-10): not enough.**
+- Before the modem boots, `qcom_mss.cpp` voted PM660 LDO5 800 mV, LDO9 1800 mV, LDO6 1304 mV, LDO19 3300 mV and
+  RF_CLK2 (`rfclka2` +4 = 1). All five answered `-> 0`.
+- After 60 s of modem uptime the same services appear as before: no 69 and no `51 i3`.
+
+**W0c, Linux without host drivers (2026-11-12, C1 image, cmdline patched): 69 still appears.**
+
+| Linux run | Result |
+|---|---|
+| `modprobe.blacklist=ath10k_snoc,ath10k_core` | `69 v1 i0 at 0:83` and `51 i3 at 0:82` after 100 s |
+| The same, then CDSP stopped and the modem restarted | 69 again |
+| Cold boot with `ath10k_snoc,ath10k_core,hci_uart,btqca` blacklisted (no Wi-Fi or Bluetooth driver, so nothing powers the chip or sends the UART power pulse) | 69 again |
+
+So **the modem starts its WLAN domain by itself.** The host's Wi-Fi and Bluetooth drivers and the CDSP play no part.
+- The difference is in how we start the modem, or in what our side answers it.
+- Not the difference: the RPMh supply votes (W0b), the locator table (identical to Linux's sdm670 table), TFTP
+  reads (none on either side), rmtfs (the same opens and refusals as Linux's `rmtfs.log`).
+- The same result on the latest image (kernel `670a24fa` + votes, build `310ae87`, neoui `e209df0`, telephony
+  `37fb4c3`).
+
+**Next, W0d:** MODEMD logs the modem's NEW_LOOKUPs and data sent to ports we don't serve (until now both were dropped
+silently), to see what the modem's root domain asks for before it would start `wlan_pd`.
