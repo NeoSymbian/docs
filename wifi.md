@@ -131,5 +131,41 @@ So **the modem starts its WLAN domain by itself.** The host's Wi-Fi and Bluetoot
 - The same result on the latest image (kernel `670a24fa` + votes, build `310ae87`, neoui `e209df0`, telephony
   `37fb4c3`).
 
-**Next, W0d:** MODEMD logs the modem's NEW_LOOKUPs and data sent to ports we don't serve (until now both were dropped
-silently), to see what the modem's root domain asks for before it would start `wlan_pd`.
+**W0 done (2026-11-12): the cause was our locator.**
+- A packet trace of Linux, diffed with MODEMD's own, found it. On Linux, kprobes on `qrtr_endpoint_post` and
+  `rpmsg_send` were set from tracefs while the modem restarted (`private/wifi/w0/`). MODEMD logs every packet with
+  feature `qrtr-trace`.
+- **Bug: wrong message id.** The locator's GET_DOMAIN_LIST is message **0x21**. We had 0x20 since C4, so every
+  domain lookup got an error, and the modem never learned that `msm/modem/wlan_pd` provides `kernel/elf_loader`.
+- **What the modem does next.** With the right answer, it asks TFTP for `/readonly/firmware/image/wlanmdsp.mbn`,
+  then `/readonly/vendor/firmware/wlanmdsp.mbn`.
+  - Linux served the first from pmOS's firmware folder.
+  - On this phone the file is on vendor_a, so MODEMD now serves `/readonly/vendor/firmware/` reads read-only.
+  - It uses tqftpserv's options and windows: blksize 7680, tsize, wsize 10, rsize/seek.
+- **Result:** `51 i3` and **WLFW 69** appear, and LTE is unaffected.
+- tqftpserv's log never showed those reads, which is why W0a ruled TFTP out by mistake.
+- What W0b–W0d ruled out still holds.
+
+## W1: firmware control (done 2026-11-12, phone RAM boot)
+
+`modem-proto/src/wlfw.rs` (`Client`, host tests) is driven by MODEMD once 69 appears. The steps, in ath10k's order:
+
+| Step | Result on the phone |
+|---|---|
+| Indication register (fw ready, MSA ready) | ok |
+| Host capability, 8-bit layout | ok |
+| MSA info | two regions: `0x94d00000` + 16 KB (secure), `0x94d04000` + 1008 KB |
+| MSA assignment (kernel HAL WlanMsa `0x4e1c`: TrustZone assign_mem, HLOS → MSS_MSA + WLAN, + WLAN_CE unless secure) | ok |
+| MSA ready | ok |
+| Capabilities | chip `0x30214`, family `0x4001`, board `0`, soc `0x40030001`, fw `WLAN.HL.2.2.5-00426-QCAHLSWMTPLZ-1` (2022-03-08) |
+| Board data | vendor_a `firmware/bdwlan-bonito.bin`, 19152 bytes in 4 segments |
+| Calibration report | ok |
+| Firmware-ready indication | **received** |
+
+- **Board data:** the factory image's vendor folder has `bdwlan-bonito{,-ROW,-USA,-JPN,-VZW}.bin` and the `-sargo`
+  set. The default file is used for now. **Owner question:** pick the regional file by country before any release.
+- **New kernel HALs:**
+  - `0x4e1b` FwRead: modem_a files; kept for the `/readonly/firmware/image/` path;
+  - `0x4e1c` WlanMsa.
+- **Next, W2:** the PDD's copy engines and HTC/WMI, then WLAN cfg + mission mode
+  (`wlfw::wlan_cfg`/`wlan_mode`, tables from ath10k `snoc.c`).
