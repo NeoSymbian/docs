@@ -446,6 +446,8 @@ The kernel has `EHalGroupVariant` functions for the phone's own tools. They are 
 | `ENeoHalLastLogRead` | 0x4e01 | the same, for the previous boot's log (`lastlog`) | ReadDeviceData |
 | `ENeoHalConsoleSet` | 0x4e02 | a1 = 1 / 0: the kernel log overlaid on screen (dev mode) | WriteDeviceData |
 | `ENeoHalConsoleGet` | 0x4e03 | a1 = `TInt*` out | — |
+| `ENeoHalUsbDebugSet` | 0x4e04 | a1 = 1 / 0: USB debugging, fshell's ACM port joins or leaves the USB device and the host re-enumerates (Settings → Developer options; `KErrNotSupported` without it, e.g. QEMU) | WriteDeviceData |
+| `ENeoHalUsbDebugGet` | 0x4e05 | a1 = `TInt*` out: 1 on, 0 off | — |
 | `ENeoHalBootOk` | 0x4e06 | none: "this boot worked", marks the A/B slot successful (FS5b) | WriteDeviceData |
 | `ENeoHalSlotInfo` | 0x4e09 | a1 = `TDes8*`: the booted A/B slot and both slots' state, one line (≤ 400 bytes) | ReadDeviceData |
 | `ENeoHalBuildInfo` | 0x4e0a | a1 = `TDes8*`: "kernel <commit>[+dirty] <UTC time> <board>" | — |
@@ -466,8 +468,6 @@ The kernel has `EHalGroupVariant` functions for the phone's own tools. They are 
 | `ENeoHalDeviceList` | 0x4e19 | a1 = `TUint32*` cursor (in/out, 0 = the first), a2 = `TDes8*` (1024 bytes): the device registry as lines `tag \t state \t name \t driver \t detail`, whole lines per call, none past the end. State: absent, off, starting, ok, partial, error. Each driver adds one `A64_DEVICE` (`baseport/arm64/common/inc/a64_device.h`); the monitor's `drivers` command lists the same (kernel `device-registry` `090bb5e`) | ReadDeviceData |
 | `UsbNetState` / `UsbNetRx` / `UsbNetTx` | 0x4e20–0x4e22 | the USB network (`USBNET=1` builds): state (16 bytes), one Ethernet frame in or out | CommDD |
 | `Prng` | 0x4e23 | a `TDes8` whose length (1..256) is the bytes wanted: hardware entropy (`USBNET=1`) | CommDD |
-
-0x4e04/0x4e05 are kept for the dev-mode switch (USB debug console on/off).
 
 The phone's own servers written in Rust: **`NeoModem`** (MODEMD.EXE, NeoSymbian/telephony; started by SYSSTART) gives
 apps the modem: `STATUS`, `DIAL`, `ANSWER`, `HANGUP`. The contract is the `no_std` crate `modem-ipc`

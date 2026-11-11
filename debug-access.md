@@ -73,13 +73,19 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
       controller restart (halt, core reset, bring-up) as the only recovery for a live control transfer or a quarantine,
       and the UTMI/PIPE clock mux restore that `usb cold` needs (a GCC reset leaves QSCRATCH GENERAL_CFG at 04, not
       0d). Verified on bonito: `usb cold 7`, replug, Mac sleep/wake, a 5-minute soak. The queue code comes in T4.
-    - **T8 (kernel `af9b3f8`), with `USBDEBUG=1`:** the gadget is composite (EF/02/01, an IAD per function): the
+    - **T8 (kernel `af9b3f8`), with USB debugging on (T10; `USBDEBUG=1` then):** the gadget is composite (EF/02/01, an IAD per function): the
       monitor on interfaces 0/1, the debug ACM (`common/specific/a64_usb_acm_debug.cpp`) on 2/3 (EP 0x03/0x83, notify
       0x84), and macOS names them `cu.usbmodem…11` and `…13`. Its PDD `Comm.UsbAcm` (unit 1) keeps RX/TX in
       `a64_usb_queue.h` byte queues filled by the poll DFC, and calls ECOMM's `...Isr` functions from a **doorbell
       interrupt: SGI 7** (`A64_BindSgi`/`A64_RaiseSgi`, SGIs 5–7). DWC3's own SPI 133 can't serve: it fires in
-      hardware during traffic and stormed the CPU. DTR maps to CTS/DSR/DCD. Without `USBDEBUG` the descriptors are
-      unchanged. FIFO budget: FIFOs 0–4 use 1618 of 2661 TX words.
+      hardware during traffic and stormed the CPU. DTR maps to CTS/DSR/DCD. With USB debugging off the descriptors are
+      the single monitor ACM's. FIFO budget: FIFOs 0–4 use 1618 of 2661 TX words.
+    - **The switch (T10, kernel `2a041d3`):** every bonito build links the debug ACM; the core exposes 1 or 2
+      functions (`A64UsbDebugSet`, HAL 0x4e04, monitor `usb dbg`) by recomposing the descriptors and restarting the
+      controller. Two restart fixes came with it: `Halt()` takes pending events while it waits for DEVCTRLHLT (as Linux
+      `dwc3_gadget_run_stop`; a restart during traffic timed out and left USB stopped), and the device stays away 1 s
+      (100 ms was too short for macOS when the functions changed: after a few switches no device came back). A failed
+      restart is logged and retried (3 times); no bus reset 5 s after a restart → reconnect (3 times).
     - **fshell exit codes on that port:** -29 (`KErrCommsLineFail`) when the Mac closes the port (`waitdcd=1`), so
       something must restart it (T10); -18 for a malformed console title.
     - Later, a DWC3 controller driver for Symbian's own USB client framework (`kernel/eka/drivers/usbcc`,
@@ -99,8 +105,13 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
   - pinned in `build/sources.lock`;
   - built through `build/emitter/components.py` like the other 2010 packages;
   - with its `.cif` command descriptions in the ROM.
-- **Started on demand**, by SYSSTART or a monitor command, as
-  `fshell --console vt100busdevcons --console-title pdd=<ours>,ldd=ecomm,port=<n>`.
+- **Started by SYSSTART when USB debugging is on (T10):** Settings → System → Developer options → USB debugging
+  (`developer.usb_debugging`, off by default; every ROM carries fshell). neoui `symbian/src/usb_debug.rs`, a worker
+  thread: on → HAL 0x4e04 exposes the port, then `FSHELL.EXE --console vt100busdevcons --console-title
+  pdd=euart1,ldd=ecomm,port=1,sizedetect=0` (no `waitdcd`: it outlives host sessions); an exit restarts it after 1 s,
+  doubling to 32 s for quick exits, 1 s again after a minute's run; off → kill, then the port goes; no `FSHELL.EXE`
+  → logged once. The monitor's `usb dbg 0|1` switches the port only (no fshell); `USBDEBUG=1` images have it on at
+  boot.
 - **`econs.dll` stays.** No `FSHELL_REPLACE_ECONS`: eshell and the Terminal use the real console.
 - **fshell on the serial port (T7):** `fshell --console vt100busdevcons --console-title
   pdd=euart1,ldd=ecomm,port=1,rate=115200,sizedetect=0` (QEMU; the loader aliases `ecomm`/`euart1` name the built-in
@@ -135,7 +146,8 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
 
 - **Physical USB only:** the same model as the monitor today. There is no network exposure.
 - **No new exposure on installed boots:** USB starts only on RAM boots and in dev mode.
-- **Revisit at DA6,** before an installed boot offers the shell.
+- **USB debugging is off by default (T10)** and needs the unlocked UI to turn on. Unlike adb there is no host
+  authorization (RSA keys) yet: revisit before an installed boot offers the shell (DA6).
 
 ## Stages
 
