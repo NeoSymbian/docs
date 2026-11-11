@@ -68,11 +68,20 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
     - **USB driver layering (T2, kernel `96f60d6`):** a controller core (`sdm670_assp/qcom_dwc3.cpp`: bring-up,
       events, EP0, endpoint DMA buffers) runs function drivers through `common/inc/a64_usb_function.h`. Today there is
       one, the monitor ACM (`common/specific/a64_usb_acm_monitor.cpp`); the debug ACM that this PDD sits on comes in
-      T8. **T3 (kernel `b7133e2`)** added, without ECM: endpoint DMA ownership (a stop frees a buffer only on its
+      T8 (below). **T3 (kernel `b7133e2`)** added, without ECM: endpoint DMA ownership (a stop frees a buffer only on its
       ENDTRANSFER command-complete event; failures quarantine), SET_CONFIGURATION deferred until its stops end, a
       controller restart (halt, core reset, bring-up) as the only recovery for a live control transfer or a quarantine,
       and the UTMI/PIPE clock mux restore that `usb cold` needs (a GCC reset leaves QSCRATCH GENERAL_CFG at 04, not
       0d). Verified on bonito: `usb cold 7`, replug, Mac sleep/wake, a 5-minute soak. The queue code comes in T4.
+    - **T8 (kernel `af9b3f8`), with `USBDEBUG=1`:** the gadget is composite (EF/02/01, an IAD per function): the
+      monitor on interfaces 0/1, the debug ACM (`common/specific/a64_usb_acm_debug.cpp`) on 2/3 (EP 0x03/0x83, notify
+      0x84), and macOS names them `cu.usbmodem…11` and `…13`. Its PDD `Comm.UsbAcm` (unit 1) keeps RX/TX in
+      `a64_usb_queue.h` byte queues filled by the poll DFC, and calls ECOMM's `...Isr` functions from a **doorbell
+      interrupt: SGI 7** (`A64_BindSgi`/`A64_RaiseSgi`, SGIs 5–7). DWC3's own SPI 133 can't serve: it fires in
+      hardware during traffic and stormed the CPU. DTR maps to CTS/DSR/DCD. Without `USBDEBUG` the descriptors are
+      unchanged. FIFO budget: FIFOs 0–4 use 1618 of 2661 TX words.
+    - **fshell exit codes on that port:** -29 (`KErrCommsLineFail`) when the Mac closes the port (`waitdcd=1`), so
+      something must restart it (T10); -18 for a malformed console title.
     - Later, a DWC3 controller driver for Symbian's own USB client framework (`kernel/eka/drivers/usbcc`,
       `usbc.ldd`) gives the standard `RDevUsbcClient` for usbman and MTP (roadmap L1).
     - `DComm` is shaped for a UART (characters moved from interrupt handlers), so the PDD bridges to the USB queues

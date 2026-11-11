@@ -175,4 +175,5 @@ port, with the kernel monitor kept. This file is the work list. Do **one task at
 | T5 | done 2026-11-10: interrupt-driven PL011 PDD + ECOMM; `test-serial-qemu.py` 4/4 (256-byte echo, `[serial] PASS`) | `kernel` #4 `326fffc`; `build` #11 |
 | T6 | done 2026-11-10: 14 fshell components (+ `defcons`); on QEMU fshell runs `echo`, `ls`, `hash`, `ps`; econs `ReadCancel` fixed | `build` #12 `faf8f8c`; graphics #1 `9513de1` |
 | T7 | QEMU done 2026-11-11: fshell on the second serial port, `test-fshell-qemu.py` 3/3 (ls, hash, ps, exit status, 64 KiB YMODEM round trip); **CI job added but not run yet: Actions is disabled for `NeoSymbian/build`** | `kernel` #6 `eecb462`; `build` #14 `0891bfd` |
-| T8–T12 | not started | — |
+| T8 | done 2026-11-11: `USBDEBUG=1` composite gadget (two IADs), debug ACM + ECOMM PDD `Comm.UsbAcm`; monitor `log`/`dump`/`shot`; fshell ls, hash, ps, status, 64 KiB YMODEM (~10 KB/s); `usb cold 7`, replug, Mac sleep/wake, 5-minute soak | `kernel` #7 `af9b3f8`; `build` #15 |
+| T9–T12 | not started | — |
