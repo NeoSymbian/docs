@@ -550,7 +550,8 @@ Exit: an SMS round-trip with the owner's phone, including Armenian and Cyrillic 
   - Reference: Linux `drivers/net/ipa`.
   - **Risk:** the first SMMU work in the port.
 - **Symbian side:** an ESOCK/TCPIP6 packet interface (NIF) over the rmnet device. It needs `commsfw`,
-  `networkingsrv` (ESOCK/TCPIP6) re-forked from `retired-repos.md`; **ask the owner first.**
+  `networkingsrv` (ESOCK/TCPIP6) re-forked from `retired-repos.md`. **Decided 2026-11-12 (owner):** ESOCK/TCPIP6,
+  shared with Wi-Fi ([wifi.md](wifi.md)).
 - **Fallback:** a small Rust IP stack (smoltcp) behind our own socket API, if the 2010 stack costs too much.
 
 Exit: ping and an HTTP fetch over LTE, and over 3G with LTE disabled.
