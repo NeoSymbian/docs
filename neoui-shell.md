@@ -128,7 +128,8 @@ key. The app reads its keys again.
 | `radio.wifi`, `radio.bt`, `radio.data`, `radio.airplane` | Bool | true, false, true, false | Shade toggles, Settings → Connectivity (UI only until there are drivers) |
 | `sound.silent`, `sound.vibrate` | Bool | false, true | Shade (Silent) |
 | `display.dark` | Bool | true | Settings → Display (stored; there is no light palette yet) |
-| `display.brightness` | Int 0–255 | 160 | Shade slider, Settings → Display (not applied to the backlight until there's a HAL call, H4) |
+| `display.brightness` | Int 0–255 | 160 | Shade slider, Settings → Display; sent to the panel (display HAL, scaled to 0–1023) |
+| `display.timeout` | Int 0–600 (s) | 60 | Settings → Display → Screen timeout (15 s … 10 min, Never = 0); off after that long without a touch or key |
 | `clock.24h` | Bool | true | Settings → Display; the status bar clock and the Clock app follow it |
 
 ### Adding a setting
