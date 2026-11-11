@@ -87,6 +87,18 @@ buffer the writer's in/out sequence really protects.
   section, the critical-section count itself is wrong. Suspect `NKern::ThreadEnterCS`'s plain `++iCsCount` racing a
   cross-CPU reader of it, i.e. memory ordering on TCG.
 
+## Phone: fshell over USB: a typed flood, and a full C: (seen 2026-11-11, debug access T11)
+
+**Status:** open, skipped by the owner in T11.
+- **Flood:** about 8 KB typed while fshell is busy (e.g. in `sleep`) overflows ECOMM's receive ring: ECOMM drops the
+  rest and fshell's read fails with `KErrCommsOverrun` (-31). A USB PDD has no RTS to drop: it must hand ECOMM only
+  what its ring holds and keep the rest in its queue (which holds the host back). A first try
+  (`a64_usb_acm_debug.cpp`: room from `iRxGetIndex`/`iRxPutIndex`, a re-ring from the poll) removed the overrun but
+  left fshell with no input after the flood; it was reverted. `phone.py` itself never floods (commands go as one line,
+  files by YMODEM).
+- **Full C::** every `phone.py sh` uploads its command as a script file to `C:`, so with `C:` full no command runs,
+  not even `rm`. The client should type short commands directly when the upload fails.
+
 ## Phone: the monitor's `type` can drop the end of a line
 
 `type md c:\Long Directory On Phone` posted all 29 characters (`typed 29 chars`), but eshell on the phone received
