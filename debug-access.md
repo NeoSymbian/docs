@@ -7,8 +7,8 @@ The goal is what `adb` gives an Android developer: a shell, pushing and pulling 
 reading logs, from the Mac through the USB cable. NeoSymbian gets it from Symbian's own 2010 tools, unchanged.
 There is no TCP/IP, no SSH and no comms framework (c32) in the first stages.
 
-**This is the only access route (owner, 2026-11-10).** The USB SSH work was dropped and archived; what it taught and
-what was kept is in `remote-access.md.draft`.
+**This is the only access route (owner, 2026-11-10).** The USB SSH work was dropped; its useful parts came back
+through the roadmap's T1–T11.
 
 ## What exists today
 

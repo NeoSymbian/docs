@@ -5,8 +5,8 @@ Written 2026-11-10. The design is [debug-access.md](debug-access.md): fshell ove
 port, with the kernel monitor kept. This file is the work list. Do **one task at a time, in order**.
 
 **Decisions (owner, 2026-11-10):**
-- **SSH is dropped.** The USB-SSH work was archived, not merged; see
-  [remote-access.md.draft](remote-access.md.draft).
+- **SSH is dropped.** The USB-SSH work (CDC-ECM, smoltcp, Sunset SSH) was never merged. Its useful parts came back
+  in T1–T11, and the private archive was deleted on 2026-11-11.
 - **The useful parts come back task by task:** USB robustness, `e32` APIs, ECOMM/serial and the Mac client.
 - **USB:** split our gadget into a controller core and function drivers now. A controller driver for Symbian's own
   USB client framework (`usbcc`, `usbc.ldd`) comes later (L1).
@@ -17,8 +17,7 @@ port, with the kernel monitor kept. This file is the work list. Do **one task at
    in each repo. One PR per repo per task, rebased on current `main` just before merging. Build pins (`sources.lock`)
    last, after the source PR is merged.
 2. **Not allowed:** SSH, ECM/Ethernet, PRNG or neolink code, and no `USBNET` switch.
-3. **The archive is a source to copy from, never applied whole.** It is `private/codex-archive-20261110/` (see its
-   `INDEX.md`). Its kernel patches are based on Codex's local `main`, not `origin/main`.
+3. **The archive (used by T1–T11, deleted 2026-11-11) was a source to copy from, never applied whole.**
 4. **Gates:**
    - each repo's gate from the workspace `CLAUDE.md` passes before a PR;
    - C++ host tests are built with `-fsanitize=address,undefined`;
@@ -166,7 +165,7 @@ port, with the kernel monitor kept. This file is the work list. Do **one task at
 - **L1:** a DWC3 controller driver (PSL) for Symbian's USB client framework (`kernel/eka/drivers/usbcc`,
   `usbc.ldd`), so the standard `RDevUsbcClient` works; then usbman and MTP.
 - **L2:** networking through Symbian's own stack (`oss.FCL.sf.os.networkingsrv`: ESOCK, TCPIP6) with an Ethernet NIF
-  over a USB ECM/NCM function or Wi-Fi. The archived ECM descriptors are reference only.
+  over a USB ECM/NCM function or Wi-Fi.
 - **L3:** fshell's memoryaccess LDD (`top`, `objinfo`, `fdb`), TRK and `runonphone`, OST traces, coredumps.
 
 ## Progress
