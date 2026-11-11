@@ -118,10 +118,18 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
 ### Mac
 
 - **`screen /dev/cu.usbmodem<…>`** on the shell's port gives the shell with no new tools.
-- **New `phone.py` verbs:**
-  - `sh` (interactive, or one command and its output);
-  - `push` and `pull` (ymodem in a small Python implementation, then fshell's `hash` to compare SHA-256);
-  - port selection: the monitor port and the shell port are told apart by their USB interface number.
+- **`phone.py` verbs (T9, kernel `277afef`; code in `tools/fshell_link.py`):**
+  - `sh [COMMAND]`: a terminal (Ctrl-D ends), or one command whose real exit status comes back in a nonce-framed END
+    line (`phone.py` exits 1 and prints `native exit N`);
+  - `push`/`pull SRC DST [--overwrite]`: YMODEM in Python, checked by length and SHA-256 at both ends; the phone writes
+    a temporary file and renames it (`ymodem receive --sha256`), the Mac does the same locally;
+  - port selection by USB interface in the IORegistry (monitor 0, fshell 2), `--device`, `--monitor-port`,
+    `--shell-port`; a per-port lock in `~/Library/Caches/NeoSymbian` keeps one operation at a time;
+  - after a failed transfer fshell purges its input until the line is quiet, so the client waits for the command's END
+    and prompt before the next command;
+  - a fresh C: has no `C:\sys\bin`: `phone.py sh 'md c:\sys\bin'` before pushing an EXE.
+- **fshell's console title:** without `waitdcd`, fshell outlives each host session (T9 used
+  `pdd=euart1,ldd=ecomm,port=1,sizedetect=0`); with `waitdcd=1` it exits -29 when the Mac closes the port.
 
 ### Security
 
