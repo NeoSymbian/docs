@@ -137,12 +137,14 @@ port, with the kernel monitor kept. This file is the work list. Do **one task at
   - an EXE pushed to `C:` runs from `sh`;
   - a failing command reports its error status.
 
-### T10. SYSSTART starts fshell (development builds)
+### T10. SYSSTART starts fshell: Settings → Developer options → USB debugging
 - **Input:** `private/debug-access/supervisor/supervisor-lib.patch`. **Not** the archived `NEOSSH.EXE` spawn.
+- **Owner decision (2026-11-11), replacing "a non-development build has no fshell in its ROM":** every ROM carries
+  fshell, and a Settings switch (off by default) turns it on, like Android's adb switch.
 - **Done when:**
-  - in a development build, fshell runs at boot; killed, it restarts with bounded backoff;
-  - the UI never waits for it;
-  - a non-development build has no fshell in its ROM.
+  - off: the Mac sees only the monitor port; on: the phone re-enumerates with fshell's port and SYSSTART runs fshell;
+  - killed, fshell restarts with bounded backoff; off stops it and removes the port;
+  - the UI never waits for it, and a ROM without fshell only logs it.
 
 ### T11. DA5: robustness run
 - **Done when** each of these passes, while the monitor stays usable:
@@ -153,9 +155,9 @@ port, with the kernel monitor kept. This file is the work list. Do **one task at
   The results are in `RESULT.md`.
 
 ### T12. DA6: installed boot (owner approval first)
-- **Goal:** normal-boot USB power (the T3 cold-power path), and a policy for which builds expose fshell.
-- **Done when:** a cold installed boot shows both ports, and the policy is written in
-  [debug-access.md](debug-access.md).
+- **Goal:** normal-boot USB power (the T3 cold-power path). The policy for which builds expose fshell is decided
+  (T10: every build, behind the USB debugging switch).
+- **Done when:** a cold installed boot shows the monitor port, and both ports with USB debugging on.
 
 ## Later (each needs its own design first)
 - **L1:** a DWC3 controller driver (PSL) for Symbian's USB client framework (`kernel/eka/drivers/usbcc`,
@@ -177,4 +179,5 @@ port, with the kernel monitor kept. This file is the work list. Do **one task at
 | T7 | done 2026-11-11: fshell on the second serial port, `test-fshell-qemu.py` 3/3 (ls, hash, ps, exit status, 64 KiB YMODEM round trip); the `build` CI job passes (run 42979250248) | `kernel` #6 `eecb462`; `build` #14 `0891bfd` |
 | T8 | done 2026-11-11: `USBDEBUG=1` composite gadget (two IADs), debug ACM + ECOMM PDD `Comm.UsbAcm`; monitor `log`/`dump`/`shot`; fshell ls, hash, ps, status, 64 KiB YMODEM (~10 KB/s); `usb cold 7`, replug, Mac sleep/wake, 5-minute soak | `kernel` #7 `af9b3f8`; `build` #15 |
 | T9 | done 2026-11-11: `phone.py sh`/`push`/`pull`, ports by USB interface, per-port lock; on the phone all byte values, an empty file and an Armenian name with a space round-trip (SHA-256), an EXE pushed to `C:\sys\bin` runs (exit 42), a failing command reports -12; 30 host tests | `kernel` #8 `277afef`; `build` #16 |
-| T10–T12 | not started | — |
+| T10 | done 2026-11-11 (re-scoped by the owner): Settings → Developer options → USB debugging (off by default) exposes fshell's port (HAL 0x4e04) and SYSSTART supervises fshell (1 s → 32 s backoff); on the phone 20/20 switches, kill → back in 1 s, the T9 checks, `usb cold 7`, a ROM without fshell. Two controller-restart fixes (events taken while halting; a 1 s disconnect) | `kernel` #9 `2a041d3`; `neoui` #4 `4beec4f`; `build` #17 |
+| T11–T12 | not started | — |
