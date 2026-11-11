@@ -142,7 +142,14 @@ pacing in `A64Key_Type` (`a64_dbgmon.cpp`). Workaround: keep typed lines short.
 - **RPMh votes survive a warm reset**, so a debug run can leave a rail off for the next RAM boot. A cold power-off
   clears them.
 
-**Effect:** the USB debug console and FS6's E: sharing work only on fastboot RAM boots for now.
+- **T12 (2026-11-11), a real cold installed boot:** with USB debugging on, the kernel powers USB
+  (`A64UsbPowerOn`) and the controller runs, but the host never sees the phone: no bus reset, no events, no device on
+  the Mac. Turning the switch off and on again then fails the controller restart (`-33`, halt). So the monitor's
+  `usb cold 7` on a RAM boot is not a faithful cold boot. Next: compare ABL's fastboot setup (the ldob7 rail, the
+  PHY's reference clock) with the PHY's registers after our power-up.
+
+**Effect:** the USB debug console and FS6's E: sharing work only on fastboot RAM boots for now; debug access T12 is
+parked on this.
 
 ## Syborg: an odd screen width shears the picture (seen 2026-11-08)
 

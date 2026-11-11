@@ -145,7 +145,9 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
 ### Security
 
 - **Physical USB only:** the same model as the monitor today. There is no network exposure.
-- **No new exposure on installed boots:** USB starts only on RAM boots and in dev mode.
+- **Installed boots (T12):** USB stays off until USB debugging is switched on; then the kernel powers it and offers
+  both ports (monitor and fshell). On a cold boot the host doesn't see the phone yet (the normal-boot PHY issue in
+  [known issues](known-issues.md)), so T12 is parked.
 - **USB debugging is off by default (T10)** and needs the unlocked UI to turn on. Unlike adb there is no host
   authorization (RSA keys) yet: revisit before an installed boot offers the shell (DA6).
 
