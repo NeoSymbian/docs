@@ -312,7 +312,9 @@ Facts: `private/wifi/w4-join-spec.md` (ath10k, ISC; mac80211 facts only).
 - no PMF: an AP that requires it refuses with status 31;
 - no scans while joined;
 - the supplicant is a thread of SYSSTART until W5's network interface needs a daemon;
-- non-UTF-8 SSIDs hash wrongly.
+- non-UTF-8 SSIDs hash wrongly;
+- after a modem stop (C7 recovery) Wi-Fi stays off until a reboot: the WLAN firmware runs inside the modem, and a
+  second bring-up would reuse DMA memory still carved for the old rings (`Wcn3990_ModemDown`).
 
 ### Result: connected (phone RAM boot, 2026-11-12)
 

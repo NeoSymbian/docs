@@ -122,13 +122,19 @@ pacing in `A64Key_Type` (`a64_dbgmon.cpp`). Workaround: keep typed lines short.
 
 The notes below are the history.
 
+The 2026-11-10 C7 implementation candidate adds bounded recovery and stricter APR
+failure handling, but does not establish a cause or correction for this issue.
+Acceptance requires normal call END and acknowledged audio teardown followed by
+LTE registration, without restarting the modem/ADSP or cycling the radio.
+
 **What is known:**
 - calls on LTE drop to 3G (CSFB);
 - a call hung up while ringing comes back to LTE within seconds;
 - a call that connected (its voice path ran through the ADSP) stays on 3G. The modem stays up and calls keep working;
 - Linux on this phone returns to LTE 1.7 s after a connected call;
-- our APR teardown matches Linux's packet for packet, and since kernel `b12d1ba` the modem no longer crashes after
-  the call.
+- Earlier C6 testing found matching APR teardown and no post-call crash after kernel `b12d1ba`.
+  C7 testing later captured a modem fatal (`wfw_demfront_sched.c:685`) after acknowledged teardown;
+  the newer apparent freeze has no complete diagnostic reply, so its cause remains unconfirmed.
 
 **Next to check:**
 - the CDSP, which Linux runs and we don't;

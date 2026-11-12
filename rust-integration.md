@@ -509,6 +509,15 @@ The kernel has `EHalGroupVariant` functions for the phone's own tools. They are 
 | `ENeoHalWlanLink` | 0x4e1f | a1 = op, a2 = `TDes8*`: 1 join `{bssid, our RSN element (none: an open network)}`, 2 leave, 3 status `{version 1, state (0 idle, 1 joining, 2 handshake, 3 connected, 4 lost, 5 error), aid, status, reason (le16), bssid, our MAC, rx data, rx ARP/IP (le32), AP RSN length + element}`, 4 the next EAPOL frame (`KErrNotReady` if none), 5 send EAPOL (returns once sent), 6 install key `{0 pairwise / 1 group, index, 16-byte CCMP key}`, 7 authorize. The driver thread does the work (`qcom_wcn3990.cpp`, [wifi.md](wifi.md) W4) | ReadDeviceData + WriteDeviceData |
 | `UsbNetState` / `UsbNetRx` / `UsbNetTx` | 0x4e20–0x4e22 | the USB network (`USBNET=1` builds): state (16 bytes), one Ethernet frame in or out | CommDD |
 | `Prng` | 0x4e23 | a `TDes8` whose length (1..256) is the bytes wanted: the SoC's hardware PRNG (`qcom_telhal.cpp`, bonito; the Wi-Fi handshake's nonces) | CommDD |
+| `RprocStop` (C7) | 0x4e24 | a1 = `{mask; 0; 0; 0}`, mask 1 MSS / 2 ADSP / 3 both; queues shutdown with bounded retry waits, poll `RprocState` before reload | CommDD |
+| `RprocState` (C7) | 0x4e25 | a1 = `TUint32[4]` out: phase (0 idle / 1 stopping / 2 stopped / 3 failed), signed error, MSS generation, ADSP generation | CommDD |
+| `AudioMem` (C7) | 0x4e26 | a1 = `{op; arg; len; buf}`: 0 returns the kernel-owned PCM region info; 1 copies bounded PCM; 2 publishes a ticket; 3 releases that ticket after DSP acknowledgement. No overwrite while published; successful ADSP shutdown invalidates ownership | CommDD |
+| `Haptic` (C7) | 0x4e27 | a1 = `{duration_ms; amplitude; 0; 0}`: 0 stops, duration at most 2000 ms, amplitude 0..127; TI DRV2624 on bonito | CommDD |
+
+0x4e04/0x4e05 are kept for the dev-mode switch (USB debug console on/off).
+The C7 additions (0x4e24–0x4e27; first drafted at 0x4e1a–0x4e1d, which the battery and Wi-Fi HALs took) are
+implementation candidates until the phone acceptance in [telephony.md](telephony.md#c7-complete-calls); compilation
+does not establish DSP behavior.
 
 The phone's own servers written in Rust: **`NeoModem`** (MODEMD.EXE, NeoSymbian/telephony; started by SYSSTART) gives
 apps the modem: `STATUS`, `DIAL`, `ANSWER`, `HANGUP`. The contract is the `no_std` crate `modem-ipc`

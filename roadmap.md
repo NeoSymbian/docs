@@ -190,7 +190,7 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
 | **H3 power** | PM660 charger + RRADC battery reading (Rust policy); suspend and resume (PSCI CPU_SUSPEND / system suspend); screen off | Phone idles a night on battery and wakes on the power key |
 | **H4 display + input** | Synaptics RMI4 touch (I2C; **done 2026-11-06** in kernel C++, polled; Rust behind `hwaccess` later); power and volume keys (**done**, SPMI); OLED panel brightness and DSI panel on/off (**done 2026-11-11**, D2 in [driver-support.md](driver-support.md): DCS commands through the command DMA ABL leaves running; screen timeout and the power key in neoui). Keep the bootloader's splash framebuffer as scan-out until a DPU driver is needed (vsync, double buffer, hardware planes: [smooth-ui.md](smooth-ui.md) S5). | Touch coordinates reach a user-side process; backlight dims |
 | **H5 audio** | ADSP and C6 call audio are implemented (CS35L36 amps, RT5514 mic); add general ASM/ADM PCM and the native jack via [D3](driver-support.md) | Play a tone through the earpiece |
-| **H6 haptics, LEDs, sensors** | TI DRV2624 haptics, verified flash controller and ADSP sensors (exact chips/protocol pending) | Vibrate on touch |
+| **H6 haptics, LEDs, sensors** | TI DRV2624 haptics (driver drafted in C7, pending acceptance), verified flash controller and ADSP sensors (exact chips/protocol pending) | Vibrate on touch |
 
 ### Track U: Rust UI
 
