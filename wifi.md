@@ -169,3 +169,32 @@ So **the modem starts its WLAN domain by itself.** The host's Wi-Fi and Bluetoot
   - `0x4e1c` WlanMsa.
 - **Next, W2:** the PDD's copy engines and HTC/WMI, then WLAN cfg + mission mode
   (`wlfw::wlan_cfg`/`wlan_mode`, tables from ath10k `snoc.c`).
+
+## W3 design gate: WHA → WMI mapping (written 2026-11-12)
+
+UMAC (the Symbian WLAN LDD) drives the chip through `WHA::Wha` (`wlan_hal_api/inc/wha.h`). The PDD turns each call
+into WMI-TLV commands (ath10k names; ids in `wmi-tlv.h`) and the firmware's events into `MWhaCb` callbacks.
+
+| WHA call | WMI-TLV | Notes |
+|---|---|---|
+| `Initialize(data)` | — | W2's bring-up (copy engines, HTC, WMI init → READY) has run by then; `data` (UMAC's init blob for its own chips) is ignored |
+| `Configure(SConfigureData, SSettings&)` | `VDEV_CREATE` (STA, the READY MAC) | Fill `SSettings` from SERVICE_READY (chains, bands) and READY (MAC). One vdev for life |
+| `Scan(rate, band, channels, type, probes, ssids)` | `SCAN_CHAN_LIST` once per channel set, then `START_SCAN` (active/passive, SSIDs, dwell) | Beacons and probe responses arrive as `MGMT_RX` events → `ReceivePacket` (802.11 frames: the firmware hands up the whole management frame). `SCAN_EVENT` completed → `CommandComplete(EScanComplete)` |
+| `StopScan()` | `STOP_SCAN` | |
+| `Join(mode, BSSID, SSID, band, channel, beacon interval, basic rates, …)` | `PEER_CREATE` (BSSID), `VDEV_START_REQUEST` (channel, beacon interval) | Then UMAC sends Authentication and Association Request itself through `SendPacket` |
+| `SendPacket` of a management frame | `MGMT_TX_SEND` (frame by value or DMA) | Completion event → `SendPacketComplete` |
+| `SetBssParameters(DTIM, AID)` | `PEER_ASSOC` (rates/HT caps from the beacon UMAC saw), `VDEV_UP` (AID, BSSID), `VDEV_SET_PARAM` DTIM | **The AID comes straight from UMAC**, no frame parsing. Rates and HT caps: the PDD keeps the last beacon/probe response of the BSSID it joined |
+| `AddKey(type, key, index)` | `VDEV_INSTALL_KEY` (pairwise/group, CCMP/TKIP, key index, MAC) | The 4-way handshake frames (EAPOL) go as data |
+| `RemoveKey(index)` | `VDEV_INSTALL_KEY` with key length 0 | |
+| `SetPsMode(mode)` | `STA_POWERSAVE_MODE` | |
+| `ReadMib` / `WriteMib` | `PDEV_SET_PARAM` / `VDEV_SET_PARAM` per MIB; the rest answered from PDD state | MIB by MIB in W3/W4; unknown MIBs succeed and log |
+| `ConfigureQueue` / `ConfigureAC` | `VDEV_SET_WMM_PARAMS` (later) | Defaults until then |
+| `SendPacket` of a data frame | HTT TX on CE4 (native-wifi decap: 802.11 header without QoS) | W4. RX: HTT RX on CE1/5/9/10 → rebuild an 802.11 header for `ReceivePacket` |
+| `Reset()` / `Release()` | `VDEV_DOWN`, `VDEV_STOP`, `PEER_DELETE`, then WLFW `wlan_mode(OFF)` | |
+| `Measure`, `Plt` | — | Not supported (UMAC has defaults) |
+
+**Main risk, confirmed manageable:** WHA is softmac-like, the firmware offloads. The open items are:
+- the rates and HT caps for `PEER_ASSOC`, kept from scan results;
+- data-path header translation (HTT native-wifi ↔ 802.11).
+
+Nothing in WHA needs the firmware to accept raw 802.11 data frames.
