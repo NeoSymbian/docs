@@ -16,7 +16,7 @@ port, with the kernel monitor kept. This file is the work list. Do **one task at
 1. **Where (owner, 2026-11-10):** edit the existing checkouts directly; no worktrees. Commit each task separately
    in each repo. One PR per repo per task, rebased on current `main` just before merging. Build pins (`sources.lock`)
    last, after the source PR is merged.
-2. **Not allowed:** SSH, ECM/Ethernet, PRNG or neolink code, and no `USBNET` switch.
+2. **Not allowed:** SSH, ECM/Ethernet, PRNG, or the archived USB-SSH tool's code (its old name "neolink" now belongs to the NeoSymbian/neolink Wi-Fi and Bluetooth repo), and no `USBNET` switch.
 3. **The archive (used by T1–T11, deleted 2026-11-11) was a source to copy from, never applied whole.**
 4. **Gates:**
    - each repo's gate from the workspace `CLAUDE.md` passes before a PR;
