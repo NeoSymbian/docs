@@ -238,3 +238,25 @@ mission mode (HAL WlanStart `0x4e1d`). It is polled, with its own DFC thread. Re
 **No beacon reaches the host.** There is no WMI MGMT_RX and no frame on another endpoint. The likely cause is the
 HTT rx ring: ath10k's RX_RING_CFG carries `HTT_RX_RING_FLAGS_MGMT_RX`, and we have not configured it yet. Next
 (W3b): HTT setup (frag-desc bank, RX_RING_CFG, aggregation config) and handling the rx indications.
+
+## W3b: the first scan works (2026-11-12, phone RAM boot)
+
+The firmware needed the **HTT rx ring** before it delivers any received frame. Its MAC rx ring is fed from the
+host's HTT ring; without one it receives (CHAN_INFO) but drops everything. `qcom_wcn3990.cpp` (kernel `55c78060`):
+- After the HTT version reply (3.96) it sends FRAG_DESC_BANK_CFG, RX_RING_CFG and AGGR_CFG:
+  - FRAG_DESC_BANK_CFG: 1056 x 72 B bank;
+  - RX_RING_CFG: 2048-entry ring with 128 buffers of 2 KB; flags `0xffff`; the WCN3990 rx-descriptor offsets
+    74/90/27/37/4/26/7/12/1/2;
+  - AGGR_CFG: `05 40 03 00`.
+- It then handles `RX_IN_ORD_PADDR_IND`. Sources: `private/wifi/w3b-htt-rx-spec.md` (ath10k, ISC).
+
+**Result:**
+- **Passive scan over 22 channels:** 16 networks from 23 beacons, 2.4 and 5 GHz, −46 to −92 dBm. All arrived as WMI
+  MGMT_RX; no HTT copies.
+- **Active scan (broadcast probe):** 9 networks.
+
+The full log, with the networks' names, stays in `private/wifi/w0/` (they are neighbours' networks).
+
+**Next (W3 proper, then W4):**
+- Make the driver a long-lived service: interrupts instead of the fixed polling window; a stable MAC from the phone.
+- Then the WHA PDD under Symbian's UMAC, or a direct WMI join path for a first association (W4).
