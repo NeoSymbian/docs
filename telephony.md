@@ -491,7 +491,8 @@ Failure modes:
     up after a few ticks and dropped the hangup.
   - The loopback test stops its speaker port before its mic port; the other order jammed the AFE.
 - **Open** (`known-issues.md`):
-  - after a connected call the modem stays on 3G (Linux: back on LTE 1.7 s after the call);
+  - after a connected call the modem stays on 3G (Linux: back on LTE 1.7 s after the call). **Fixed 2026-11-12**
+    (kernel `69bb4cd3`): the codec's rails were voted on the wrong PMIC (`known-issues.md`);
   - no ACDB calibration.
 
 ### C7: complete calls
@@ -624,5 +625,5 @@ Direct GPL ports so far: none.
 | C4 | **done 2026-11-08**: `MODEMD.EXE` serves rmtfs, the locator and TFTP; the modem reaches handover and stays up (SMEM item 134 was the missing piece); DMS + UIM answer |
 | C5 | **done 2026-11-09**: MODEMD serves NeoModem and is started by SYSSTART; registration, operator and bars in the status bar; calls out and in through the Phone screen (silent); 3G voice-only until C5b (IPA) |
 | C5b | **done 2026-11-09** (kernel `d003355`): IPA runs (GSI firmware via PAS 15, SMMU identity context, command and LAN_RX channels); the modem stays on LTE, calls CSFB to 3G and back; the IPA QMI handshake is still half done (needed for data) |
-| C6 | **done 2026-11-09** (kernel `b12d1ba`, telephony `3f4af12`, neoui `2d55d01`): the ADSP boots (PAS 1), APR in Rust, CS35L36 x2 + RT5514 board driver; two-way call audio on the earpiece and loudspeaker, Mute / Speaker / volume / DTMF; Dev tools audio loopback test; the modem stays on 3G after a connected call (open) |
+| C6 | **done 2026-11-09** (kernel `b12d1ba`, telephony `3f4af12`, neoui `2d55d01`): the ADSP boots (PAS 1), APR in Rust, CS35L36 x2 + RT5514 board driver; two-way call audio on the earpiece and loudspeaker, Mute / Speaker / volume / DTMF; Dev tools audio loopback test; the modem stayed on 3G after a connected call (fixed 2026-11-12, kernel `69bb4cd3`: the codec's rails were on the wrong PMIC) |
 | C7–C12 | not started |
