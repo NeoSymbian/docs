@@ -65,10 +65,10 @@ Sizes are a **GUESS**.
 | **W0** (½ d) | Does the firmware's WLFW service (QMI 69) appear? | Yes, or we know what `wlan_pd` waits for |
 | **W1** (1 wk) | `wlfw.rs` + MODEMD in `ath10k/qmi.c`'s order: indication register, host cap, MSA info/ready, cap, BDF download, cal report, mode ON, WLAN cfg. A HAL call tells the kernel the firmware is ready | The firmware reports ready; host tests against ath10k's message tables |
 | **W2** (1–2 wk) | Kernel `sdm670_assp/qcom_wcn3990*.cpp`: CE rings, SNOC setup, interrupts, SMMU stream `0x40` mask 1 (`Smmu_IdentityMap`); HTC connect (WMI control, HTT data); WMI init/ready | Monitor `wifi` prints the firmware version and MAC |
-| **W5a** (parallel, 1–2 wk) | ESOCK/TCPIP6 + CommsDat (default database), the C32/ESOCK configs and ECom comms plugins, through `build/emitter/components.py`; Syborg first | A loopback TCP test EXE passes on Syborg CI |
+| **W5a** (deferred: W5 went smoltcp first) | ESOCK/TCPIP6 + CommsDat (default database), the C32/ESOCK configs and ECom comms plugins, through `build/emitter/components.py`; Syborg first | A loopback TCP test EXE passes on Syborg CI |
 | **W3** (1–2 wk) | The UMAC LDD built into ekern (as `locmedia` is); WHA Initialize/Configure → WMI vdev create; Scan → WMI start scan; beacons from WMI management RX → `ReceivePacket`; wlanengine + management client in the ROM | A test EXE lists nearby networks |
 | **W4** (1–2 wk) | Join/SetBssParameters → vdev start, peer create/assoc, vdev up; management TX over WMI, data and EAPOL over HTT (802.11 headers rebuilt on RX); AddKey → WMI install key; accesssec EAPOL in the ROM | Joins an open network, then WPA2-PSK |
-| **W5** (1–2 wk) | `wlannwif` + DHCP/DNS on the phone, a CommsDat WLAN access point | Ping and an HTTP fetch over Wi-Fi |
+| **W5** (1–2 wk) | **smoltcp first (owner, 2026-11-12):** NEONET.EXE (neolink) with DHCP, DNS and TCP over the kernel's Ethernet frame queue, and the NeoNet socket API for apps. `wlannwif`/ESOCK stays the long-term option | Ping and an HTTP fetch over Wi-Fi, through the app API |
 | **W6** (1 wk) | neoui Settings → Wi-Fi: networks, password by keyboard, connect, status icon (C++ glue like `neocli.cpp`) | On the phone, by touch |
 
 ### Design gates
@@ -346,3 +346,97 @@ Facts: `private/wifi/w4-join-spec.md` (ath10k, ISC; mac80211 facts only).
 - rejoin after a reboot: the saved network is on C:, which a RAM boot does not keep;
 - an IP address: W5.
 
+
+## W5: an IP address (smoltcp, 2026-11-12)
+
+**Decision (owner, 2026-11-12): smoltcp first.**
+- W4 took the direct path, so there is no UMAC LDD for `wlannwif` to sit on, and ESOCK/TCPIP6 (W5a) is not in the
+  build at all.
+- W5 therefore uses smoltcp (0BSD) in a Rust daemon.
+- ESOCK/TCPIP6 stays the long-term option. Its Ethernet NIF could later read the same kernel frame queue, through
+  Symbian's `d_ethernet` LDD or the HAL ops below.
+- The owner also asked for an app socket API.
+
+```
+kernel  DataIn --(Ethernet II)--> rx queue --WlanLink op 8--> NEONET.EXE (smoltcp: DHCP, DNS, TCP, ping replies)
+        tx queue <--WlanLink op 9-- NEONET.EXE                     ^ IPC "NeoNet"
+        Serve() drains tx -> DataTx (native wifi)            SYSSTART (status, internet check), apps
+```
+
+**Kernel** (`qcom_wcn3990.cpp`):
+- **Rx:** data frames other than EAPOL go to a 32-frame rx queue as Ethernet II (DA = addr1, SA = addr3). They are
+  queued only when all of these hold:
+  - the link is connected (keys in);
+  - the rx descriptor shows no decrypt, MIC or FCS error (attention bits 29/28/30);
+  - the frame is FromDS, addressed to us or a group;
+  - its SA is not our own (no echoes of our broadcasts).
+- **Tx:** a 16-frame tx queue. The driver thread drains it each pass into HTT TX_FRM: native wifi, addr3 = the
+  Ethernet destination, Protected once the PTK is in.
+- **Size:** the tx slots grew from 512 bytes to 1536 (a 1514-byte frame is 1532 as native wifi).
+- **HAL WlanLink `0x4e1f`:**
+  - op 8: the next received frame (`KErrNotReady` if none);
+  - op 9: queue a frame (14–1514 bytes, from our MAC; `KErrNotReady` unless connected, `KErrOverflow` if full).
+
+  Neither waits on the driver thread.
+- **Monitor:** `wifi` prints a second line with the queue counters.
+
+**neolink:**
+- **Crate `net`:** the `Stack` (sans-I/O, host-tested on smoltcp's loopback device), the IPC protocol `proto`, and
+  the `client` (feature `client`).
+- **`symbian/neonet`, NEONET.EXE** (uid `0xE0004001`):
+  - reads the link every 200 ms, and on "connected" brings the interface up with the station MAC;
+  - polls frames every 2 ms while linked;
+  - serves "NeoNet".
+
+**The NeoNet API** (`net::proto`):
+
+| Function | Arguments | Completes with |
+|---|---|---|
+| STATUS 1 | out des | `{1, state, prefix, 0, ip, gateway, dns1, dns2}` |
+| RESOLVE 2 | name, out des (4) | 0 + the IPv4 address (waits for DNS) |
+| CONNECT 3 | IPv4 (big-endian u32), port | the socket id once established |
+| SEND 4 | id, data (<= 8 KB) | bytes taken (waits while the buffer is full) |
+| RECV 5 | id, out des | bytes read, 0 = closed (waits for data) |
+| CLOSE 6 | id | 0 |
+
+- A socket belongs to the session that opened it.
+- A session that closes cancels its waiting requests (`KErrCancel`) and closes its sockets.
+- In Rust: `net::client::{Net, TcpStream}`.
+
+**neoui** (SYSSTART):
+- starts NEONET.EXE at boot;
+- reads its status every second while connected;
+- runs one internet check per address. The check uses the client API: resolve
+  `connectivitycheck.gstatic.com`, connect to port 80, `GET /generate_204`, expect 204.
+- The Wi-Fi details sheet shows IP address, Gateway, DNS and Internet (Checking… / Connected / No access).
+
+**Shortcuts:**
+- IPv4 only;
+- no UDP or listening sockets in the API;
+- frames polled every 2 ms while linked (no interrupts yet);
+- one TCP buffer size (8 KB each way, 16 sockets);
+- a captive portal shows as "No access";
+- the supplicant stays a SYSSTART thread.
+
+### Result: an IP address and the internet (phone RAM boot, 2026-11-12)
+
+- **DHCP:** the saved network rejoined at boot, and NEONET logged `Up: 192.168.3.53/24 gateway 192.168.3.1`
+  seconds after `link connected`.
+- **Ping from the Mac:**
+  - 5/5, then 20/20 at 0.2 s intervals, 11–29 ms;
+  - 3/3 with 1472-byte payloads (full 1514-byte frames both ways);
+  - the driver's counters showed nothing dropped and no failed sends.
+- **Internet check through the app API:**
+  - In the first image NEONET dropped requests that had to wait: a dropped `Message` completes with KErrGeneral,
+    so the check failed with -2.
+  - With that fixed, the owner joined from Settings, and the details sheet showed "Internet: Connected" (DNS,
+    TCP to port 80, the `generate_204` reply).
+- **Firmware facts:**
+  - Data frames get TX_COMPL_IND like EAPOL, so the tx slots free themselves.
+  - Received data frames arrive as native wifi with FromDS set.
+- Logs: `private/wifi/w5/`.
+
+**Not yet:**
+- hours-long link stability and throughput;
+- the app API from a second app;
+- a C++ client for legacy apps.

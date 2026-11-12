@@ -690,6 +690,8 @@ Exit: an SMS round-trip with the owner's phone, including Armenian and Cyrillic 
   `networkingsrv` (ESOCK/TCPIP6) re-forked from `retired-repos.md`. **Decided 2026-11-12 (owner):** ESOCK/TCPIP6,
   shared with Wi-Fi ([wifi.md](wifi.md)).
 - **Fallback:** a small Rust IP stack (smoltcp) behind our own socket API, if the 2010 stack costs too much.
+- **Wi-Fi went smoltcp first** (owner, 2026-11-12; [wifi.md](wifi.md) W5): NEONET.EXE and the NeoNet API. C10 picks
+  its stack when it starts: an rmnet device under NEONET is the short path.
 
 Exit: ping and an HTTP fetch over LTE, and over 3G with LTE disabled.
 
