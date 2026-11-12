@@ -309,11 +309,44 @@ Exit: launcher → demo app → back to the launcher, on Syborg.
   - **Syborg CI**: types `dir` into ESHELL by touch only (`taps.sh kb_type`), and the listing appears.
 - Not yet:
   - key repeat, long-press, Ctrl;
-  - layouts other than US;
+  - layouts other than US (done in R6d);
   - a hide toggle with grid reflow in the Terminal.
 
 **Phone handoff:** rebuild `neoui/symbian` from `0efa85a` or later. The Pixel can then type into the Terminal by
 touch. Nothing else changes in the ROM.
+
+### R6d: keyboard languages, terminal mode, shell text fields
+
+**Status: done (2026-11-12)**, in `neoui` `d579fa0` + `32b783a`. Installed on the phone (slot a). The design is in
+[neoui-shell.md](neoui-shell.md), "System keyboard".
+- **Languages:**
+  - **English** (QWERTY), **Armenian** (Eastern, phonetic) and **Russian** (ЙЦУКЕН).
+  - Each is a data file under `neoui/ui/components/keyboard/layouts/`, so adding one is a file and a few lines.
+  - A globe key cycles the languages that are on.
+- **Settings → Language & keyboard:**
+  - turns languages on and off;
+  - shows the current one;
+  - "Same height for all languages" (shorter layouts get a digit row).
+- **NeoUi 1.3:**
+  - `KEYBOARD` takes a mode: 0 hidden, 1 text, 2 terminal.
+  - `AppEvent::Keyboard { h }` tells an app when the keyboard's height changes.
+- **Terminal mode:** adds Esc, Tab and arrows on top. The Terminal's own extra-keys bar is gone, and it draws in
+  DejaVu Sans Mono.
+- **Shell text fields:** `TextField` and `SearchField` hold a real `TextInput`, and focusing one raises the keyboard.
+  - Its keys go into the field, not to an app.
+  - The Wi-Fi sheet's password field is masked, focused when the sheet opens, and drawn above the keyboard.
+  - The Contacts and Messages search bars use it too.
+- **Fonts:** Slint draws a text in one embedded font, and Inter and Ubuntu Mono have no Armenian. So DejaVu Sans and
+  DejaVu Sans Mono are bundled, and `Alphabets {}` bakes the letters into every window that shows typed text.
+- **Checked:**
+  - host tests type in each language and check the globe, a language turned off, both height modes and the terminal
+    row;
+  - every letter of each alphabet is on a key;
+  - the Wi-Fi password and Contacts search fields take the keys;
+  - on the phone, a RAM boot showed the keyboard rising under a network's sheet and the password typed as dots.
+- **Not yet:**
+  - key repeat, long-press, Ctrl;
+  - the neoui Syborg CI job: its ROM starts EWSRV instead of SYSSTART, broken since before `e209df0`.
 
 ### R8: file access and a Files app
 

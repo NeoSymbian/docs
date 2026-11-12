@@ -280,5 +280,9 @@ The full log, with the networks' names, stays in `private/wifi/w0/` (they are ne
   while closed.
 - **Tapping a network opens a sheet:** signal, security, band, channel, a password field, Cancel/Connect. Connect
   says that joining is the next step (W4).
+- **Since 2026-11-12 the password field is real** (neoui `32b783a`):
+  - it is masked and focused when a secured network's sheet opens;
+  - the system keyboard comes up with the sheet above it;
+  - the typed password is kept in the sheet (`wifi-password`), ready for W4 to join with.
 - Host-tested (neoui-proto `wifi`), snapshot `settings-wifi-*-pixel.png`; on the phone it lists 15–18 nearby
   networks on both bands.

@@ -224,7 +224,12 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
 - Launcher, status bar (battery from H3, signal from P2), settings, dialer, messages, contacts, file manager.
 - Old Symbian text apps keep running from a terminal app.
 - Shell services (settings store, notifications, home pages with widgets, pin/unpin): designed in
-  [neoui-shell.md](neoui-shell.md), planned.
+  [neoui-shell.md](neoui-shell.md). The settings store is done; the others are planned.
+- **System keyboard (done 2026-11-12):**
+  - English, Armenian and Russian, managed in Settings → Language & keyboard;
+  - a terminal mode;
+  - shell text fields that bring it up (the Wi-Fi password);
+  - [rust-integration.md](rust-integration.md) R6d.
 
 **U4: GPU** (stretch)
 - Adreno 615 + GMU + its SMMU. Kernel part in C++; command-stream builder in Rust. Freedreno is the reference.
