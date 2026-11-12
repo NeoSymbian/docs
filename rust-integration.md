@@ -278,7 +278,9 @@ Exit: launcher → demo app → back to the launcher, on Syborg.
   (`7 passed`). CI types them through the QEMU monitor.
 - Found: closing the console server before completing the held `Read`s panics the app (KERN-EXEC 44). They are now
   completed first.
-- Not yet: a soft keyboard (needed on the phone), colours and attributes, scrollback.
+- Not yet: colours and attributes, scrollback. The soft keyboard came with R6c. Since 2026-11-12 it is the system
+  keyboard in its terminal mode, which has Esc, Tab and arrow keys and English, Armenian and Russian layouts
+  (neoui-shell.md, "System keyboard").
 
 **Phone handoff (for the kernel session's ROM, which now boots neoui by default):**
 - Rebuild `neoui/symbian` from `f25bc67` or later: `cd symbian && cargo arm --workspace`. Since `d4dfdad` neoui
