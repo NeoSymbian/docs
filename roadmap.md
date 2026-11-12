@@ -240,7 +240,7 @@ C0–C12). The stage names below are kept because the dependency graph uses them
 | **P1 remote processors** (needs H1) | C0–C4: backups, Linux reference run, SCM/SMEM/SMP2P/GLINK, MSS boot, rmtfs/pd-mapper/tqftp | The modem is up and answers QMI |
 | **P2 QMI in Rust** | C5: `modemsrv` + dialer (no ETel at first) | Operator and bars in the status bar; calls ring and answer |
 | **P3 SMS and mobile data** | C9, C10 | SMS round-trip; a web page over LTE |
-| **P4 Wi-Fi + Bluetooth** | not in telephony.md | Join a WPA2 network. WCN3990 Wi-Fi runs through the modem subsystem and QMI (ztOS: "WIFI-HW missing" until rmtfs + tqftpserv ran), so it comes after P1 |
+| **P4 Wi-Fi + Bluetooth** | [wifi.md](wifi.md) | Join a WPA2 network. WCN3990 Wi-Fi runs through the modem subsystem and QMI. **2026-11-12: W0–W3 done** (firmware start, copy engines, HTC/WMI, scanning; Settings → Wi-Fi lists networks on the phone); next W4 join |
 | **P5 voice calls** | C6–C8, C11 | Two-way call audio. 2026-11-08: the owner's network still has 3G, so calls use CSFB first. VoLTE is the C11 stretch. **C6 done 2026-11-09**: two-way call audio on the earpiece and loudspeaker |
 
 ## Dependencies
