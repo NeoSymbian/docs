@@ -260,3 +260,25 @@ The full log, with the networks' names, stays in `private/wifi/w0/` (they are ne
 **Next (W3 proper, then W4):**
 - Make the driver a long-lived service: interrupts instead of the fixed polling window; a stable MAC from the phone.
 - Then the WHA PDD under Symbian's UMAC, or a direct WMI join path for a first association (W4).
+
+## W3c: Wi-Fi in Settings (2026-11-12, phone RAM boot)
+
+**Kernel** (`qcom_wcn3990.cpp`, branch `wifi/w0b`):
+- The driver stays up after bring-up as a polled service.
+- **HAL WlanScan `0x4e1e`** (ReadDeviceData) returns the latest list (`{version, state, count, scans}` + 42-byte
+  entries) and takes a scan request.
+- Scans are passive: active ones missed the 2.4 GHz networks here.
+- A network's channel comes from its own beacon (DS IE, else HT operation).
+- The station MAC is `02:4e` + the SoC serial (SMEM socinfo).
+
+**neoui** (branch `wifi/settings-scan`):
+- Settings → Wi-Fi is its own page:
+  - the switch and status;
+  - **Available networks**, strongest first, with signal-tinted icons and security/band/dBm;
+  - "Searching…" and a refresh button; hidden networks are counted, not listed.
+- **Scanning:** opening the page scans unless the list is under 30 s old; it rescans every 30 s while open and never
+  while closed.
+- **Tapping a network opens a sheet:** signal, security, band, channel, a password field, Cancel/Connect. Connect
+  says that joining is the next step (W4).
+- Host-tested (neoui-proto `wifi`), snapshot `settings-wifi-*-pixel.png`; on the phone it lists 15–18 nearby
+  networks on both bands.
