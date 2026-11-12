@@ -108,7 +108,19 @@ pacing in `A64Key_Type` (`a64_dbgmon.cpp`). Workaround: keep typed lines short.
 
 ## Phone: the modem stays on 3G after a connected call (seen 2026-11-09)
 
-**Status:** open (telephony C7).
+**Status:** fixed 2026-11-12 (kernel `69bb4cd3`). The call audio voted two codec rails on the wrong PMIC.
+- **The cause:** `a64_audio.cpp` `CdcProbe` voted `ldoa1`/`ldoa7` (PM660). The DTB puts vdd-cdc-tx-rx-cx (0.88 V)
+  and vdd-micbias (3.088 V) on **PM660L**, `ldob1`/`ldob7`. PM660's ldo7 is a 1.2 V rail: the 3.088 V vote timed
+  out (`[rpmh] ldoa7 ... -> -33`) at the first audio start of every call.
+- **What it did:** afterwards the AOP stopped answering. The modem either stayed on 3G or raised FATAL in its own
+  RPMh client (`rpmh_image_os.c:162 ... [Q6zip_Clk|ipa_ctl] suspected`), and QMP `load_state` timed out, so it
+  could not be restarted either. The C7 runs of 2026-11-12 hit the FATAL; main stayed on 3G, then lost service.
+- **The proof:** on the phone after a cold power-off (RPMh votes survive a warm reset), two connected calls voted
+  `ldob1`/`ldob7 -> 0` and NAS came back on LTE right after each END.
+- **Also in that commit:** `Rpmh_Write` serialized, and shared rails holder-counted (USB and the codec share
+  ldob1/ldob7).
+
+The notes below are the history.
 
 The 2026-11-10 C7 implementation candidate adds bounded recovery and stricter APR
 failure handling, but does not establish a cause or correction for this issue.
