@@ -255,7 +255,14 @@ on the phone; `a64_sha256.S`, self-tested at boot, the C one as fallback), so th
   - Updates: `fastboot flash boot_b`; `system_b` is written by a `ROFS_INSTALL` image RAM-booted on slot b, since
     ABL refuses `system_*` outside fastbootd; then `fastboot set_active b`.
   - Tested on the phone: update into b, then a broken b rolls back to a by itself.
-  - **Installed 2026-11-12 into slot a** (now current): shell text fields bring up the system keyboard (the Wi-Fi
+  - **Installed 2026-11-12 (evening) into slot a** (now current): everything merged that day: Wi-Fi W4 (joins WPA2,
+    Settings current network + details, status bar icon), C7 calls (IPC v2, multi-call, SIM PIN, airplane, ringtone +
+    haptics, modem recovery that never stops the ADSP) and the codec-rails fix (no more modem crash or 3G after a
+    call). Kernel `e4323c37`, build `f865a34`, neoui `1ee3245`, telephony `b99883f`, neolink `7db5000`.
+    `system_a`: 22337 KB written, verified (hash check passed); `boot_a` flashed (1116 KB). A RAM test boot of the
+    same ROM first: a call returned to LTE, Wi-Fi joined (owner checked). Images in `private/install-c7-20261112` and
+    ZimaOS `logs/install-c7-20261112`. Slot b keeps the keyboard install as the fallback.
+  - **Installed 2026-11-12 into slot a** (replaced the same evening): shell text fields bring up the system keyboard (the Wi-Fi
     password, Contacts/Messages search), neoui `32b783a`, build `76515bd`, kernel `71c5c87d`. `system_a`: 21836 KB
     written, verified; `boot_a` flashed (1100 KB). A RAM test boot first: Settings -> Wi-Fi -> a secured network's
     sheet raised the keyboard and took a masked password. Images in ZimaOS `logs/install-fields-20261112`. Slot b
