@@ -278,7 +278,9 @@ Exit: launcher → demo app → back to the launcher, on Syborg.
   (`7 passed`). CI types them through the QEMU monitor.
 - Found: closing the console server before completing the held `Read`s panics the app (KERN-EXEC 44). They are now
   completed first.
-- Not yet: a soft keyboard (needed on the phone), colours and attributes, scrollback.
+- Not yet: colours and attributes, scrollback. The soft keyboard came with R6c. Since 2026-11-12 it is the system
+  keyboard in its terminal mode, which has Esc, Tab and arrow keys and English, Armenian and Russian layouts
+  (neoui-shell.md, "System keyboard").
 
 **Phone handoff (for the kernel session's ROM, which now boots neoui by default):**
 - Rebuild `neoui/symbian` from `f25bc67` or later: `cd symbian && cargo arm --workspace`. Since `d4dfdad` neoui
@@ -307,11 +309,44 @@ Exit: launcher → demo app → back to the launcher, on Syborg.
   - **Syborg CI**: types `dir` into ESHELL by touch only (`taps.sh kb_type`), and the listing appears.
 - Not yet:
   - key repeat, long-press, Ctrl;
-  - layouts other than US;
+  - layouts other than US (done in R6d);
   - a hide toggle with grid reflow in the Terminal.
 
 **Phone handoff:** rebuild `neoui/symbian` from `0efa85a` or later. The Pixel can then type into the Terminal by
 touch. Nothing else changes in the ROM.
+
+### R6d: keyboard languages, terminal mode, shell text fields
+
+**Status: done (2026-11-12)**, in `neoui` `d579fa0` + `32b783a`. Installed on the phone (slot a). The design is in
+[neoui-shell.md](neoui-shell.md), "System keyboard".
+- **Languages:**
+  - **English** (QWERTY), **Armenian** (Eastern, phonetic) and **Russian** (ЙЦУКЕН).
+  - Each is a data file under `neoui/ui/components/keyboard/layouts/`, so adding one is a file and a few lines.
+  - A globe key cycles the languages that are on.
+- **Settings → Language & keyboard:**
+  - turns languages on and off;
+  - shows the current one;
+  - "Same height for all languages" (shorter layouts get a digit row).
+- **NeoUi 1.3:**
+  - `KEYBOARD` takes a mode: 0 hidden, 1 text, 2 terminal.
+  - `AppEvent::Keyboard { h }` tells an app when the keyboard's height changes.
+- **Terminal mode:** adds Esc, Tab and arrows on top. The Terminal's own extra-keys bar is gone, and it draws in
+  DejaVu Sans Mono.
+- **Shell text fields:** `TextField` and `SearchField` hold a real `TextInput`, and focusing one raises the keyboard.
+  - Its keys go into the field, not to an app.
+  - The Wi-Fi sheet's password field is masked, focused when the sheet opens, and drawn above the keyboard.
+  - The Contacts and Messages search bars use it too.
+- **Fonts:** Slint draws a text in one embedded font, and Inter and Ubuntu Mono have no Armenian. So DejaVu Sans and
+  DejaVu Sans Mono are bundled, and `Alphabets {}` bakes the letters into every window that shows typed text.
+- **Checked:**
+  - host tests type in each language and check the globe, a language turned off, both height modes and the terminal
+    row;
+  - every letter of each alphabet is on a key;
+  - the Wi-Fi password and Contacts search fields take the keys;
+  - on the phone, a RAM boot showed the keyboard rising under a network's sheet and the password typed as dots.
+- **Not yet:**
+  - key repeat, long-press, Ctrl;
+  - the neoui Syborg CI job: its ROM starts EWSRV instead of SYSSTART, broken since before `e209df0`.
 
 ### R8: file access and a Files app
 
@@ -446,6 +481,8 @@ The kernel has `EHalGroupVariant` functions for the phone's own tools. They are 
 | `ENeoHalLastLogRead` | 0x4e01 | the same, for the previous boot's log (`lastlog`) | ReadDeviceData |
 | `ENeoHalConsoleSet` | 0x4e02 | a1 = 1 / 0: the kernel log overlaid on screen (dev mode) | WriteDeviceData |
 | `ENeoHalConsoleGet` | 0x4e03 | a1 = `TInt*` out | — |
+| `ENeoHalUsbDebugSet` | 0x4e04 | a1 = 1 / 0: USB debugging, fshell's ACM port joins or leaves the USB device and the host re-enumerates (Settings → Developer options; `KErrNotSupported` without it, e.g. QEMU) | WriteDeviceData |
+| `ENeoHalUsbDebugGet` | 0x4e05 | a1 = `TInt*` out: 1 on, 0 off | — |
 | `ENeoHalBootOk` | 0x4e06 | none: "this boot worked", marks the A/B slot successful (FS5b) | WriteDeviceData |
 | `ENeoHalSlotInfo` | 0x4e09 | a1 = `TDes8*`: the booted A/B slot and both slots' state, one line (≤ 400 bytes) | ReadDeviceData |
 | `ENeoHalBuildInfo` | 0x4e0a | a1 = `TDes8*`: "kernel <commit>[+dirty] <UTC time> <board>" | — |
@@ -464,16 +501,23 @@ The kernel has `EHalGroupVariant` functions for the phone's own tools. They are 
 | `ChanRecv` | 0x4e17 | a1 = `{ring; 0; size; buf}`: the next message's length, `KErrNotReady` if none (polled) | CommDD |
 | `Audio` | 0x4e18 | a1 = `{op; arg}`: the board's codecs (`a64_audio.cpp`): 0 probe, 1 start (arg 1 = loudspeaker), 2 stop, 3 route, 4 volume 0..10, 5 mic mute | CommDD |
 | `ENeoHalDeviceList` | 0x4e19 | a1 = `TUint32*` cursor (in/out, 0 = the first), a2 = `TDes8*` (1024 bytes): the device registry as lines `tag \t state \t name \t driver \t detail`, whole lines per call, none past the end. State: absent, off, starting, ok, partial, error. Each driver adds one `A64_DEVICE` (`baseport/arm64/common/inc/a64_device.h`); the monitor's `drivers` command lists the same (kernel `device-registry` `090bb5e`) | ReadDeviceData |
-| `RprocStop` (C7) | 0x4e1a | a1 = `{mask; 0; 0; 0}`, mask 1 MSS / 2 ADSP / 3 both; queues shutdown with bounded retry waits, poll `RprocState` before reload | CommDD |
-| `RprocState` (C7) | 0x4e1b | a1 = `TUint32[4]` out: phase (0 idle / 1 stopping / 2 stopped / 3 failed), signed error, MSS generation, ADSP generation | CommDD |
-| `AudioMem` (C7) | 0x4e1c | a1 = `{op; arg; len; buf}`: 0 returns the kernel-owned PCM region info; 1 copies bounded PCM; 2 publishes a ticket; 3 releases that ticket after DSP acknowledgement. No overwrite while published; successful ADSP shutdown invalidates ownership | CommDD |
-| `Haptic` (C7) | 0x4e1d | a1 = `{duration_ms; amplitude; 0; 0}`: 0 stops, duration at most 2000 ms, amplitude 0..127; TI DRV2624 on bonito | CommDD |
+| `ENeoHalBatteryRead` | 0x4e1a | a1 = `TDes8*` (32 bytes, version 1): eight little-endian `TUint32` words `version, valid_mask, present, percent, voltage_uV, usb_present, usb_online, charge_state` (charge state 0 unknown, 1 discharging, 2 charging, 3 not charging, 4 full); read only ([battery-telemetry.md](battery-telemetry.md)) | ReadDeviceData |
+| `FwRead` | 0x4e1b | a1 = `SIo {0; offset; len <= 64 KB; buf}`, a2 = a 32-byte `IMAGE/NAME.EXT` path: a file of modem_a's FAT16, read only; len 0 returns its size. MODEMD's TFTP `/readonly/firmware/image/` ([wifi.md](wifi.md) W0) | CommDD |
+| `WlanMsa` | 0x4e1c | a1 = `SIo {op 1 assign / 0 release; phys; size; secure}`: a region of the Wi-Fi firmware's MSA carve-out (0x94d00000 + 1 MB) to MSS_MSA + WLAN (+ WLAN_CE) VMIDs through TrustZone ([wifi.md](wifi.md) W1) | CommDD |
+| `WlanStart` | 0x4e1d | after WLAN cfg + mission mode (MODEMD): the WCN3990 copy engines, HTC, WMI, HTT rx ring and the scan service on the driver's thread (`qcom_wcn3990.cpp`, [wifi.md](wifi.md) W2/W3) | CommDD |
+| `ENeoHalWlanScan` | 0x4e1e | a1 = `TDes8*` (>= 1348 bytes): `{version 1, state (0 off, 1 starting, 2 ready, 3 scanning, 4 error), count, scans % 256}` + per network `{bssid 6, channel, dBm (i8), flags (1 secured), ssid length, ssid 32}`; a2 = 1 asks for a new scan (neoui Settings → Wi-Fi) | ReadDeviceData |
+| `ENeoHalWlanLink` | 0x4e1f | a1 = op, a2 = `TDes8*`: 1 join `{bssid, our RSN element (none: an open network)}`, 2 leave, 3 status `{version 1, state (0 idle, 1 joining, 2 handshake, 3 connected, 4 lost, 5 error), aid, status, reason (le16), bssid, our MAC, rx data, rx ARP/IP (le32), AP RSN length + element}`, 4 the next EAPOL frame (`KErrNotReady` if none), 5 send EAPOL (returns once sent), 6 install key `{0 pairwise / 1 group, index, 16-byte CCMP key}`, 7 authorize. The driver thread does the work (`qcom_wcn3990.cpp`, [wifi.md](wifi.md) W4) | ReadDeviceData + WriteDeviceData |
 | `UsbNetState` / `UsbNetRx` / `UsbNetTx` | 0x4e20–0x4e22 | the USB network (`USBNET=1` builds): state (16 bytes), one Ethernet frame in or out | CommDD |
-| `Prng` | 0x4e23 | a `TDes8` whose length (1..256) is the bytes wanted: hardware entropy (`USBNET=1`) | CommDD |
+| `Prng` | 0x4e23 | a `TDes8` whose length (1..256) is the bytes wanted: the SoC's hardware PRNG (`qcom_telhal.cpp`, bonito; the Wi-Fi handshake's nonces) | CommDD |
+| `RprocStop` (C7) | 0x4e24 | a1 = `{mask; 0; 0; 0}`, mask 1 MSS / 2 ADSP / 3 both; queues shutdown with bounded retry waits, poll `RprocState` before reload | CommDD |
+| `RprocState` (C7) | 0x4e25 | a1 = `TUint32[4]` out: phase (0 idle / 1 stopping / 2 stopped / 3 failed), signed error, MSS generation, ADSP generation | CommDD |
+| `AudioMem` (C7) | 0x4e26 | a1 = `{op; arg; len; buf}`: 0 returns the kernel-owned PCM region info; 1 copies bounded PCM; 2 publishes a ticket; 3 releases that ticket after DSP acknowledgement. No overwrite while published; successful ADSP shutdown invalidates ownership | CommDD |
+| `Haptic` (C7) | 0x4e27 | a1 = `{duration_ms; amplitude; 0; 0}`: 0 stops, duration at most 2000 ms, amplitude 0..127; TI DRV2624 on bonito | CommDD |
 
 0x4e04/0x4e05 are kept for the dev-mode switch (USB debug console on/off).
-The C7 additions are implementation candidates until the phone acceptance in
-[telephony.md](telephony.md#c7-complete-calls); compilation does not establish DSP or panel behavior.
+The C7 additions (0x4e24–0x4e27; first drafted at 0x4e1a–0x4e1d, which the battery and Wi-Fi HALs took) are
+implementation candidates until the phone acceptance in [telephony.md](telephony.md#c7-complete-calls); compilation
+does not establish DSP behavior.
 
 The phone's own servers written in Rust: **`NeoModem`** (MODEMD.EXE, NeoSymbian/telephony; started by SYSSTART) gives
 apps the modem: `STATUS`, `DIAL`, `ANSWER`, `HANGUP`. The contract is the `no_std` crate `modem-ipc`

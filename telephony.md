@@ -505,7 +505,7 @@ No worktrees, duplicate source trees, or replacement build/phone scripts.
   - one original built-in PCM ringtone through ASM → ADM → AFE to the loudspeaker,
     with ring volume, silent and vibration controls;
   - reuse C6's CS35L36 speaker path and its single APR/audio owner;
-  - vibration through **TI DRV2624**, I2C10 at 0x5a, reset GPIO24 (roadmap H6);
+  - vibration through **TI DRV2624**, I2C10 at 0x5a, reset GPIO24 (roadmap H6, [driver support D3](driver-support.md));
   - a missed-call notification.
 - **In-call:**
   - preserve C6's working mute, DTMF, volume and speaker controls;
@@ -515,8 +515,8 @@ No worktrees, duplicate source trees, or replacement build/phone scripts.
 - **Proximity:** the sensor is served by the ADSP sensor PD over FastRPC (ztOS needed `hexagonrpcd`), which is a large
   piece of work. **Fallback (my call):** turn the screen off when a call is answered and turn it on with the power
   key, until a FastRPC client exists.
-- **Screen fallback:** actual Samsung SOFEF00 OLED display-off/on, touch suppressed
-  while off, power key restores the screen. Keep the AP running; suspend is C12/H3.
+- **Screen:** main's D2 panel driver alone (timeout, Power key). No earpiece blanking until there is a proximity
+  sensor (owner, 2026-11-12: the C7 draft blanked the screen in earpiece calls with only Power to wake it).
 - **Wired headset:** deferred by the owner for C7. The board's analog jack is
   3.5 mm, as recorded in C1; the earlier USB-C analog requirement was unverified.
 - **Robustness:**
@@ -581,6 +581,32 @@ physical screen-off/wake and LTE return. Code completion alone is not this exit.
 - Hardware checks remain pending: ASM/ADM/PCM mapping and audible ringtone, physical
   OLED off/on (unknown DSI revisions fail explicitly), DRV2624 vibration, actual
   modem/ADSP restart and carrier-supported multi-call behavior.
+
+**Integration with main (2026-11-12, review by Claude; phone acceptance still pending).** The six C7 branches
+were merged with main (driver support's ADSP-first MODEMD, Wi-Fi W0–W4, display D2, battery, keyboard):
+
+| Repository | Merge commit |
+|---|---|
+| telephony | `a872947` |
+| kernel | `7075c11a` |
+| neoui | `a525dee` |
+| build | `9c8697d` (pins kernel `7075c11a`; move to kernel main's merge commit when the kernel PR merges) |
+
+- **HAL numbers:** C7's RprocStop/RprocState/AudioMem/Haptic were drafted at 0x4e1a–0x4e1d, already main's
+  BatteryRead/FwRead/WlanMsa/WlanStart (in the kernel and inside MODEMD itself): now **0x4e24–0x4e27**.
+- **Lifecycle:** main's ADSP-first daemon stays (the ADSP serves audio before and without the radio; an ADSP
+  failure never stops the radio); C7's recovery runs only for a running modem, never during a stop, and a modem
+  stop keeps the ADSP's servers and queued replies. A modem stop also takes Wi-Fi down until a reboot (its firmware
+  runs inside the modem; [wifi.md](wifi.md)).
+- **Screen:** main's D2 driver is the only panel owner; C7's `a64_panel.cpp` and earpiece blanking are dropped
+  (no proximity sensor yet). The exit item "physical screen-off/wake" is D2's.
+- **Bugs fixed** (tests where the logic is host-testable): Set Operating Mode resent every 2 s after a refusal
+  (bounded to 3 per intent; NAS registration means online); the airplane intent not saved when the radio could not
+  follow yet; SIM PIN attempts read as 0 after a recovery; FATAL acted on every step (rising edge now); an ADSP-only
+  restart booting a running modem; ringtone preparation retried every 10 ms; a kernel `kumemget` under a critical
+  section and mutex (AudioMem); the modem watcher spinning without MODEMD; "Modem connection lost" at every boot;
+  the call view stuck after a reconnect; the SIM prompt with no way out (Emergency call, Not now); CANCEL_NOTIFY
+  after every notification; C7's and main's clippy errors (syborg CI).
 
 **Final source checks (all exit 0):**
 
@@ -660,7 +686,8 @@ Exit: an SMS round-trip with the owner's phone, including Armenian and Cyrillic 
   - Reference: Linux `drivers/net/ipa`.
   - **Risk:** the first SMMU work in the port.
 - **Symbian side:** an ESOCK/TCPIP6 packet interface (NIF) over the rmnet device. It needs `commsfw`,
-  `networkingsrv` (ESOCK/TCPIP6) re-forked from `retired-repos.md`; **ask the owner first.**
+  `networkingsrv` (ESOCK/TCPIP6) re-forked from `retired-repos.md`. **Decided 2026-11-12 (owner):** ESOCK/TCPIP6,
+  shared with Wi-Fi ([wifi.md](wifi.md)).
 - **Fallback:** a small Rust IP stack (smoltcp) behind our own socket API, if the 2010 stack costs too much.
 
 Exit: ping and an HTTP fetch over LTE, and over 3G with LTE disabled.

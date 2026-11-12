@@ -255,7 +255,16 @@ on the phone; `a64_sha256.S`, self-tested at boot, the C one as fallback), so th
   - Updates: `fastboot flash boot_b`; `system_b` is written by a `ROFS_INSTALL` image RAM-booted on slot b, since
     ABL refuses `system_*` outside fastbootd; then `fastboot set_active b`.
   - Tested on the phone: update into b, then a broken b rolls back to a by itself.
-  - **Installed 2026-11-10 into slot a** (now current, C7 candidate): kernel `8dbcc89f`,
+  - **Installed 2026-11-12 into slot a** (now current): shell text fields bring up the system keyboard (the Wi-Fi
+    password, Contacts/Messages search), neoui `32b783a`, build `76515bd`, kernel `71c5c87d`. `system_a`: 21836 KB
+    written, verified; `boot_a` flashed (1100 KB). A RAM test boot first: Settings -> Wi-Fi -> a secured network's
+    sheet raised the keyboard and took a masked password. Images in ZimaOS `logs/install-fields-20261112`. Slot b
+    keeps the keyboard install below as the fallback.
+  - **Installed 2026-11-12 into slot b**: the system keyboard (English, Armenian, Russian; terminal
+    mode), neoui `d579fa0`, build `76515bd`, kernel `71c5c87d` (the Wi-Fi W3 install's sources). `system_b`: 21792 KB
+    written, verified; `boot_b` flashed (1100 KB). Built in an isolated ZimaOS copy (`isolated/kbd`, volume
+    `neosymbian-kbd`); images in `logs/install-kbd-20261112`. Slot a keeps the 2026-11-12 Wi-Fi install as fallback.
+  - **Installed 2026-11-10 into slot a** (C7 candidate; replaced by the 2026-11-12 installs above): kernel `8dbcc89f`,
     build `b52e502`, neoui `bf93051` (current Clock and Dev tools retained), telephony `63a2b1f`,
     e32 `e97e2eb`. Built on ZimaOS from coordinated `feat/c7-complete-calls` branches.
     The `ROFS=1 ROFS_INSTALL=1 EMMC_C=1` installer wrote/read-back-verified 21003 KB to
@@ -264,7 +273,7 @@ on the phone; `a64_sha256.S`, self-tested at boot, the C one as fallback), so th
     `system_a`, showed the launcher and LTE, and marked slot a successful; then a normal
     reboot was sent. Normal-boot visual confirmation and C7 call acceptance remain pending.
     Slot b was preserved. Private installation logs remain outside Git.
-  - **Installed earlier 2026-11-10 into slot a**: kernel `090bb5e` (device status registry, HAL `0x4e19`),
+  - **Installed 2026-11-10 into slot a**: kernel `090bb5e` (device status registry, HAL `0x4e19`),
     build `269ec50` (Old apps: `LEGACY.EXE`, its UID moved to `0xE0002006` off MODEMD's), neoui `ed9202f` (Dev tools,
     Clock and the settings store rebuilt), telephony `54a8114`, e32 `e97e2eb`. `system_a`: 19991 KB written,
     verified; `boot_a` flashed (1060 KB). A RAM test boot showed Dev tools listing the drivers and the modem on LTE.

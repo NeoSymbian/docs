@@ -128,8 +128,12 @@ key. The app reads its keys again.
 | `radio.wifi`, `radio.bt`, `radio.data`, `radio.airplane` | Bool | true, false, true, false | Shade toggles, Settings → Connectivity (UI only until there are drivers) |
 | `sound.silent`, `sound.vibrate` | Bool | false, true | Shade (Silent) |
 | `display.dark` | Bool | true | Settings → Display (stored; there is no light palette yet) |
-| `display.brightness` | Int 0–255 | 160 | Shade slider, Settings → Display (not applied to the backlight until there's a HAL call, H4) |
+| `display.brightness` | Int 0–255 | 160 | Shade slider, Settings → Display; sent to the panel (display HAL, scaled to 0–1023) |
+| `display.timeout` | Int 0–600 (s) | 60 | Settings → Display → Screen timeout (15 s … 10 min, Never = 0); off after that long without a touch or key |
 | `clock.24h` | Bool | true | Settings → Display; the status bar clock and the Clock app follow it |
+| `keyboard.en`, `keyboard.hy`, `keyboard.ru` | Bool | true, true, true | Settings → Language & keyboard: the system keyboard's languages |
+| `keyboard.layout` | Int 0–15 | 0 | The current language (an index into `layouts.slint`); the globe key and Settings change it |
+| `keyboard.same_height` | Bool | true | Settings → Language & keyboard: every language as tall as the tallest one on |
 
 ### Adding a setting
 1. Add a row to `registry!` in `registry.rs`.
@@ -226,6 +230,81 @@ Two apps were rebuilt before Part 2 (neoui `main`, 2026-11-10). Each follows one
     those files;
   - per-thread CPU time;
   - the battery and other parts with no driver at all.
+
+## System keyboard: languages (2026-11-12)
+
+One on-screen keyboard for every screen. The shell draws it, so no app links a copy. It types English (QWERTY),
+Armenian (Eastern, phonetic) and Russian (ЙЦУКЕН), and more languages can be added as data. Settings → Language &
+keyboard turns languages on and off; there is no launcher entry. It replaces the US-only R6c keyboard and the
+Terminal's own Esc/Tab/arrows bar.
+
+### Where it is (`neoui/ui/components/keyboard/`)
+| File | What |
+|---|---|
+| `types.slint` | `struct Layout { code, name, hint, font, cols, rows: [[string]], abc, comma, stop }` |
+| `layouts/en.slint`, `hy.slint`, `ru.slint` | One global per language. Its rows are strings, one per key. `⇧` and `⌫` may only start or end a row and share the width the letters leave; a row without them is centred. |
+| `layouts/common.slint` | The symbols layer, the digit row, and the terminal row (Esc, Tab, ← ↑ ↓ →) |
+| `layouts.slint` | `Layouts`: the list (append only), which are on, the current one, and `next()` for the globe key. Two pure callbacks are answered in Rust (`neoui-render::keyboard::{pick, tallest}`), because Slint has no loops. |
+| `glyphs.slint` | `Alphabets`: every letter, upper and lower case, as a string literal (see Fonts) |
+| `keyboard.slint` | Draws the current layout: letter rows, one-shot shift, the symbols layer, the bottom row (symbols, globe when 2+ languages are on, comma, space, stop, Enter), and in terminal mode the terminal row on top |
+
+### Protocol (`NeoUi` 1.3, additive)
+- **`KEYBOARD [mode]`:** 0 hidden, 1 text, 2 terminal. 1.2's `show = 1` is the text mode. The reply is the height
+  covered.
+- **`AppEvent::Keyboard { h }`:** sent when that height changes while the keyboard is open. This happens when the
+  language changes and the same-height setting is off, or when the settings change. The server reads both heights
+  from the renderer every frame (`Host::set_keyboard_heights`).
+- **The terminal row's keys** arrive as key codes 27, 9 and 0xF807–0xF80A (Symbian's arrows). `neoapp::dispatch_key`
+  maps them to Slint keys for text fields.
+
+### Shell text fields (2026-11-12)
+- **`TextField` and `SearchField`** (`ui/components/controls.slint`) hold a real `TextInput` drawn in DejaVu Sans.
+  Focusing one sets `KeyboardFocus.open` (`keyboard/focus.slint`), so the shell shows the text keyboard over the
+  body.
+- **Typed keys go into the field:** `Renderer::dispatch` sends them to the shell window as Slint key events
+  (`keyboard::key_text`), not to an app.
+- **Hiding:** changing screen or view, or closing the Wi-Fi sheet, hides the keyboard.
+- **Used by:** the Wi-Fi network sheet's password field (masked, focused when the sheet opens, the card above the
+  keyboard) and the Contacts and Messages search bars.
+- **An app's own field:** the app calls `App::keyboard(KEYBOARD_TEXT)` when the field takes focus and
+  `KEYBOARD_HIDDEN` when it loses it, as Files' name dialog does.
+
+### Height
+- **Same height on (the default):** every language has the row count of the tallest one that is on (Armenian: 4
+  letter rows). Shorter ones get the digit row on top.
+- **Same height off:** each language has its own height, and apps relayout on `AppEvent::Keyboard`. The Terminal
+  keeps its grid and lifts the rows so the cursor stays visible.
+- **Geometry is counted from the keyboard's bottom:** row k is centred 27 + 48 k dp above it. So taps
+  (`symbian/taps.sh`, `tests/keyboard.rs`) don't depend on the rows above.
+
+### Fonts
+Slint's software renderer draws a `Text` in one embedded font, with no per-glyph fallback. At build time it bakes
+in only the glyphs that appear in that crate's string literals, and fills missing ones from the build host's fonts.
+- **DejaVu Sans** (Latin, Cyrillic and Armenian in one face) draws the Armenian keys, and the typed text in Files
+  (the name field and the list).
+- **DejaVu Sans Mono** draws the Terminal.
+- **`Alphabets {}`** goes in every window that shows typed text, so that its letters are baked in.
+
+### Adding a language
+1. Add `layouts/<code>.slint`.
+2. Add a line to `all`, `on` and `set-on` in `layouts.slint`. Append only.
+3. Add its letters, upper and lower case, to `glyphs.slint`.
+4. Add `keyboard.<code>` to `registry!`, a property and `changed` handler in `system-settings.slint`, and a
+   `bool_binding!` in `neoui-render/src/settings.rs`.
+5. In `tests/keyboard.rs`, add its letters to `layouts_have_every_letter` and a snapshot.
+
+If the language's font is not DejaVu Sans, import it in `shell.slint` and in each app that shows typed text.
+
+### Tests
+- **`neoui-render` `tests/keyboard.rs`:** typing in each language, the globe and its stored choice, a language
+  turned off, both height modes, the terminal row, and every letter of each alphabet on a key.
+- **Snapshots:** `keyboard-{en,hy,ru,term}`, and `settings-keyboard-pixel`.
+- **Syborg CI:** types `dir` in the Terminal and `neo` in Files. Then it presses the globe twice and makes a folder
+  named дом.
+
+### Not yet
+Key repeat, long-press (accents, ё/ъ for Russian), Ctrl, suggestions, Western Armenian, layouts for hardware keys,
+and translating the UI itself.
 
 ## Part 2: notification service
 

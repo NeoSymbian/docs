@@ -87,6 +87,18 @@ buffer the writer's in/out sequence really protects.
   section, the critical-section count itself is wrong. Suspect `NKern::ThreadEnterCS`'s plain `++iCsCount` racing a
   cross-CPU reader of it, i.e. memory ordering on TCG.
 
+## Phone: fshell over USB: a typed flood, and a full C: (seen 2026-11-11, debug access T11)
+
+**Status:** open, skipped by the owner in T11.
+- **Flood:** about 8 KB typed while fshell is busy (e.g. in `sleep`) overflows ECOMM's receive ring: ECOMM drops the
+  rest and fshell's read fails with `KErrCommsOverrun` (-31). A USB PDD has no RTS to drop: it must hand ECOMM only
+  what its ring holds and keep the rest in its queue (which holds the host back). A first try
+  (`a64_usb_acm_debug.cpp`: room from `iRxGetIndex`/`iRxPutIndex`, a re-ring from the poll) removed the overrun but
+  left fshell with no input after the flood; it was reverted. `phone.py` itself never floods (commands go as one line,
+  files by YMODEM).
+- **Full C::** every `phone.py sh` uploads its command as a script file to `C:`, so with `C:` full no command runs,
+  not even `rm`. The client should type short commands directly when the upload fails.
+
 ## Phone: the monitor's `type` can drop the end of a line
 
 `type md c:\Long Directory On Phone` posted all 29 characters (`typed 29 chars`), but eshell on the phone received
@@ -136,7 +148,14 @@ LTE registration, without restarting the modem/ADSP or cycling the radio.
 - **RPMh votes survive a warm reset**, so a debug run can leave a rail off for the next RAM boot. A cold power-off
   clears them.
 
-**Effect:** the USB debug console and FS6's E: sharing work only on fastboot RAM boots for now.
+- **T12 (2026-11-11), a real cold installed boot:** with USB debugging on, the kernel powers USB
+  (`A64UsbPowerOn`) and the controller runs, but the host never sees the phone: no bus reset, no events, no device on
+  the Mac. Turning the switch off and on again then fails the controller restart (`-33`, halt). So the monitor's
+  `usb cold 7` on a RAM boot is not a faithful cold boot. Next: compare ABL's fastboot setup (the ldob7 rail, the
+  PHY's reference clock) with the PHY's registers after our power-up.
+
+**Effect:** the USB debug console and FS6's E: sharing work only on fastboot RAM boots for now; debug access T12 is
+parked on this.
 
 ## Syborg: an odd screen width shears the picture (seen 2026-11-08)
 

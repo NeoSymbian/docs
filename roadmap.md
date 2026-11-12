@@ -50,24 +50,15 @@ into the kernel safely. That gives one rule:
 Rust user-side code can be unit-tested on a PC: protocol parsers, QMI, UI layout. Kernel C++ is tested on QEMU first,
 then on the phone.
 
-## Hardware inventory (what each stage talks to)
+## Hardware inventory and expanded driver support
 
-| Block | Where | Status |
-|---|---|---|
-| CPUs: 8 cores, MPIDR Aff1 0–7, PSCI over SMC | `board/pixel_bonito.cpp` | **working** |
-| GICv3 at `0x17a00000` / `0x17a60000`, virtual timer PPI 19 | same | **working** |
-| Framebuffer: continuous splash at `0x9c000000`, 1080×2160 a8r8g8b8 | same, `probes/README.md` | **working** (left on by the bootloader) |
-| RAM: `memory@80000000` | DTB (the bootloader fills in the size) | Size and ranges **unverified**. Expect 4 GB from `0x80000000`, so about 2 GB sit below the 4 GB physical limit of the 32-bit `TPhysAddr`. |
-| Storage: **eMMC**, `qcom,sdm670-sdhci` (sdhci-msm-v5, CQHCI, ICE) at `0x7c4000` | DTB | no driver |
-| Touch: **Synaptics RMI4** on I2C, address `0x20` | DTB | no driver |
-| PMICs: **PM660** (charger, RRADC, GPIO, regulators, haptics) and **PM660L** (GPIO, WLED backlight, LPG, flash LED, WCD analog codec) on SPMI at `0xc440000` | DTB | no driver |
-| Display: MDSS / DPU / DSI controllers | DTB | splash only |
-| USB: DWC3 + QUSB2 PHY | DTB | no driver |
-| Modem: `remoteproc@4080000` `qcom,sdm670-mss-pil`, firmware `qcom/sdm670/sargo/mba.mbn` + `modem.mbn`, GLINK edge, SMEM at `0x86000000` | DTB | no driver |
-| ADSP (audio DSP) memory at `0x95800000`, LPASS SMP2P; CDSP at `remoteproc@8300000` | DTB | no driver |
-| GPU: **Adreno 615** + GMU, own SMMU | DTB | no driver |
-| Bluetooth: `qcom,wcn3990-bt` | DTB | no driver |
-| **Wi-Fi: not in this DTB** | DTB | **unverified**. WCN3990 Wi-Fi on SDM845-family chips is normally driven via the modem subsystem and QMI. |
+The current [driver-support inventory and milestones D0–D8](driver-support.md)
+supersede the original 2026-11-05 inventory. Storage, touch, SPMI/RPMh, USB RAM-boot
+console, modem and ADSP/call-audio drivers now exist. Independent cold-boot USB,
+media PCM, sensors, cameras and the remaining connectivity drivers still need work.
+The display is OLED: panel brightness/blanking needs a DSI path, not an assumed
+WLED backlight. Haptics uses TI DRV2624; PM660 haptics is disabled in the supplied
+DTB. Wi-Fi is present as WCN3990 in the current private DTB.
 
 ## Tracks and stages
 
@@ -197,9 +188,9 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
 | **H1 platform base** | RPMh (clocks, regulators, bus votes), SPMI PMIC arbiter, TLMM GPIO, GENI I2C/SPI, GPI DMA, SCM calls to TrustZone | Can talk to PM660 and to an I2C device |
 | **H2 storage** | SDHCI-msm eMMC media driver (CQHCI later), read the GPT, `C:` on `userdata`; then the file system plan ([filesystem.md](filesystem.md)): FS1 FAT32 plugin, FS2 HS200, FS3 `C:` + `E:`, FS4 `Z:` on ROFS, FS5 A/B updates, FS6 USB | Files written in Symbian survive a reboot and a power cut |
 | **H3 power** | PM660 charger + RRADC battery reading (Rust policy); suspend and resume (PSCI CPU_SUSPEND / system suspend); screen off | Phone idles a night on battery and wakes on the power key |
-| **H4 display + input** | Synaptics RMI4 touch (I2C; **done 2026-11-06** in kernel C++, polled; Rust behind `hwaccess` later); power and volume keys (**done**, SPMI); Samsung SOFEF00 OLED DSI on/off (C7 implementation; the reference DTB disables PM660L WLED). Keep the bootloader's splash framebuffer as scan-out until a DPU driver is needed (vsync, double buffer, hardware planes: [smooth-ui.md](smooth-ui.md) S5). | Touch coordinates reach a user-side process; physical display control works |
-| **H5 audio** | ADSP remote processor; audio path through LPASS + PM660L WCD codec; speaker and earpiece | Play a tone through the earpiece |
-| **H6 haptics, LEDs, sensors** | TI DRV2624 haptics (bonito reference DTB; C7), LPG and flash LED, sensors (**unverified** which) | Vibrate on touch |
+| **H4 display + input** | Synaptics RMI4 touch (I2C; **done 2026-11-06** in kernel C++, polled; Rust behind `hwaccess` later); power and volume keys (**done**, SPMI); OLED panel brightness and DSI panel on/off (**done 2026-11-11**, D2 in [driver-support.md](driver-support.md): DCS commands through the command DMA ABL leaves running; screen timeout and the power key in neoui). Keep the bootloader's splash framebuffer as scan-out until a DPU driver is needed (vsync, double buffer, hardware planes: [smooth-ui.md](smooth-ui.md) S5). | Touch coordinates reach a user-side process; backlight dims |
+| **H5 audio** | ADSP and C6 call audio are implemented (CS35L36 amps, RT5514 mic); add general ASM/ADM PCM and the native jack via [D3](driver-support.md) | Play a tone through the earpiece |
+| **H6 haptics, LEDs, sensors** | TI DRV2624 haptics (driver drafted in C7, pending acceptance), verified flash controller and ADSP sensors (exact chips/protocol pending) | Vibrate on touch |
 
 ### Track U: Rust UI
 
@@ -233,7 +224,12 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
 - Launcher, status bar (battery from H3, signal from P2), settings, dialer, messages, contacts, file manager.
 - Old Symbian text apps keep running from a terminal app.
 - Shell services (settings store, notifications, home pages with widgets, pin/unpin): designed in
-  [neoui-shell.md](neoui-shell.md), planned.
+  [neoui-shell.md](neoui-shell.md). The settings store is done; the others are planned.
+- **System keyboard (done 2026-11-12):**
+  - English, Armenian and Russian, managed in Settings → Language & keyboard;
+  - a terminal mode;
+  - shell text fields that bring it up (the Wi-Fi password);
+  - [rust-integration.md](rust-integration.md) R6d.
 
 **U4: GPU** (stretch)
 - Adreno 615 + GMU + its SMMU. Kernel part in C++; command-stream builder in Rust. Freedreno is the reference.
@@ -249,7 +245,7 @@ C0–C12). The stage names below are kept because the dependency graph uses them
 | **P1 remote processors** (needs H1) | C0–C4: backups, Linux reference run, SCM/SMEM/SMP2P/GLINK, MSS boot, rmtfs/pd-mapper/tqftp | The modem is up and answers QMI |
 | **P2 QMI in Rust** | C5: `modemsrv` + dialer (no ETel at first) | Operator and bars in the status bar; calls ring and answer |
 | **P3 SMS and mobile data** | C9, C10 | SMS round-trip; a web page over LTE |
-| **P4 Wi-Fi + Bluetooth** | not in telephony.md | Join a WPA2 network. WCN3990 Wi-Fi runs through the modem subsystem and QMI (ztOS: "WIFI-HW missing" until rmtfs + tqftpserv ran), so it comes after P1 |
+| **P4 Wi-Fi + Bluetooth** | [wifi.md](wifi.md) | Join a WPA2 network. WCN3990 Wi-Fi runs through the modem subsystem and QMI. **2026-11-12: W0–W3 done** (firmware start, copy engines, HTC/WMI, scanning; Settings → Wi-Fi lists networks on the phone). **W4 done the same day: the phone joins a WPA2-PSK network** from Settings (keys installed, decrypted traffic arriving, status bar icon, network details). Next W5: an IP address (DHCP, ESOCK/TCPIP6) |
 | **P5 voice calls** | C6–C8, C11 | Two-way call audio. 2026-11-08: the owner's network still has 3G, so calls use CSFB first. VoLTE is the C11 stretch. **C6 done 2026-11-09**: two-way call audio on the earpiece and loudspeaker |
 
 ## Dependencies

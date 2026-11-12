@@ -7,8 +7,8 @@ The goal is what `adb` gives an Android developer: a shell, pushing and pulling 
 reading logs, from the Mac through the USB cable. NeoSymbian gets it from Symbian's own 2010 tools, unchanged.
 There is no TCP/IP, no SSH and no comms framework (c32) in the first stages.
 
-**This is the only access route (owner, 2026-11-10).** The USB SSH work was dropped and archived; what it taught and
-what was kept is in `remote-access.md.draft`.
+**This is the only access route (owner, 2026-11-10).** The USB SSH work was dropped; its useful parts came back
+through the roadmap's T1–T11.
 
 ## What exists today
 
@@ -68,11 +68,26 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
     - **USB driver layering (T2, kernel `96f60d6`):** a controller core (`sdm670_assp/qcom_dwc3.cpp`: bring-up,
       events, EP0, endpoint DMA buffers) runs function drivers through `common/inc/a64_usb_function.h`. Today there is
       one, the monitor ACM (`common/specific/a64_usb_acm_monitor.cpp`); the debug ACM that this PDD sits on comes in
-      T8. **T3 (kernel `b7133e2`)** added, without ECM: endpoint DMA ownership (a stop frees a buffer only on its
+      T8 (below). **T3 (kernel `b7133e2`)** added, without ECM: endpoint DMA ownership (a stop frees a buffer only on its
       ENDTRANSFER command-complete event; failures quarantine), SET_CONFIGURATION deferred until its stops end, a
       controller restart (halt, core reset, bring-up) as the only recovery for a live control transfer or a quarantine,
       and the UTMI/PIPE clock mux restore that `usb cold` needs (a GCC reset leaves QSCRATCH GENERAL_CFG at 04, not
       0d). Verified on bonito: `usb cold 7`, replug, Mac sleep/wake, a 5-minute soak. The queue code comes in T4.
+    - **T8 (kernel `af9b3f8`), with USB debugging on (T10; `USBDEBUG=1` then):** the gadget is composite (EF/02/01, an IAD per function): the
+      monitor on interfaces 0/1, the debug ACM (`common/specific/a64_usb_acm_debug.cpp`) on 2/3 (EP 0x03/0x83, notify
+      0x84), and macOS names them `cu.usbmodem…11` and `…13`. Its PDD `Comm.UsbAcm` (unit 1) keeps RX/TX in
+      `a64_usb_queue.h` byte queues filled by the poll DFC, and calls ECOMM's `...Isr` functions from a **doorbell
+      interrupt: SGI 7** (`A64_BindSgi`/`A64_RaiseSgi`, SGIs 5–7). DWC3's own SPI 133 can't serve: it fires in
+      hardware during traffic and stormed the CPU. DTR maps to CTS/DSR/DCD. With USB debugging off the descriptors are
+      the single monitor ACM's. FIFO budget: FIFOs 0–4 use 1618 of 2661 TX words.
+    - **The switch (T10, kernel `2a041d3`):** every bonito build links the debug ACM; the core exposes 1 or 2
+      functions (`A64UsbDebugSet`, HAL 0x4e04, monitor `usb dbg`) by recomposing the descriptors and restarting the
+      controller. Two restart fixes came with it: `Halt()` takes pending events while it waits for DEVCTRLHLT (as Linux
+      `dwc3_gadget_run_stop`; a restart during traffic timed out and left USB stopped), and the device stays away 1 s
+      (100 ms was too short for macOS when the functions changed: after a few switches no device came back). A failed
+      restart is logged and retried (3 times); no bus reset 5 s after a restart → reconnect (3 times).
+    - **fshell exit codes on that port:** -29 (`KErrCommsLineFail`) when the Mac closes the port (`waitdcd=1`), so
+      something must restart it (T10); -18 for a malformed console title.
     - Later, a DWC3 controller driver for Symbian's own USB client framework (`kernel/eka/drivers/usbcc`,
       `usbc.ldd`) gives the standard `RDevUsbcClient` for usbman and MTP (roadmap L1).
     - `DComm` is shaped for a UART (characters moved from interrupt handlers), so the PDD bridges to the USB queues
@@ -90,9 +105,19 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
   - pinned in `build/sources.lock`;
   - built through `build/emitter/components.py` like the other 2010 packages;
   - with its `.cif` command descriptions in the ROM.
-- **Started on demand**, by SYSSTART or a monitor command, as
-  `fshell --console vt100busdevcons --console-title pdd=<ours>,ldd=ecomm,port=<n>`.
+- **Started by SYSSTART when USB debugging is on (T10):** Settings → System → Developer options → USB debugging
+  (`developer.usb_debugging`, off by default; every ROM carries fshell). neoui `symbian/src/usb_debug.rs`, a worker
+  thread: on → HAL 0x4e04 exposes the port, then `FSHELL.EXE --console vt100busdevcons --console-title
+  pdd=euart1,ldd=ecomm,port=1,sizedetect=0` (no `waitdcd`: it outlives host sessions); an exit restarts it after 1 s,
+  doubling to 32 s for quick exits, 1 s again after a minute's run; off → kill, then the port goes; no `FSHELL.EXE`
+  → logged once. The monitor's `usb dbg 0|1` switches the port only (no fshell); `USBDEBUG=1` images have it on at
+  boot.
 - **`econs.dll` stays.** No `FSHELL_REPLACE_ECONS`: eshell and the Terminal use the real console.
+- **fshell on the serial port (T7):** `fshell --console vt100busdevcons --console-title
+  pdd=euart1,ldd=ecomm,port=1,rate=115200,sizedetect=0` (QEMU; the loader aliases `ecomm`/`euart1` name the built-in
+  drivers). The host client is kernel `tools/fshell_link.py`: wait for fshell's prompt before each command (earlier
+  input loses its first bytes), and put `$?` straight into the END record (`export X $?` reads a negative status as an
+  option). Every builtin needs its `.cif` in the ROM.
 - **fshell on econs (T6, build `faf8f8c`):** fshell's default console is `defcons` (it picks econs on a text
   configuration), so `defcons.dll` must be in the ROM. The minigui console (`econswserv`, the QEMU/window-server
   `ECONS.DLL`) didn't complete a cancelled read; fshell's consoleproxy waits for that on every console mode change,
@@ -104,16 +129,27 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
 ### Mac
 
 - **`screen /dev/cu.usbmodem<…>`** on the shell's port gives the shell with no new tools.
-- **New `phone.py` verbs:**
-  - `sh` (interactive, or one command and its output);
-  - `push` and `pull` (ymodem in a small Python implementation, then fshell's `hash` to compare SHA-256);
-  - port selection: the monitor port and the shell port are told apart by their USB interface number.
+- **`phone.py` verbs (T9, kernel `277afef`; code in `tools/fshell_link.py`):**
+  - `sh [COMMAND]`: a terminal (Ctrl-D ends), or one command whose real exit status comes back in a nonce-framed END
+    line (`phone.py` exits 1 and prints `native exit N`);
+  - `push`/`pull SRC DST [--overwrite]`: YMODEM in Python, checked by length and SHA-256 at both ends; the phone writes
+    a temporary file and renames it (`ymodem receive --sha256`), the Mac does the same locally;
+  - port selection by USB interface in the IORegistry (monitor 0, fshell 2), `--device`, `--monitor-port`,
+    `--shell-port`; a per-port lock in `~/Library/Caches/NeoSymbian` keeps one operation at a time;
+  - after a failed transfer fshell purges its input until the line is quiet, so the client waits for the command's END
+    and prompt before the next command;
+  - a fresh C: has no `C:\sys\bin`: `phone.py sh 'md c:\sys\bin'` before pushing an EXE.
+- **fshell's console title:** without `waitdcd`, fshell outlives each host session (T9 used
+  `pdd=euart1,ldd=ecomm,port=1,sizedetect=0`); with `waitdcd=1` it exits -29 when the Mac closes the port.
 
 ### Security
 
 - **Physical USB only:** the same model as the monitor today. There is no network exposure.
-- **No new exposure on installed boots:** USB starts only on RAM boots and in dev mode.
-- **Revisit at DA6,** before an installed boot offers the shell.
+- **Installed boots (T12):** USB stays off until USB debugging is switched on; then the kernel powers it and offers
+  both ports (monitor and fshell). On a cold boot the host doesn't see the phone yet (the normal-boot PHY issue in
+  [known issues](known-issues.md)), so T12 is parked.
+- **USB debugging is off by default (T10)** and needs the unlocked UI to turn on. Unlike adb there is no host
+  authorization (RSA keys) yet: revisit before an installed boot offers the shell (DA6).
 
 ## Stages
 
