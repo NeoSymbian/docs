@@ -221,3 +221,20 @@ mission mode (HAL WlanStart `0x4e1d`). It is polled, with its own DFC thread. Re
   - Size tx buffers only for the CEs used (CE4 alone would take 512 KB).
   - A lost USB console is not a crash: check `lastlog` (that run ran 900 s, then AUTOFASTBOOT).
 - **Not yet:** IRQs (polled), HTT, the WHA PDD.
+
+## W3a: first scan (in progress, 2026-11-12)
+
+`qcom_wcn3990.cpp` continues after READY. The firmware accepts every command, and the scans start and complete
+(reason 0):
+1. PDEV_SET_PARAM chain masks;
+2. SCAN_CHAN_LIST (2.4 GHz 1–13, 5 GHz UNII-1/3);
+3. PDEV_SET_REGDOMAIN (the reg caps' `eeprom_rd` is 0, so US `0x3a`, as ath10k);
+4. VDEV_CREATE (station);
+5. START_SCAN, passive and active;
+6. the HTT version request: reply `00 60 03 00`.
+
+**The radio receives:** CHAN_INFO on 2412 MHz shows 29 % rx clear and a noise floor of −118 dBm.
+
+**No beacon reaches the host.** There is no WMI MGMT_RX and no frame on another endpoint. The likely cause is the
+HTT rx ring: ath10k's RX_RING_CFG carries `HTT_RX_RING_FLAGS_MGMT_RX`, and we have not configured it yet. Next
+(W3b): HTT setup (frag-desc bank, RX_RING_CFG, aggregation config) and handling the rx indications.
