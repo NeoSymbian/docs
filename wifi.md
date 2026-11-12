@@ -286,3 +286,36 @@ The full log, with the networks' names, stays in `private/wifi/w0/` (they are ne
   - the typed password is kept in the sheet (`wifi-password`), ready for W4 to join with.
 - Host-tested (neoui-proto `wifi`), snapshot `settings-wifi-*-pixel.png`; on the phone it lists 15–18 nearby
   networks on both bands.
+
+## W4: joining a WPA2-PSK network (in progress, 2026-11-12)
+
+**Decision (owner, 2026-11-12): the direct path first.** The scan (W3) already runs straight from
+`qcom_wcn3990.cpp` over WMI, without Symbian's UMAC LDD. W4 extends that driver rather than building the UMAC + WHA PDD
+now. UMAC/WHA stays the documented long-term option (the W3 gate above stays as reference). The WPA2 handshake is
+user-side Rust, so there is no crypto in kernel C++.
+
+| Part | Where | State |
+|---|---|---|
+| Join: VDEV_START, PEER_CREATE (HTT PEER_MAP), open-system auth, Association Request (legacy rates, our RSN element), PEER_ASSOC, VDEV_UP; teardown PEER_DELETE, VDEV_DOWN, VDEV_STOP | kernel `qcom_wcn3990.cpp` (W4a) | built, QEMU gate passed; not run on the phone yet |
+| Management tx: WMI MGMT_TX_SEND by reference if WMI service 76 is on, else HTT TX_FRM type 3 (the log says which) | kernel | as above |
+| Data path for EAPOL: HTT TX_FRM native wifi on CE4 (gather send, ext descriptor in the frag-desc bank, NO_ENCRYPT before the PTK), TX_COMPL_IND; native-wifi HTT RX (EAPOL to the user side, ARP/IP counted) | kernel (W4c) | as above |
+| Keys: VDEV_INSTALL_KEY CCMP (acked by HTT SEC_IND), PEER_SET_PARAM AUTHORIZE | kernel (W4c) | as above |
+| HAL `WlanLink` `0x4e1f` and the monitor's `wifi` / `wifi join N` / `wifi leave` | kernel | as above |
+| HAL `Prng` `0x4e23`: the SoC PRNG for the SNonce | kernel `qcom_telhal.cpp` | as above |
+| WPA2-PSK supplicant: PBKDF2 PMK, PTK, MIC, GTK unwrap, 4-way + group rekey, sans-I/O | neolink `crates/wpa` (W4b) | **done**, host-tested (IEEE Annex J and RFC 3394 vectors, a full 4-way against a test AP, wrong password, replays, RSN downgrade) |
+| Connect on the network sheet: a supplicant thread in SYSSTART drives the HAL; the sheet shows Connecting… / Connected / Wrong password; a connected network is remembered (SSID + PMK in `C:\private\e0002001\wifi.dat`, never the password) and rejoined when seen | neoui `symbian/src/wifi.rs` (W4d) | built, host-tested (`Link`, `Saved`) |
+
+Facts: `private/wifi/w4-join-spec.md` (ath10k, ISC; mac80211 facts only).
+
+**Shortcuts** (in the code as `shortcut:` comments):
+- legacy rates only (no HT/WMM): an HT-only AP refuses with status 27 or 18;
+- no PMF: an AP that requires it refuses with status 31;
+- no scans while joined;
+- the supplicant is a thread of SYSSTART until W5's network interface needs a daemon;
+- non-UTF-8 SSIDs hash wrongly.
+
+**Next:** run on the phone:
+1. `phone.py cmd "wifi join N"`: auth, assoc and EAPOL msg1 in the log; then the AP's deauth after its handshake timeout,
+   which is expected without keys.
+2. Connect from Settings with the password: Connected, still connected after 60 s, the ARP/IP counters rising.
+

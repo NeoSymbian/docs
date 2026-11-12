@@ -506,8 +506,9 @@ The kernel has `EHalGroupVariant` functions for the phone's own tools. They are 
 | `WlanMsa` | 0x4e1c | a1 = `SIo {op 1 assign / 0 release; phys; size; secure}`: a region of the Wi-Fi firmware's MSA carve-out (0x94d00000 + 1 MB) to MSS_MSA + WLAN (+ WLAN_CE) VMIDs through TrustZone ([wifi.md](wifi.md) W1) | CommDD |
 | `WlanStart` | 0x4e1d | after WLAN cfg + mission mode (MODEMD): the WCN3990 copy engines, HTC, WMI, HTT rx ring and the scan service on the driver's thread (`qcom_wcn3990.cpp`, [wifi.md](wifi.md) W2/W3) | CommDD |
 | `ENeoHalWlanScan` | 0x4e1e | a1 = `TDes8*` (>= 1348 bytes): `{version 1, state (0 off, 1 starting, 2 ready, 3 scanning, 4 error), count, scans % 256}` + per network `{bssid 6, channel, dBm (i8), flags (1 secured), ssid length, ssid 32}`; a2 = 1 asks for a new scan (neoui Settings → Wi-Fi) | ReadDeviceData |
+| `ENeoHalWlanLink` | 0x4e1f | a1 = op, a2 = `TDes8*`: 1 join `{bssid, our RSN element (none: an open network)}`, 2 leave, 3 status `{version 1, state (0 idle, 1 joining, 2 handshake, 3 connected, 4 lost, 5 error), aid, status, reason (le16), bssid, our MAC, rx data, rx ARP/IP (le32), AP RSN length + element}`, 4 the next EAPOL frame (`KErrNotReady` if none), 5 send EAPOL (returns once sent), 6 install key `{0 pairwise / 1 group, index, 16-byte CCMP key}`, 7 authorize. The driver thread does the work (`qcom_wcn3990.cpp`, [wifi.md](wifi.md) W4) | ReadDeviceData + WriteDeviceData |
 | `UsbNetState` / `UsbNetRx` / `UsbNetTx` | 0x4e20–0x4e22 | the USB network (`USBNET=1` builds): state (16 bytes), one Ethernet frame in or out | CommDD |
-| `Prng` | 0x4e23 | a `TDes8` whose length (1..256) is the bytes wanted: hardware entropy (`USBNET=1`) | CommDD |
+| `Prng` | 0x4e23 | a `TDes8` whose length (1..256) is the bytes wanted: the SoC's hardware PRNG (`qcom_telhal.cpp`, bonito; the Wi-Fi handshake's nonces) | CommDD |
 
 The phone's own servers written in Rust: **`NeoModem`** (MODEMD.EXE, NeoSymbian/telephony; started by SYSSTART) gives
 apps the modem: `STATUS`, `DIAL`, `ANSWER`, `HANGUP`. The contract is the `no_std` crate `modem-ipc`
