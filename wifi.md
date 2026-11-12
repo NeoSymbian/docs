@@ -198,3 +198,26 @@ into WMI-TLV commands (ath10k names; ids in `wmi-tlv.h`) and the firmware's even
 - data-path header translation (HTT native-wifi ↔ 802.11).
 
 Nothing in WHA needs the firmware to accept raw 802.11 data frames.
+
+## W2: copy engines, HTC, WMI (done 2026-11-12, phone RAM boot)
+
+`kernel/baseport/arm64/sdm670_assp/qcom_wcn3990.cpp` (kernel branch `wifi/w0b`) is started by MODEMD after WLAN cfg +
+mission mode (HAL WlanStart `0x4e1d`). It is polled, with its own DFC thread. Result:
+
+```
+[wifi] SMMU streams 40/1 -> 0; DMA pool 830d0000 + 80000
+[wifi] copy engines up (280512 bytes of the pool); waiting for HTC ready
+[wifi] HTC ready: 2 credits of 2184 bytes, 22 endpoints, HTC 2.1
+[wifi] HTC service 0300 -> status 0, endpoint 1, max 2000
+[wifi] HTC service 0100 -> status 0, endpoint 2, max 2040
+[wifi] WMI service ready: ABI 1.0.0.1074, 2 RF chains, 0 memory requests (0 allocated), board 0
+[wifi] WMI ready: MAC 00:00:00:00:00:00, status 0 (W2 done)
+```
+
+- **The MAC is all zero.** The WCN3990 stores none (ztOS FIXES #10). The host must send PDEV_SET_BASE_MACADDR with a
+  stable, locally administered address (planned: `02:…` derived from the phone's serial), the first step of W3.
+- **Lessons:**
+  - The DMA pool is device memory: only aligned 32-bit accesses (a merged 8-byte store faulted).
+  - Size tx buffers only for the CEs used (CE4 alone would take 512 KB).
+  - A lost USB console is not a crash: check `lastlog` (that run ran 900 s, then AUTOFASTBOOT).
+- **Not yet:** IRQs (polled), HTT, the WHA PDD.
