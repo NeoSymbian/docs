@@ -255,7 +255,11 @@ on the phone; `a64_sha256.S`, self-tested at boot, the C one as fallback), so th
   - Updates: `fastboot flash boot_b`; `system_b` is written by a `ROFS_INSTALL` image RAM-booted on slot b, since
     ABL refuses `system_*` outside fastbootd; then `fastboot set_active b`.
   - Tested on the phone: update into b, then a broken b rolls back to a by itself.
-  - **Installed 2026-11-10 into slot a** (now current): kernel `090bb5e` (device status registry, HAL `0x4e19`),
+  - **Installed 2026-11-12 into slot b** (now current): the system keyboard (English, Armenian, Russian; terminal
+    mode), neoui `d579fa0`, build `76515bd`, kernel `71c5c87d` (the Wi-Fi W3 install's sources). `system_b`: 21792 KB
+    written, verified; `boot_b` flashed (1100 KB). Built in an isolated ZimaOS copy (`isolated/kbd`, volume
+    `neosymbian-kbd`); images in `logs/install-kbd-20261112`. Slot a keeps the 2026-11-12 Wi-Fi install as fallback.
+  - **Installed 2026-11-10 into slot a**: kernel `090bb5e` (device status registry, HAL `0x4e19`),
     build `269ec50` (Old apps: `LEGACY.EXE`, its UID moved to `0xE0002006` off MODEMD's), neoui `ed9202f` (Dev tools,
     Clock and the settings store rebuilt), telephony `54a8114`, e32 `e97e2eb`. `system_a`: 19991 KB written,
     verified; `boot_a` flashed (1060 KB). A RAM test boot showed Dev tools listing the drivers and the modem on LTE.
