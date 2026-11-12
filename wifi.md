@@ -287,7 +287,7 @@ The full log, with the networks' names, stays in `private/wifi/w0/` (they are ne
 - Host-tested (neoui-proto `wifi`), snapshot `settings-wifi-*-pixel.png`; on the phone it lists 15–18 nearby
   networks on both bands.
 
-## W4: joining a WPA2-PSK network (in progress, 2026-11-12)
+## W4: joining a WPA2-PSK network (connected 2026-11-12)
 
 **Decision (owner, 2026-11-12): the direct path first.** The scan (W3) already runs straight from
 `qcom_wcn3990.cpp` over WMI, without Symbian's UMAC LDD. W4 extends that driver rather than building the UMAC + WHA PDD
@@ -314,8 +314,33 @@ Facts: `private/wifi/w4-join-spec.md` (ath10k, ISC; mac80211 facts only).
 - the supplicant is a thread of SYSSTART until W5's network interface needs a daemon;
 - non-UTF-8 SSIDs hash wrongly.
 
-**Next:** run on the phone:
-1. `phone.py cmd "wifi join N"`: auth, assoc and EAPOL msg1 in the log; then the AP's deauth after its handshake timeout,
-   which is expected without keys.
-2. Connect from Settings with the password: Connected, still connected after 60 s, the ARP/IP counters rising.
+### Result: connected (phone RAM boot, 2026-11-12)
+
+**The phone joined the owner's WPA2-PSK network** (5 GHz channel 44, −50 dBm) from Settings by touch:
+- auth and association (AID 4);
+- msg1 → msg2 (acked) → msg3 → msg4;
+- the pairwise and group CCMP keys installed (the firmware acked both), the peer authorized;
+- decrypted ARP/IP broadcasts arriving (58 of 60 data frames in the first minute);
+- the status bar shows the Wi-Fi icon. Logs and screenshots: `private/wifi/w4/`.
+
+**Firmware facts learned on the phone** (the spec had them as inferences):
+- Management TX goes over WMI: the firmware sets service 76.
+- **The firmware holds msg4 until the PTK is installed.** With the driver waiting for msg4's TX report first, no
+  report came in 2 s, the AP resent msg3, and the report arrived as DISCARD at teardown.
+  - EAPOL sends are therefore only queued (NO_ENCRYPT fixed at queue time), and the PTK follows at once, as Linux's
+    supplicant does.
+  - The supplicant answers a resent msg3 with msg4 only and never reinstalls a key (KRACK).
+- **A WMI credit can be slow to come back after a handshake.** Link commands wait 3 s and fail alone. Before this fix,
+  one slow credit marked the whole driver failed. The monitor's `wifi` shows the credits.
+- A wrong password looks like this: msg1 over and over, each msg2 acked, no msg3.
+
+**Settings** (neoui `wifi/join`):
+- "Current network" above the list, and the Wi-Fi rows say "Connected to …";
+- a details sheet: signal, band/channel, security, access point, phone MAC, AID, frames received, IP (none until W5);
+- Disconnect (stays saved but is not rejoined on its own until Connect) and Forget.
+
+**Not yet:**
+- How long the link holds (the RAM image returns to fastboot after 20 min);
+- rejoin after a reboot: the saved network is on C:, which a RAM boot does not keep;
+- an IP address: W5.
 
