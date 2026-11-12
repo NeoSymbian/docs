@@ -257,6 +257,18 @@ Terminal's own Esc/Tab/arrows bar.
 - **The terminal row's keys** arrive as key codes 27, 9 and 0xF807–0xF80A (Symbian's arrows). `neoapp::dispatch_key`
   maps them to Slint keys for text fields.
 
+### Shell text fields (2026-11-12)
+- **`TextField` and `SearchField`** (`ui/components/controls.slint`) hold a real `TextInput` drawn in DejaVu Sans.
+  Focusing one sets `KeyboardFocus.open` (`keyboard/focus.slint`), so the shell shows the text keyboard over the
+  body.
+- **Typed keys go into the field:** `Renderer::dispatch` sends them to the shell window as Slint key events
+  (`keyboard::key_text`), not to an app.
+- **Hiding:** changing screen or view, or closing the Wi-Fi sheet, hides the keyboard.
+- **Used by:** the Wi-Fi network sheet's password field (masked, focused when the sheet opens, the card above the
+  keyboard) and the Contacts and Messages search bars.
+- **An app's own field:** the app calls `App::keyboard(KEYBOARD_TEXT)` when the field takes focus and
+  `KEYBOARD_HIDDEN` when it loses it, as Files' name dialog does.
+
 ### Height
 - **Same height on (the default):** every language has the row count of the tallest one that is on (Armenian: 4
   letter rows). Shorter ones get the digit row on top.
