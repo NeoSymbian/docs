@@ -422,6 +422,19 @@ Open, needed for data (C10):
   or sent DRIVER_INIT_COMPLETE, and IPA shows no uC-loaded interrupt.
 - The AP_MODEM_TX/RX endpoints (ch3/ch6) aren't set up yet.
 
+### Network time (NITZ) (done 2026-11-13)
+
+MODEMD subscribes to NAS Network Time (Register Indications TLV 0x17; indication 0x4C) and asks for it once on
+registration (Get Network Time 0x7D, its 3GPP TLV 0x11). Layouts are from libqmi `qmi-service-nas.json`:
+- universal time {u16 year, month, day, hour, minute, second, day of week};
+- the zone in quarter hours (daylight saving included);
+- the daylight saving hours.
+
+The value goes to clients in the NeoModem status (`modem_ipc::Nitz` in bytes 102..110; `Status::SIZE` is unchanged).
+neoui sets the clock from it (docs neoui-shell.md Part 5).
+
+**Phone:** Ucom AM on LTE sends it right after registration: `zone 16 quarter hours` = UTC+4.
+
 ### C6: call audio (= roadmap H5 for voice)
 
 1. **ADSP boot** (`qcom_pas.cpp`): PAS flow through `qcom_scm.cpp`:

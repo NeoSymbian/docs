@@ -440,3 +440,26 @@ kernel  DataIn --(Ethernet II)--> rx queue --WlanLink op 8--> NEONET.EXE (smoltc
 - hours-long link stability and throughput;
 - the app API from a second app;
 - a C++ client for legacy apps.
+
+## After W5: background rejoin, handshake timeout (2026-11-13)
+
+**Background rejoin** (neoui `symbian/src/wifi.rs`):
+- When all of these hold, SYSSTART asks for a scan:
+  - the Wi-Fi page is closed;
+  - the link is idle, lost or in error;
+  - a saved network exists that the user didn't disconnect from;
+  - the Wi-Fi switch is on;
+  - the list is over 60 s old.
+- The existing rejoin then finds the saved network.
+- **Phone:** after the monitor's `wifi leave`, the link came back in 50 s with Settings closed, with DHCP and the
+  internet check.
+- The Wi-Fi switch (`radio.wifi`) now stops scanning and rejoining. The radio itself stays up (shortcut).
+
+**A wrong password crashed the modem** (phone, 2026-11-13; log `private/statusbar/fail1.log`):
+- This AP kept resending message 1 for a minute and never deauthenticated us. Each msg2 was acknowledged; no msg3
+  came.
+- The WCN3990 firmware then asserted in `wlan_powersave_sta.c:wlan_ps_sta_health_monitor_timeout`. That is a FATAL of
+  the whole modem: LTE dropped and MODEMD ran its recovery. Wi-Fi stays off until a reboot (the known shortcut).
+- **Fix:** the supplicant leaves after 10 s in the handshake and the sheet says "Wrong password". Retyped correctly,
+  the same AP connected at once.
+- **Open:** a kernel-side guard (tear down a join stuck in the handshake) in case the supplicant thread dies.

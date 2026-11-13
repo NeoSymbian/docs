@@ -473,6 +473,52 @@ A table beside `APPS` in the server: `(app, name, template, sizes, label)`.
 - Syborg: add `clock.next` to home in edit mode, set an alarm in Clock, and check the widget's text in the serial log
   and on screen.
 
+## Part 5: status bar, shade header, Date & time (2026-11-13)
+
+**Status bar** (`ui/components/frame.slint` `StatusBar`):
+- **Layout:** title or operator at the left; then one right-hand cluster: radio tech + signal bars (fixed width),
+  Wi-Fi, battery, time.
+  - The old bars layout had `alignment: center`, which made it share the spare width with the title, so the bars sat
+    mid-bar. A test now renders the modem case (`tests/statusbar.rs`, `statusbar-modem-pixel.png`).
+- **Wi-Fi:** the icon plus a small band label, "2.4" or "5" (`LinkView::band`).
+  - **Owner decision:** the band only, no Wi-Fi 4/5/6 badge, because our link runs legacy a/g rates.
+- **Battery: one widget** (owner request).
+  - The fill colour follows the level: red at or below 15 %, orange at or below 30 %, green above
+    (`Theme.battery-low/-mid`).
+  - Inside: the percent on battery, a bolt when plugged in (bright while charging, dim while the charger idles), a
+    check when full on USB, and "--" when unknown.
+  - The separate plug glyph and percent text are gone.
+- **Seconds:** optional (`status.seconds`, default off). The main loop then wakes on each whole second; it costs
+  battery.
+- **Shade:** a swipe down on the bar opens it, and a tap still toggles it.
+
+**Shade header:** the big time and, when `shade.date` is on, the date in the chosen format.
+
+**Settings → Date & time** (view `datetime`; the date and zone helpers are in `neoui-proto::clock::datetime`, which
+is host-tested):
+
+| Row | Key | Notes |
+|---|---|---|
+| Automatic time | `time.auto` (on) | NITZ from MODEMD's status, else the HTTP `Date:` of the internet check |
+| Automatic time zone | `time.auto_zone` (on) | NITZ's zone (quarter hours, daylight saving included) |
+| Time zone | none | The kernel offset, kept in `clock.dat`. A tap steps through the World catalogue's offsets |
+| 24-hour time | `clock.24h` | Moved here from Display |
+| Seconds in the status bar | `status.seconds` (off) | |
+| Date in the shade | `shade.date` (on) | |
+| Date format | `time.date_format` 0..=3 | "Friday, 13 November", "13.11.2026", "2026-11-13", "11/13/2026" |
+
+**Network time** (`symbian/src/netclock.rs`):
+- A new NITZ value, or a fresh HTTP Date, corrects the clock when it is more than 2 s off or the zone differs
+  (`datetime::correction`). `clock::Keeper` saves it.
+- "Last set" shows the source and the time.
+- **Phone, 2026-11-13:** the clock was booted wrong (00:00). Ucom's NITZ (UTC+4) set it 21 s after boot, matching the
+  Mac to within seconds.
+
+**Shortcuts:**
+- no time zone database (fixed offsets, no daylight saving rules);
+- the NITZ age inside MODEMD's status is not counted;
+- the Wi-Fi switch stops scanning and rejoining but leaves the radio up.
+
 ## Not in this design (later)
 
 - App-drawn (`Surface`) widgets: a small surface chunk per widget, drawn by a running app.
