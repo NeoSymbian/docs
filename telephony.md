@@ -677,6 +677,10 @@ the unrelated dirty `kernel`/`build` checkouts are preserved. Remote logs are un
 
 Exit: an incoming call from a saved number shows the contact's name.
 
+Reference: [symbian-phone-sources.md](symbian-phone-sources.md), the facts C8 takes from the 2010 Symbian phone and contacts
+sources (dial-string rules and test vectors, SS codes, caller-name matching, smart dialling, Logs and Speed dial
+behaviour, vCard mapping).
+
 ### C9: SMS
 
 - QMI WMS:

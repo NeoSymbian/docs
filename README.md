@@ -25,6 +25,7 @@ NeoSymbian brings the open-source 2010 Symbian (EKA2, the Symbian^3 release) bac
 | [ekern-backend.md](ekern-backend.md) | The full kernel's AArch64 backend |
 | [filesystem.md](filesystem.md) | File system plan: drives, flash layout, stages FS1–FS6 |
 | [telephony.md](telephony.md) | Cellular calls, SMS and data: the end-to-end runbook, stages C0–C12 |
+| [symbian-phone-sources.md](symbian-phone-sources.md) | What the 2010 phone, contacts and phonesrv sources give C8: dialer, smart dialling, call log, speed dial, SS codes, vCard (facts only) |
 | [devices.md](devices.md) | Which phones could be next: requirements, a shortlist from the mobile Linux lists, what each reuses |
 | [known-issues.md](known-issues.md) | Open problems and their workarounds |
 | [sources.md](sources.md) | Survey of the source repositories and licences |
