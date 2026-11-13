@@ -779,3 +779,28 @@ Direct GPL ports so far: none.
 | C6 | **done 2026-11-09** (kernel `b12d1ba`, telephony `3f4af12`, neoui `2d55d01`): the ADSP boots (PAS 1), APR in Rust, CS35L36 x2 + RT5514 board driver; two-way call audio on the earpiece and loudspeaker, Mute / Speaker / volume / DTMF; Dev tools audio loopback test; the modem stayed on 3G after a connected call (fixed 2026-11-12, kernel `69bb4cd3`: the codec's rails were on the wrong PMIC) |
 | C7 | **merged 2026-11-12** (C7 PRs merged with main, owner's call to land before the C7 phone acceptance): IPC v2, multi-call, SIM PIN, airplane, ringtone + haptics, modem recovery (never stops the ADSP); phone acceptance of the C7 behaviours pending; wired headset deferred |
 | C8–C12 | not started |
+
+## Modem restart and the ADSP (2026-11-13, open)
+
+**Seen on the phone** (`mss fault`, a RAM boot with `TEL_DIAGNOSTICS=1`; log `private/wifi/w7/mss3.log`):
+1. MODEMD stops the modem: AXI halt incomplete, forced MSS reset, stop acknowledged after 218 ms.
+2. The modem boots again: MBA, MPSS authenticated, QRTR up after 6.4 s.
+3. MODEMD then reads the ADSP's state as `[4, 0, 7, 3]`. Word 2 has bit 0 (FATAL) set: **the ADSP has failed too.**
+   MODEMD asks for a recovery of both (mask 3).
+4. Recovery never stops the ADSP (its TrustZone PAS shutdown froze the phone, 2026-11-12), so it restarts the modem
+   only. The ADSP stays failed, the check fires again, and after three attempts the modem goes FATAL ("SFR Init: wdog
+   or kernel error").
+
+**Why the ADSP fails:** the modem is stopped without warning its peers. Linux's `qcom_sysmon` sends each other
+subsystem an SSCTL event before and after a peer shuts down or powers up (QMI service 43, the "subsystem event"
+request). The ADSP then closes its links to the modem in order. Ours drops the modem abruptly, and the ADSP's audio
+side asserts when its peer vanishes. This is a likely reading, not yet checked against the ADSP's crash reason.
+
+**Fix (next telephony stage):**
+1. Send the ADSP the sysmon/SSCTL events around a modem stop and start, as `qcom_sysmon` does.
+2. A failed ADSP after a modem-only restart is no reason to restart the modem again: report "no call audio" instead
+   of looping.
+3. Understand the PAS-shutdown hang, so that the ADSP can be restarted when it really fails.
+
+Wi-Fi's own restart after a modem stop (wifi.md W7) waits on this: MODEMD only calls WlanStart once the modem
+recovery succeeds.
