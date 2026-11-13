@@ -463,3 +463,126 @@ kernel  DataIn --(Ethernet II)--> rx queue --WlanLink op 8--> NEONET.EXE (smoltc
 - **Fix:** the supplicant leaves after 10 s in the handshake and the sheet says "Wrong password". Retyped correctly,
   the same AP connected at once.
 - **Open:** a kernel-side guard (tear down a join stuck in the handshake) in case the supplicant thread dies.
+
+## W7: interrupts, the handshake guard, a modem restart (design, 2026-11-13)
+
+**Interrupts instead of polling (battery).** Today the driver thread polls the copy engines every 2 ms while
+connected, and NEONET polls HAL op 8 every 2 ms.
+- **GIC:** `A64_BindSpi` takes every INTID up to 1019, not only those under 256. The CE lines are SPI 414–425 (INTID
+  446–457), level-triggered. New `A64_MaskSpi`/`A64_UnmaskSpi`.
+- **Driver (`qcom_wcn3990.cpp`):**
+  - Binds the destination copy engines that carry traffic: CE1, CE2, CE5, CE9, CE10, CE11. Their `HOST_IE`
+    copy-complete bit is set.
+  - **The ISR masks its line at the GIC** (the GIC acknowledges before the ISR runs, so a level line would fire again)
+    and adds an IDFC. The IDFC signals the `Serve()` thread's fast semaphore.
+  - **`Serve()` waits on that semaphore**, then clears `HOST_IS`, reaps, and unmasks. A timer wakes it too:
+    - every 1 ms while scanning or in a join (these stay polled);
+    - every 100 ms while connected (housekeeping);
+    - every 1 s otherwise.
+  - The HAL requests (join, leave, frames to send, scans) also signal the semaphore.
+  - **Fallback:** if frames keep arriving while no interrupt has fired, the driver logs it and goes back to the old
+    polled sleeps.
+- **HAL WlanLink op 10 (notify):** a2 is a `TRequestStatus*`. It completes when a received frame is queued or the
+  link state changes, or at once if a frame is already waiting. One request at a time. **Op 11** cancels it with
+  `KErrCancel`.
+- **NEONET** waits on op 10 together with its server messages and smoltcp's next timer, instead of polling every
+  2 ms. If op 10 is refused (an older kernel), it falls back to the 2 ms poll.
+
+**Handshake guard.** If the link stays in the handshake for more than 15 s (the supplicant gives up at 10 s), the
+driver tears the join down itself: link error, `KErrTimedOut`.
+
+**A modem restart.** `Wcn3990_ModemDown` only sets a flag. `Serve()` then:
+- masks the CE interrupts;
+- ends the link (lost);
+- resets the bring-up state;
+- returns.
+
+`Wcn3990_Start` accepts a new start once the modem is down. `Run()` already reuses the DMA pool and carves the same
+layout again from offset 0. MODEMD re-runs WLFW after the modem restarts and calls WlanStart. NEONET and neoui's
+rejoin then work as after a boot. **Risk:** the chip may not accept a second WMI init without a reset. The phone test
+will tell.
+
+**Result (phone, RAM boot, 2026-11-13; kernel `6bac85c6`):**
+- `serving: CE interrupts`. Scans, the join, DHCP and SYSSTART's internet check all ran on interrupts, and the saved
+  network was rejoined at boot on its own. Ping from the Mac: 10/10, 15 ms average. NEONET logs `link events on`
+  and no longer polls.
+- On a weak AP (-75 dBm on 5 GHz) the link dropped on a beacon miss (the firmware's roam event, reason 2) in both
+  interrupt and polled mode (`wifi polled` A/B), so not an interrupt problem. On the strong AP it held.
+- **After `mss fault`,** the driver let go as designed (`Wi-Fi waits for WlanStart`). The modem restarted (QRTR up
+  after 6.4 s), but MODEMD then found the ADSP reporting fatal (its state word `[4, 0, 7, 3]`, bit 0) and restarted
+  the modem again, three times, until the modem itself went FATAL. So WlanStart never came, and **the re-init is
+  not proven yet.** Cause and fix: [telephony.md](telephony.md), "Modem restart and the ADSP".
+- The 15 s handshake guard was not triggered (the supplicant's 10 s timeout acts first).
+
+**NeoNet API 1.1 (UDP and listening sockets).** NEONET and the `net` crate share one socket id space, 24 sockets
+in all.
+
+| Op | Arguments | Completes with |
+|---|---|---|
+| 7 `UDP_OPEN` | a port (0: any) | the id |
+| 8 `SEND_TO` | id, data, a 6-byte endpoint `{ip, port big-endian}` | the length |
+| 9 `RECV_FROM` | id, out data, out endpoint | the length (`KErrOverflow`: the datagram didn't fit and is gone) |
+| 10 `LISTEN` | a port | the id |
+| 11 `ACCEPT` | the listener's id, out endpoint | the connection's id |
+
+- Host tests run UDP and listen/accept over smoltcp's loopback device.
+- Shortcut: one waiting connection per listener (smoltcp has no backlog).
+
+**NEONET.DLL (C++)** (`build/apps/neonet/`): `RNeoNet` on `RSessionBase`. Each method is one NeoNet op, and the
+waiting ones complete a `TRequestStatus`. Its 12 exports are frozen in `eabi/neonetu.def`. `NEONETT.EXE` is the
+phone test: it waits for an address, resolves a name, fetches `generate_204` over TCP, and sends a DNS query to the
+gateway over UDP. It prints `neonett: PASS`.
+
+## W5a: ESOCK over NeoNet (2026-11-13)
+
+**Goal:** 2010 programs work unchanged through the real socket API: `RSocketServ`, `RSocket` (TCP and UDP),
+`RHostResolver` and `RConnection`.
+
+**One IP stack: NEONET.** There is no TCPIP6 and no NIF; a second stack on the same MAC would fight smoltcp for DHCP
+and the frames.
+
+**The gate (read in the 2010 sources):**
+- **Every implicit socket or resolver needs a connection stack, but never a started one.** `RSocket::Open` without
+  an `RConnection` asks the tier manager plane for an implicit flow (`ss_roles.cpp`). That looks up the CommsDat tier
+  tagged with the address family (KAfInet = 2048), selects its MCPR, and creates the CPR, the SCPR and the flow. With
+  the transport flow shim (`0x101F7482`) as the flow, the shim loads our protocol module. No step starts a bearer
+  unless the protocol asks for one (`NoBearer`).
+- **`RConnection::Start` on a bottom-layer vanilla stack** runs start → no bearer → MCPR finds no next layer → start
+  self → started. No agent, IAP or NIF is involved. commsfw's own test configuration runs exactly this
+  ("DummyVanillaWithNoNextLayer").
+
+**The pieces:**
+
+| Piece | What |
+|---|---|
+| ESOCK and the comms framework, from the 2010 sources | About 50 binaries in `build/emitter/comms_components.py`, all built by our MMP builder: c32start, c32exe and the root server, the commselements, commsbufs, esock/esocksvr with their params and messages, the core, mobility and UPS providers, CommsDat with the commdb shim, insock, and edbms/dial/upsclient/logwrap. mbufmgrimpl needs two include shims (its headers' names clash with commsbufs/version1's under casefix), and edbms needs `foff_dynamic` |
+| `.cmi`/`.ini` (stock) | c32start's `esock.cmi` (the dealer), `esock_tr`, `esock_mip` (ESock_IP: TM/MCPR/CPR/SCPR), `esock_dip` (ESock_DIP: data, `IP.*.ESK`), `c32start.ini` |
+| `NEOTIER.DLL` (`build/apps/esock/neotier`) | ECom: a tier manager whose selector always picks the tier's default access point, whatever the preferences (an IAP, a SNAP, none), and the core MCPR. CommsDat holds these UIDs as signed fields, so they are `0x0E004005`/`0x0E004006` |
+| `NEONET.PRT` (`build/apps/esock/neonetprt`) | The KAfInet protocol module: TCP (connect, listen/accept, stream data) and UDP (bind, send-to, receive-from, "connected" datagrams), and the host resolver, all over `NEONET.DLL`. It runs in ESock_DIP and never blocks: each waiting NeoNet call is an active object. Cancelling closes the NeoNet socket (or, for a connect, the session), and NEONET then answers the waiting call with KErrCancel |
+| `ip.neonet.esk` | `protocols= tcp,udp` from `neonet.prt` |
+| CommsDat | The ROM repository is the 2010 empty one (`defaultcommdb/src/empty.txt`, policies only). `NEOCDB.EXE` writes our records at boot through the CommsDat API, so they always match this schema: the MCPR, the vanilla CPR/SCPR, the flow shim, access point 10000 "NeoNet", tier 2048 (ESock_IP, neotier's tier manager), and GlobalSettings' default tier. It does this once; NEONET starts it |
+| `NEOSOCK.EXE` | The test, through the 2010 API: the protocol list, `RConnection` Start/Stop, resolving `localhost`, TCP listen/accept/connect and both directions, and a UDP datagram, all on 127.0.0.1. With `net`, it also fetches `generate_204` |
+
+**NEONET on a board without Wi-Fi (Syborg):** the HAL has no WlanLink, so NEONET runs a loopback interface at
+127.0.0.1/8 (a static address, no DHCP; `localhost` resolves). This makes the whole path testable on QEMU.
+
+**Why not the 2009 Linux `ced`:** commsfw ships a prebuilt i386 `ced`, and it runs in an i386 container. But it writes
+the pre-Symbian^3 schema: its tier records have no `TierImplUid`, and ESOCK's lookup of tier 2048 needs one. Writing
+the records at run time through CommsDat avoids both a host build of `ced` and a hand-made `.cre`.
+
+**Result (2026-11-13; build `61ce5c4`):**
+- **Syborg (QEMU):** `NEOSOCK` passes on NEONET's loopback: the protocol list, `RConnection::Start`, `localhost`,
+  TCP listen/accept/connect and data both ways, and UDP. This meets the W5a exit test.
+- **Phone, over Wi-Fi:** `NEOSOCK` passes (the 2010 API: an HTTP 204 from connectivitycheck.gstatic.com over TCP
+  and a DNS answer from the gateway over UDP), and so does `NEONETT` (NEONET.DLL directly). CommsDat persists on C:
+  (`neocdb: tier 2048 present` on the next boot).
+- **Found on the way:** every Rust EXE had asked for a 128 KB stack since 2026-11-11, and the 2010 kernel on Syborg
+  refuses more than 80 KB ("Too Big"). Probably that is also why the neoui Syborg CI is red. `exes.txt` now takes
+  `stack=`.
+
+**Shortcuts:**
+- socket options are accepted and ignored;
+- one waiting connection per listener;
+- no reverse lookups;
+- the UPS prompt stubs (upsclient) are never reached, because the vanilla access point carries no UPS extension;
+- no IAP records yet, so apps that list IAPs see none.
