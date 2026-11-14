@@ -681,6 +681,36 @@ Reference: [symbian-phone-sources.md](symbian-phone-sources.md), the facts C8 ta
 sources (dial-string rules and test vectors, SS codes, caller-name matching, smart dialling, Logs and Speed dial
 behaviour, vCard mapping).
 
+**Design (2026-11-14).** Phone and Contacts stay pages of the neoui shell; the pure logic is in host-tested crates.
+
+- **telephony `phone-rules`** (new, `no_std`), shared by MODEMD and neoui:
+  - `dial::classify`: what a typed string is (IMEI, emergency, service code, in-call command, SIM or maker code,
+    number with caller-ID prefix and DTMF part, USSD), with the service-code table. All 26 vectors of
+    symbian-phone-sources §5 are tests.
+  - `emergency`: 112 and 911, the SIM's list or the fallback.
+  - `number`: two numbers are one subscriber when their last 7 digits match and up to 8 more agree; a caller gets a
+    name only when exactly one contact matches.
+  - `caller::caller_line`: name and number, "Private number", "Payphone", "Unknown number".
+- **MODEMD, IPC 2.1** (`modem-ipc`):
+  - `CALL_LOG` (17) writes up to 60 `LogEntry` records, newest first: id, start (UTC ms), duration, kind (dialled,
+    received, missed, rejected), presentation, number. `Status.log_revision` changes with the log.
+  - `CLEAR_LOG` (18): one entry or all, optionally one kind.
+  - `CALL_SETTINGS` (19): caller ID (0 network, 1 hide, 2 show; the Symbian^3 values) and how many days the log keeps
+    (0 = no log, 1, 10, 30).
+  - `CALL_WAITING` (20): query, activate or deactivate; the network's answer is `Status.waiting`.
+  - Each call carries the network's presentation of its number.
+- **The log** (`modem-proto` `calllog`): every call is recorded when it ends or leaves the call list: outgoing as
+  dialled, answered incoming as received (duration from connection), incoming hung up while ringing as rejected,
+  otherwise missed. A modem restart logs its calls as ended. Kept in `C:\private\e0003001\calls.db` (`NCL1`).
+- **Caller ID** goes as a `*31#` (show) or `#31#` (hide) prefix on the dialled number, as Symbian^3 did; a prefix the
+  user typed wins. libqmi has no CLIR TLV for Dial Call; if the modem refuses the prefix, the Qualcomm IDL's
+  `clir_type` TLV is the fallback.
+- **Call waiting** is never stored on the phone: QMI VOICE Get Call Waiting (0x34, voice class 0x01) and Set
+  Supplementary Service (0x33, reason 0x0F).
+- `settings.bin` gets a `C8` record (C7's fields, caller ID, log days); C7 files still load.
+- **neoui**: a `neoui-contacts` crate (store, smart dialling, vCard), Recents, Speed dial, Contacts and Settings →
+  Phone pages, and the caller's name on the call screens.
+
 ### C9: SMS
 
 - QMI WMS:
