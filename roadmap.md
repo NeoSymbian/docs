@@ -29,6 +29,7 @@ The audit changed documentation only; its proposed fixes and runtime acceptance 
 | Kernel | existing | The 2010 SMP EKA2 (kernelhwsrv `201043_12`), as an ILP32 AArch64 kernel (`port-map.md`). |
 | User side | user | Keep the 2010 Symbian user side, built 32-bit ARM by Phorepoc and run unchanged at AArch32 EL0: file server, servers, eshell, old apps. |
 | UI | user | A **new Rust UI server** replaces the old window server and UI. The system apps are written in Rust. |
+| Old apps | user (2026-11-14) | Unmodified S60 `.sis` apps run in one shared guest window server inside neoui, listed by AppArc in a native Old apps grid; runtime in NeoSymbian/legacy, Symbian fixes in their forks (`legacy.md`). |
 | Driver language | user: "a mix"; the split is **my call** | See next section. |
 | Hardware reference | **my call** | Mainline Linux (sdm670/sdm845), postmarketOS and freedreno are read for register layouts and protocol behaviour only. No code is copied from them (GPL vs EPL/Apache). |
 
