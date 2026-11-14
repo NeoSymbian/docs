@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: Apache-2.0
+# Device test reports. The website (NeoSymbian/neosite, assets/report.js) prefills these fields by id.
+name: Device report
+description: You tried NeoSymbian on a phone. Tell us what worked.
+title: "Device report: "
+labels: ["device-report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing. Fill in what you know. **Don't paste an IMEI, ICCID, serial number or phone number.**
+  - type: input
+    id: model
+    attributes:
+      label: Phone model
+      placeholder: Google Pixel 3a XL
+    validations:
+      required: true
+  - type: input
+    id: codename
+    attributes:
+      label: Codename
+      placeholder: bonito
+  - type: dropdown
+    id: bootloader
+    attributes:
+      label: Bootloader
+      options:
+        - Unlocked
+        - Locked
+        - Not sure
+  - type: input
+    id: build
+    attributes:
+      label: Build or commit tested
+      placeholder: kernel abc1234
+  - type: input
+    id: working
+    attributes:
+      label: What you saw working
+      placeholder: Boots, Screen, Touch, Storage, Calls, Wi-Fi
+  - type: textarea
+    id: log
+    attributes:
+      label: Kernel log, last lines
+      description: From the debug console. Text only.
+      render: text
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Before you post
+      options:
+        - label: The log has no IMEI, ICCID, serial number or phone number.
+          required: true
