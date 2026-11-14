@@ -711,6 +711,45 @@ behaviour, vCard mapping).
 - **neoui**: a `neoui-contacts` crate (store, smart dialling, vCard), Recents, Speed dial, Contacts and Settings →
   Phone pages, and the caller's name on the call screens.
 
+**Phone and Contacts became their own app, NEOPHONE (2026-11-14).** The owner approved 27 mockups (N8 Belle,
+modernised) and asked for one app behind two home icons, outside neoui:
+- **[NeoSymbian/phone](https://github.com/NeoSymbian/phone)**: `NEOPHONE.EXE` (uid 0xE0005001).
+  - It talks to MODEMD directly.
+  - The crates: `contacts` (moved from `neoui-contacts`, plus the per-script A–Z index: Latin, Armenian, Cyrillic),
+    `phone-core` (pages, dialer, Recents, call screens, speed dial, blocking; host-tested), `phone-ui` (the Slint
+    screens with neoui's theme as `@neoui/...`, snapshot tests).
+  - Screens: the dialer with Recents above the keypad, Recents with filters, call details, speed dial, every call
+    screen (incoming, calling, active, waiting, two calls, keypad, summary), the contact list, card, editor, and the
+    Phone & Contacts settings with Blocked numbers.
+- **neoui** (app protocol 1.4, then 1.5):
+  - the app is resident (started hidden at boot) and Contacts is an alias of its page 1;
+  - the shell opens its pages (dial, contacts, recents, call, settings, speed) and lets it set the title and the
+    toolbar's middle button;
+  - the shell keeps a small phone service: MODEMD, the status bar, the SIM prompt, the missed-calls count, and
+    bringing NEOPHONE up on a call;
+  - the keyboard closes on a tap outside a field, a toolbar key puts it away, and there are number and phone pads.
+- **Blocking (MODEMD, IPC 2.2):**
+  - `BLOCK_GET` (21) and `BLOCK_SET` (22) carry the list (`phone_rules::block`, `NBL1`): number or prefix rules for
+    calls and/or messages, plus switches for private and unknown callers.
+  - `KNOWN_SET` (23) carries hashes of the contacts' numbers, so "unknown" works without the book.
+  - A matching incoming or waiting call is rejected as busy (UDUB, END if refused) before it rings. It is hidden from
+    clients and the alerts, logged as `BLOCKED` with the rule (`LogEntry.why`, 52 bytes; `calls.db` is `NCL2` and
+    still reads `NCL1`), kept 7 days at most, and never counted as missed. Emergency numbers are never blocked. The
+    list is kept in `block.db`.
+- **End & answer:** `manage::END_ANSWER` (Manage Calls type 2) releases the active call and answers the waiting one.
+
+**Results (phone, 3G SIM, 2026-11-14):**
+- The ringtone and the vibration work. The freeze had two causes, both fixed: the ADSP's DMA needed the apps SMMU
+  stream 0x1801, and the haptic reset GPIO was in the wrong TLMM tile (kernel db185c62).
+- Reject gives the caller "busy".
+- NEOPHONE's screens and the keyboard fixes were checked by the owner on RAM boots (np2, np3), then installed on slot
+  a.
+- **Still open:**
+  - emergency numbers are still refused when dialled (MODEMD's 5-digit floor), until the modem's emergency call type
+    is used;
+  - the Message buttons and "Reply with message" wait for C9;
+  - no contact photos yet.
+
 ### C9: SMS
 
 - QMI WMS:
@@ -812,7 +851,8 @@ Direct GPL ports so far: none.
 | C5b | **done 2026-11-09** (kernel `d003355`): IPA runs (GSI firmware via PAS 15, SMMU identity context, command and LAN_RX channels); the modem stays on LTE, calls CSFB to 3G and back; the IPA QMI handshake is still half done (needed for data) |
 | C6 | **done 2026-11-09** (kernel `b12d1ba`, telephony `3f4af12`, neoui `2d55d01`): the ADSP boots (PAS 1), APR in Rust, CS35L36 x2 + RT5514 board driver; two-way call audio on the earpiece and loudspeaker, Mute / Speaker / volume / DTMF; Dev tools audio loopback test; the modem stayed on 3G after a connected call (fixed 2026-11-12, kernel `69bb4cd3`: the codec's rails were on the wrong PMIC) |
 | C7 | **merged 2026-11-12** (C7 PRs merged with main, owner's call to land before the C7 phone acceptance): IPC v2, multi-call, SIM PIN, airplane, ringtone + haptics, modem recovery (never stops the ADSP); phone acceptance of the C7 behaviours pending; wired headset deferred |
-| C8–C12 | not started |
+| C8 | **done 2026-11-14**: call log, caller ID, call waiting, contacts and the blocklist; Phone + Contacts as the NEOPHONE app (NeoSymbian/phone), installed on slot a |
+| C9–C12 | not started |
 
 ## Modem restart and the ADSP (2026-11-13, open)
 

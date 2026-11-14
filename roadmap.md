@@ -230,6 +230,11 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   - a terminal mode;
   - shell text fields that bring it up (the Wi-Fi password);
   - [rust-integration.md](rust-integration.md) R6d.
+- **Phone and Contacts (done 2026-11-14):**
+  - NEOPHONE, one resident app behind both icons ([NeoSymbian/phone](https://github.com/NeoSymbian/phone));
+  - dialer, Recents, speed dial, every call screen, contacts with per-script sections, settings and the blocklist;
+  - [telephony.md](telephony.md) C8;
+  - the keyboard got number and phone pads and a toolbar key to put it away.
 
 **U4: GPU** (stretch)
 - Adreno 615 + GMU + its SMMU. Kernel part in C++; command-stream builder in Rust. Freedreno is the reference.
