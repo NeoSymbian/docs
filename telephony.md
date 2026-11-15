@@ -747,7 +747,7 @@ modernised) and asked for one app behind two home icons, outside neoui:
 - **Still open:**
   - emergency numbers are still refused when dialled (MODEMD's 5-digit floor), until the modem's emergency call type
     is used;
-  - the Message buttons and "Reply with message" wait for C9;
+  - the Message buttons and "Reply with message" waited for C9 (done since, below);
   - no contact photos yet.
 
 ### C9: SMS
@@ -761,6 +761,49 @@ modernised) and asked for one app behind two home icons, outside neoui:
 - The Symbian SMS stack is not used.
 
 Exit: an SMS round-trip with the owner's phone, including Armenian and Cyrillic text and a 300-character message.
+
+**Built 2026-11-15** (telephony `b507638`, phone `b18c0e2`, neoui `c0f7aa0`). The owner approved 9 more mockups
+(28-36): Messages is NEOPHONE's third icon, with the shared settings and blocklist.
+- **`sms` crate (new, host-tested):** GSM 7-bit with the extension table, UCS-2 with surrogate pairs, part counting
+  for the composer (160/153, 70/67, at most 10 parts; an escape or a surrogate pair is never split), SMS-SUBMIT with an
+  8-bit concat header, SMS-DELIVER and SMS-STATUS-REPORT parsing, alphanumeric senders.
+- **QMI WMS in MODEMD** (`modem-proto` `wms.rs`; client port 0x27). Facts from libqmi, checked against the C1
+  ModemManager capture:
+  - Set Event Report, then Set Routes: classes 0, 1, 3 and none transfer-only to us, class 2 stays with the SIM,
+    status reports transferred too.
+  - The transfer-route MT TLV 0x11 carries a bare TPDU, with no SMSC address in front.
+  - List Messages needs a message tag: MODEMD drains MT read and not-read on the UIM and in NV at start.
+  - Raw Send sends the TPDU after an empty SMSC address (`00`), one part in flight at a time, and gives up after 60 s
+    without an answer.
+  - Send Ack and the deletions in modem storage go out only after `sms.db` is written.
+- **The store** (`modem-proto` `messages.rs`, `C:\private\e0003001\sms.db`, `NSM1`):
+  - every change gets a store revision; deletions stay as tombstones, so clients can drop their copies;
+  - long messages wait a day for their parts, then show with "…" for the missing ones;
+  - blocked messages are kept 7 days and never alert;
+  - a send in progress at a restart becomes Failed, so the user can retry it;
+  - `shortcut:` 2000 messages, one file rewritten on every change.
+- **Blocking:** `phone_rules::block::check_message` uses the number and prefix rules marked "Messages". The private
+  and unknown switches stay calls-only (bank codes and operator names aren't contacts).
+- **modem-ipc 2.3:**
+  - ops `SMS_SEND` 24, `SMS_READ` 25 (changes since a revision, or the newest unread), `SMS_EDIT` 26 (read, delete,
+    thread, retry), `SMS_SETTINGS` 27;
+  - `SmsEntry`, `SmsSettings`;
+  - `Status.sms_revision`, `sms_unread` and `sms_senders`.
+  - Delivery reports (on by default) and the alert (tone and vibration / vibration / silent) are kept in `sms.db`; the
+    SMSC lives in the modem.
+- **The alert:** two 150 ms buzzes and the first 0.8 s of the ringtone, never during a call or while it rings.
+- **NEOPHONE (page 6):**
+  - the conversations, a thread (✓ sent, ✓✓ delivered, retry a failed one), a new message to several recipients, and
+    the blocked messages;
+  - "Reply with message" on an incoming call: busy, then the SMS;
+  - Message on the call summary, the call details and the contact card;
+  - Settings: delivery reports, message centre, alert, quick replies (`replies.txt`);
+  - the composer stays above the keyboard.
+- **neoui:**
+  - `messages` is an alias of NEOPHONE's page 6, and the mock Messages screen is gone;
+  - the phone service shows an envelope in the status bar and the shade's "N new messages".
+- **Still to check on the phone:** the exit test above, and that Raw Send takes the `00` SMSC prefix (ModemManager's
+  form; libqmi alone doesn't say). Not done: MMS (needs C10), cell broadcast, SMS over IMS.
 
 ### C10: mobile data
 
@@ -852,7 +895,8 @@ Direct GPL ports so far: none.
 | C6 | **done 2026-11-09** (kernel `b12d1ba`, telephony `3f4af12`, neoui `2d55d01`): the ADSP boots (PAS 1), APR in Rust, CS35L36 x2 + RT5514 board driver; two-way call audio on the earpiece and loudspeaker, Mute / Speaker / volume / DTMF; Dev tools audio loopback test; the modem stayed on 3G after a connected call (fixed 2026-11-12, kernel `69bb4cd3`: the codec's rails were on the wrong PMIC) |
 | C7 | **merged 2026-11-12** (C7 PRs merged with main, owner's call to land before the C7 phone acceptance): IPC v2, multi-call, SIM PIN, airplane, ringtone + haptics, modem recovery (never stops the ADSP); phone acceptance of the C7 behaviours pending; wired headset deferred |
 | C8 | **done 2026-11-14**: call log, caller ID, call waiting, contacts and the blocklist; Phone + Contacts as the NEOPHONE app (NeoSymbian/phone), installed on slot a |
-| C9–C12 | not started |
+| C9 | **built 2026-11-15**: SMS through QMI WMS in MODEMD, Messages in NEOPHONE (page 6), Reply with message, message blocking; host-tested, phone test pending |
+| C10–C12 | not started |
 
 ## Modem restart and the ADSP (2026-11-13, open)
 
