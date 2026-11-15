@@ -176,8 +176,11 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
 - **Tickless idle**: don't wake idle cores every 1 ms.
 - **CPU frequency scaling** through the SoC's cpufreq hardware block (needs H1). Started (smooth-ui S3c, 2026-11-08):
   `qcom_cpufreq.cpp` sets the OSM steps, top on input and ABL's 3 s later; a governor comes with power (H3).
-- **More than 4 GB physical**: widen `TPhysAddr` to 64 bits in the memory model. Only if the RAM map (unverified)
-  puts memory we need above 4 GB.
+- ✅ **The RAM map from the bootloader's DTB** (kernel `a64boot.cpp`, 2026-11-15).
+  - The kernel takes `/memory` below 4 GB, minus the reserved regions and the board's RAM-backed IO.
+  - On the Pixel that is 1687 MB in 8 banks; it was 52 MB.
+- **More than 4 GB physical**: widen `TPhysAddr` to 64 bits in the memory model. The Pixel's DRAM runs from
+  0x80000000 to 0x17FFFFFFF, so this is its other 2 GB.
 - Exit: before/after numbers from the nkernsa benchmarks, boot time, and idle current.
 - The UI's needs from M4 (clocks, placement, FP/NEON for user code) are stages S3–S4 of [smooth-ui.md](smooth-ui.md).
 

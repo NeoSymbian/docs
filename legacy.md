@@ -76,6 +76,34 @@ unmodified S60 app processes
    - LEGACY starts the app through AppArc, claims Back and calls `FRONT(1)`.
    - Back or the app's exit closes that app and calls `FRONT(0)`, which shows the grid again.
 
+## Finding the failing call (the failure trace)
+
+An old app usually dies with a bare reason (`Killed -1`), and RVCT apps may ship encrypted code (X-plore loads its
+program from an encrypted `app.bin`), so the failing call is found at run time:
+- **The switch** is debug-mask word 3 bit 31 (`KNEOLEGACYTRACE`). LEGACY.EXE sets it when the old-app runtime starts,
+  so boot stays quiet.
+- **What it logs:** every process except ours (SID 0xE…) writes `neotrace:` lines to the debug log:
+  - leaves (`User::Leave`, `LeaveIfError`, `LeaveIfNull`, `LeaveNoMemory`), with the caller's address;
+  - `User::Exit` with an error, and failed `RLibrary::Lookup` calls (DLL and ordinal) (euser `us_trp.cpp`);
+  - failed file-server requests, with the function number and file name, and failed loader requests, with the file
+    name (F32 `sf_request.cpp`, `sf_ldr.cpp`).
+- **Mapping an address:** the core ROM has fixed addresses (`ROFS_CORE='\.dll$'`), so a caller maps to an image and
+  function through the ROM map plus `addr2line` on the image's ELF.
+- **Reading it:** the last leaves before the exit name the failing call.
+
+It opened up both test apps:
+
+| Exit | Traced to | Fix |
+|---|---|---|
+| `Killed -1` | `CTelephonyFunctions::ConstructL`: `RTelServer::Connect`, no ETel server | cellularsrv: a phone-less `CTelephony` (the phone identity is answered; everything else is `KErrNotSupported`) |
+| `-20` | `CPtiDefaultCore::InitializeL`: no key-map data plugin | legacy: `PtiKeymappings_ITUT_01` (English) |
+| "System error." note | every app loading AknFep, the default FEP in `EIKPRIV.RSS`, not built | classicui: no default FEP until AknFep is built |
+| Frozen Bubble: `KERN-EXEC 3` in `CActive::Cancel` | foreground lost before its first idle callback had made its game timer: the first app started AknCapServer, EikSrv and the skin server, whose windows took the focus | legacy: LEGACY.EXE starts AknCapServer first (`RAknUiServer::StartAknCapserverL`, as the starter does) |
+| Frozen Bubble: not loadable, then `EUSRNIMP` and `E32USER-CBase 47` in its mixer thread | `mediaclientaudiostream.dll` missing; then DevSound's proxy on panic stubs; then `CMMFDevSound::NewL` leaving `KErrNotFound` (no audio server) | legacy: the MMF audio clients; os.mmaudio: `CMdaAudioOutputStream` constructs without a server, and its open reports `KErrNotSupported` |
+
+A RAM-loaded EXE also gets 64 KB of stack at least (the F32 loader). RVCT's default is 8 KB, and our GCC-built Avkon
+needs more than that: Frozen Bubble overflowed in `CEikStatusPaneLayoutTree::AknLayoutRect`.
+
 ## Milestones
 
 | | Work | Done when |
@@ -89,6 +117,17 @@ unmodified S60 app processes
 | **L5** | Breadth: screen modes and rotation, a FEP bridge to the neoui keyboard, media, a corpus of apps. | Per-app feature results published. |
 
 Each step is tested on QEMU (Syborg, watched over VNC with `neo live`), then on the Pixel.
+
+**Status (2026-11-15):**
+- L0 and L0.5 are done.
+- L2 has started:
+  - X-plore 1.64 opens its file browser.
+  - Frozen Bubble opens its main menu, silent: there is no audio server yet.
+- Next:
+  - an on-screen key pad, since S60 3rd-edition games are driven by keys;
+  - the phone run with the full RAM map;
+  - AknFep;
+  - an audio server.
 
 ## Open decisions (owner)
 
