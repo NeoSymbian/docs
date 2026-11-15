@@ -236,6 +236,10 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   - dialer, Recents, speed dial, every call screen, contacts with per-script sections, settings and the blocklist;
   - [telephony.md](telephony.md) C8;
   - the keyboard got number and phone pads and a toolbar key to put it away.
+- **Web browser (designed 2026-11-15):** [browser.md](browser.md). Servo, native on the phone, in a new
+  `NeoSymbian/browser` repo with forks only where needed; stages WB0–WB7 (about 29–56+ PM). It needs smooth-ui S4
+  (FP/NEON, ARMv7 atomics), M4.3 (the RAM map, kernel branch `ram-map`), bigger stacks and VM primitives first. WB0, a host proof on armv7 Linux,
+  is the go/no-go.
 
 **U4: GPU** (stretch)
 - Adreno 615 + GMU + its SMMU. Kernel part in C++; command-stream builder in Rust. Freedreno is the reference.
