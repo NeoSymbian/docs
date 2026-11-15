@@ -39,7 +39,7 @@ do not prove hardware absence. Keep full DTBs and firmware under `private/`.
 | Front camera | DTB Sony IMX355, CCI1 `0x1a`, MCLK2 19.2 MHz, reset GPIO9 | CCI/CAMSS/DMA and software image processing |
 | Rear camera | DTB Sony IMX363, CCI0 `0x1a`, MCLK0 24 MHz, reset GPIO127; LC898219XI focus actuator | Separately pinned downstream mode/calibration evidence, capture and focus |
 | Wi-Fi | DTB WCN3990 enabled at `0x18800000` | QMI firmware control plus SNOC copy engines and full packet/protocol path |
-| Bluetooth | DTB WCN3990 UART transport | GENI UART/HCI, firmware, IBS sleep, BLE and audio profiles |
+| Bluetooth | DTB WCN3990 UART transport; design in [bluetooth.md](bluetooth.md) | GENI UART/HCI, firmware, IBS sleep, BLE and audio profiles |
 | GNSS | Qualcomm modem; QMI LOC is a protocol reference | Discover live service, standalone fixes and typed location API |
 | NFC | DTB NXP NCI I2C `0x28`; AOSP NXP configuration | Verify chip/firmware, NCI and tag reading |
 | Fingerprint | Google FPC service configuration | Verify exact sensor and secure enrollment/matching interface; PIN fallback |
@@ -87,7 +87,7 @@ placeholders, not linked working drivers.
 | D3 audio/haptics | Independent audio lifecycle; conservative amplifier gain and fault mute; ASM/ADM 48 kHz S16 playback and mono capture; typed audio service; DRV2624; 3.5 mm jack later | Tone/WAV playback, recorded WAV, ringtone→call, volume/mute/routes; audio with no SIM/radio off and radio failures; bounded vibration |
 | D4 sensors | Sensor PD/FastRPC/reverse file service; discover actual sensor protocol; proximity/light→accel/gyro→compass/barometer→batching/fusion | Six-orientation gravity, gyro zero/motion, call proximity/light transitions, calibrated units/timestamps and wake |
 | D5 cameras | CAMCC/power/CCI/CAMSS/isolated DMA; ID→testgen→sensor pattern→scene; IMX355 first, IMX363/focus next | Reduced preview >=10 fps and recognizable persistent JPEG, correct format/orientation, bounded RAM/latency, no SMMU faults |
-| D6 connectivity | Wi-Fi: [wifi.md](wifi.md) (Symbian WLAN stack over an ath10k-derived WHA driver, decided 2026-11-12); WCN3990 SNOC/CE DMA, QMI and HTC/WMI/HTT, WPA2-PSK and ESOCK/TCPIP6 NIF coordinated with C10; BT UART/HCI/IBS and BLE→A2DP/HFP; QMI LOC | Wi-Fi scan/auth/IP/traffic, BT pairing/GATT/audio routing, outdoor standalone fix; coexistence and idle-power evidence |
+| D6 connectivity | Wi-Fi: [wifi.md](wifi.md) (Symbian WLAN stack over an ath10k-derived WHA driver, decided 2026-11-12); WCN3990 SNOC/CE DMA, QMI and HTC/WMI/HTT, WPA2-PSK and ESOCK/TCPIP6 NIF coordinated with C10; Bluetooth: [bluetooth.md](bluetooth.md) (a new Rust host stack + a 2010-compatible facade, decided 2026-11-15); BT UART/HCI/IBS and BLE→A2DP/HFP; QMI LOC | Wi-Fi scan/auth/IP/traffic, BT pairing/GATT/audio routing, outdoor standalone fix; coexistence and idle-power evidence |
 | D7 remaining hardware | NXP NCI/tag read; secure fingerprint feasibility→enrollment/matching; bounded torch | Tag events and thermal limits; fingerprint remains unsupported if secure path unavailable |
 | D8 system acceptance | Coordinated quiescence, timer accounting, wake sources/resume; legacy framework adapters after native acceptance | Repeated suspend/resume, overnight idle and recorded 24-hour mixed-use run; measured results, not a battery-life promise |
 
