@@ -1,6 +1,6 @@
 # Gesture navigation: the N9 mix
 
-**Status: designed 2026-11-16 (reviewed by Codex the same day); G1 built (neoui branch `gestures`); the [Five places](#five-places-one-strip-every-app-two-modes) strip and Page API decided, to build after review.** This page designs gesture navigation for neoui, the Rust UI shell.
+**Status: designed 2026-11-16 (reviewed by Codex the same day); G1 and the [Five places](#five-places-one-strip-every-app-two-modes) strip and Page API built (neoui, NEOPHONE), checked on the phone from RAM.** This page designs gesture navigation for neoui, the Rust UI shell.
 It is written so that a later session can build any stage from this page alone. The model is the Nokia N9's Swipe UI
 (MeeGo Harmattan, 2011). It is not Android's or iOS's. Gestures sit beside the classic Belle/N8 toolbar, and the
 user picks one or the other in Settings.
@@ -11,8 +11,8 @@ It belongs to roadmap stage U3 ("system apps in Rust", [roadmap.md](roadmap.md))
 
 | Stage | What | Status |
 |---|---|---|
-| G1 | Edge recognizer; `nav.mode`; Settings → Home screen & navigation; Back, Open apps, Home and Apps menu by edge swipe; an edge hint | Built 2026-11-16 (host tests, CI flow); phone check pending |
-| P | **Five places:** one shell-drawn bottom strip for every app, the Page API (apps declare, the shell draws), window rules | Decided 2026-11-16; to build after review |
+| G1 | Edge recognizer; `nav.mode`; Settings → Home screen & navigation; Back, Open apps, Home and Apps menu by edge swipe; an edge hint | Built 2026-11-16 (host tests, CI flow, phone) |
+| P | **Five places:** one shell-drawn bottom strip for every app, the Page API (apps declare, the shell draws), window rules | Built 2026-11-16 (P1–P3 below); Gestures as the default still to do |
 | G2 | N9 peek: the screen follows the finger, with the target underneath; letting go early cancels | Planned |
 | G3 | Open apps with live thumbnails, 2 or 3 columns, N9 long-press close mode | Planned |
 | G4 | Swipe down from the top to close an app (N9's option) | Planned |
@@ -204,17 +204,17 @@ Page {
     can_back: bool,              // Back goes to the app (else the shell handles it)
     primary: Option<Action>,     // Action { icon: TOOL_*, label }: the pill
     cancel: bool,                // a form: Cancel beside the primary
-    options: Vec<String>,        // ≤ 12; empty = no ⋮
-    keyboard: u8,                // KEYBOARD_* mode for the page's fields
+    options: Vec<String>,        // ≤ 12 labels of ≤ 32 bytes; empty = no ⋮
     full: bool,                  // full screen: no status bar, no strip
-    pages: Option<(u8, u8)>,     // a page switch: (count, current); the shell draws the dots beside the title
+    dots: Option<(u8, u8)>,      // a page switch: (count, current); the shell draws the dots beside the title
 }
-Query { text: String, buttons: Vec<String> /* ≤ 3 */, destructive: Option<u8> }
+Query { text: String /* ≤ 160 bytes */, buttons: Vec<String> /* 1..=3 */, destructive: bool /* the first is red */ }
 ```
 
 - **Events** (16 bytes each, as today): `Primary`, `Cancel`, `Option(i)`, `Back` (only while `can_back`) and
   `Answer(i)`. `Visible`, `Keyboard`, `Quit`, `Page` and input are unchanged.
-- **`neoapp`:** `app.page(&Page)`, `app.query(&Query)`.
+- **`neoapp`:** `app.page(&Page)`, `app.query(&Query)`, `app.close_query()`.
+- **The keyboard** stays with `KEYBOARD` (it answers with the height), so the Page has no keyboard field.
 - **Old apps:** an app that never sends `PAGE` gets an implied Page:
   - the title from `TITLE`;
   - the primary from `TOOLBAR`;
@@ -228,6 +228,10 @@ Query { text: String, buttons: Vec<String> /* ≤ 3 */, destructive: Option<u8> 
   never resize anything.
 
 ### Build order
+All six built on 2026-11-16 except the last: neoui `bf258d9` (1), `47769cc` (2), `949cc6c` (3), `873dc49` (4), and
+NEOPHONE `24328b1` (5). On the phone the owner asked for one change: in Gestures, a shell screen with nothing in the
+strip (the Apps menu, Settings) has no strip at all, and an app's empty strip is plain black (neoui `28b512f`).
+
 1. **`neoui-proto`:** `page.rs` (Page and Query encode/decode with limits) and its tests; `ipc.rs` 1.7; the registry
    key `nav.strip` 0..=2.
 2. **Shell:**
