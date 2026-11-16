@@ -119,6 +119,9 @@ model; both arrived at "apps declare, the shell draws". This chapter is the merg
    - In Gestures the edges still work.
    - In Classic a tap shows the strip for 3 s.
 9. **The keyboard covers the strip while it is open** and brings its own hide key. The strip returns when it closes.
+10. **Classic always shows the strip,** home included. There, the page's main action is Apps (the app menu) and ⋮ holds
+    Edit home and Wallpaper. Gestures home has no strip; its dock carries Apps, and the edges do the rest. (Owner,
+    2026-11-16.)
 
 ### Arrangement (`nav.strip`, Classic only)
 | Value | Strip | Note |
@@ -151,8 +154,11 @@ Keyboard open                             Full screen (active call, camera, vide
   Back first hides the keyboard             Gestures: edges work; Classic: tap → strip for 3 s
 
 Home                                      Apps menu / Open apps (shell screens, same strip)
-  no strip; dock:                           Apps:      primary none, ⋮ none
-  Phone · Messages · ▢ Open apps · Browser · Apps   Open apps: primary Home, ⋮ Close all
+Classic  │ ← ⌂ ▢ │       ( Apps )   ⋮ │     Apps:      primary none, ⋮ none
+  ← dimmed, ⌂ lit; ⋮ = Edit home, Wallpaper  Open apps: primary Home, ⋮ Close all
+  dock: Phone · Messages · Browser · Camera
+Gestures: no strip on home; dock:
+  Phone · Messages · Browser · Camera · Apps
 ```
 
 - **Incoming call:** full screen with its own Answer and Reject.
@@ -221,7 +227,8 @@ Query { text: String, buttons: Vec<String> /* ≤ 3 */, destructive: Option<u8> 
    - the Options sheet (`OptionsMenu`) is filled from the Page;
    - the shell's own screens declare Pages;
    - the keyboard gets a hide key;
-   - the new dock.
+   - home's Page (Classic strip with Apps and ⋮); the dock is Phone · Messages · Browser · Camera, plus Apps in
+     Gestures.
 3. **Server** (`symbian/src/host.rs`, `lib.rs`):
    - store each app's Page and build the implied Page;
    - route Primary, Cancel, Option and Back;
