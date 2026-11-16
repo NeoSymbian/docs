@@ -3,6 +3,7 @@
 NeoSymbian brings the open-source 2010 Symbian (EKA2, the Symbian^3 release) back to modern hardware:
 
 - **First target:** the Google Pixel 3a XL (bonito, Qualcomm SDM670).
+- **Second device:** the Pixel 3a (sargo, the same SoC), a community port since 2026-11-16 ([devices.md](devices.md)).
 - **Kernel:** ported to AArch64 with 32-bit pointers (ILP32).
 - **User side:** the 2010 Symbian user side runs unchanged in 32-bit mode at AArch32 EL0.
 - **UI:** a new touch UI written in Rust.

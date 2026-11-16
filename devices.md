@@ -1,6 +1,6 @@
 # Devices: which phones NeoSymbian can move to next
 
-**Status: shortlist (2026-11-09). Only the Pixel 3a XL (bonito) is ported.** This page lists phones from the mobile
+**Status: shortlist (2026-11-09). Ported: the Pixel 3a XL (bonito), and since 2026-11-16 the Pixel 3a (sargo), contributed by idkmaybedeveloper (kernel #18, build #28).** This page lists phones from the mobile
 Linux device lists that NeoSymbian could boot on. They are phones with an unlockable (or no) bootloader, and with
 mainline Linux support to read for register layouts. Each entry says what our port already covers and what would be
 new.
@@ -41,7 +41,7 @@ These come from the port's fixed decisions ([roadmap.md](roadmap.md), [port-map.
 
 | Phone (codename) | SoC, cores | Nura | UT | Bootloader | Reuse | New work |
 |---|---|---|---|---|---|---|
-| **Google Pixel 3a (sargo)** | SDM670 (`qcom/sdm670-google-sargo`), Kryo 360 = A75 + A55 | community | 97.3% | Unlockable (`fastboot flashing unlock`), except Verizon | `sdm670_assp` entirely, the modem firmware layout and the whole `telephony` stack | A `sargo_variant`: its panel, touch controller, DTB and partition table. **Days, not weeks** |
+| **Google Pixel 3a (sargo)** | SDM670 (`qcom/sdm670-google-sargo`), Kryo 360 = A75 + A55 | community | 97.3% | Unlockable (`fastboot flashing unlock`), except Verizon | `sdm670_assp` entirely, the modem firmware layout and the whole `telephony` stack | **Ported 2026-11-16** (kernel #18): `sargo_variant` = its board file (1080 x 2220 framebuffer, I/O map) and the Samsung S6E3FA7 OLED panel; every other driver is bonito's (touch, keys, haptics with sargo's clamp 0x5d, audio, eMMC, USB, modem). Builds with `neo kernel sargo` and the phone's own DTB. Not yet run on a sargo by the main streams: what works there is unconfirmed |
 
 ### SDM845 family (2018–2020): our closest relatives
 
