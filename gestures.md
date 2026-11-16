@@ -1,6 +1,6 @@
 # Gesture navigation: the N9 mix
 
-**Status: designed 2026-11-16 (reviewed by Codex the same day); G1 built (neoui branch `gestures`), checks below.** This page designs gesture navigation for neoui, the Rust UI shell.
+**Status: designed 2026-11-16 (reviewed by Codex the same day); G1 built (neoui branch `gestures`); the [Five places](#five-places-one-strip-every-app-two-modes) strip and Page API decided, to build after review.** This page designs gesture navigation for neoui, the Rust UI shell.
 It is written so that a later session can build any stage from this page alone. The model is the Nokia N9's Swipe UI
 (MeeGo Harmattan, 2011). It is not Android's or iOS's. Gestures sit beside the classic Belle/N8 toolbar, and the
 user picks one or the other in Settings.
@@ -12,6 +12,7 @@ It belongs to roadmap stage U3 ("system apps in Rust", [roadmap.md](roadmap.md))
 | Stage | What | Status |
 |---|---|---|
 | G1 | Edge recognizer; `nav.mode`; Settings → Home screen & navigation; Back, Open apps, Home and Apps menu by edge swipe; an edge hint | Built 2026-11-16 (host tests, CI flow); phone check pending |
+| P | **Five places:** one shell-drawn bottom strip for every app, the Page API (apps declare, the shell draws), window rules | Decided 2026-11-16; to build after review |
 | G2 | N9 peek: the screen follows the finger, with the target underneath; letting go early cancels | Planned |
 | G3 | Open apps with live thumbnails, 2 or 3 columns, N9 long-press close mode | Planned |
 | G4 | Swipe down from the top to close an app (N9's option) | Planned |
@@ -85,6 +86,153 @@ The owner chose this map on 2026-11-16. It is the N9's with two changes:
 
 Not taken from Android or iOS: no swipe-up-and-hold for recents, no sideways swipe along the bottom between apps,
 no back from both side edges.
+
+## Five places: one strip, every app, two modes
+
+**Decided 2026-11-16** by the owner, after a first idea (apps drawing their own bars, a system bar under an app bar in
+Classic, ⋮ moving between the app bar and the status bar) turned out too complex. Codex and Claude each proposed a
+model; both arrived at "apps declare, the shell draws". This chapter is the merged result. It replaces G1's
+"Classic and Gestures" section.
+
+### The rules
+1. **Apps draw content; the shell draws everything else:** the status bar, the bottom strip, the Options sheet,
+   dialogs and the keyboard. They look and behave the same in every app.
+2. **One bottom strip, 56 dp, the same height in both modes.**
+   - The app body is always 360 × 639 dp (720 − 25 status − 56 strip).
+   - Switching modes never resizes an app.
+3. **The strip has two groups:**
+   - system: `← Back`, `⌂ Home`, `▢ Open apps`;
+   - app: `Cancel` (forms only), the **primary** action as a pill, `⋮` Options.
+4. **Gestures removes the system group.**
+   - The edges do its work: left = Back, bottom = Home (keep going = Apps menu), right = Open apps, top = shade.
+   - The app group spreads over the whole strip.
+5. **One primary action per page** (Call, Save, New, Send). Everything else is in `⋮`.
+   - `⋮` shows only when the page has options; `←` is dimmed when there is nowhere to go back to.
+   - A screen never shows a button that does nothing.
+6. **Back order:**
+   1. close the sheet or dialog;
+   2. then hide the keyboard;
+   3. then go up one page;
+   4. at an app's top page, return to where you came from (home, Apps menu, Open apps). The app keeps running.
+7. **Home and Open apps never close or save anything.** Only × on an Open apps card closes an app.
+8. **Full screen** (call, camera, video, game) hides the status bar and the strip.
+   - In Gestures the edges still work.
+   - In Classic a tap shows the strip for 3 s.
+9. **The keyboard covers the strip while it is open** and brings its own hide key. The strip returns when it closes.
+
+### Arrangement (`nav.strip`, Classic only)
+| Value | Strip | Note |
+|---|---|---|
+| 0 (default) | `│ ← ⌂ ▢ │ Cancel ( Save ) ⋮ │` | System left, app right, under the right thumb. Back stays bottom-left, as on Belle and the N9 |
+| 1 | `│ Cancel ( Save ) ⋮ │ ← ⌂ ▢ │` | App left, system right |
+| 2 | `│ ← ⌂ │ Cancel ( Save ) ⋮ │ ▢ │` | Split: the system at both ends, matching the edges (left = Back, right = Open apps) |
+
+In Gestures the arrangement doesn't matter. The app group fills the strip: `│  Cancel      ( Save )       ⋮  │`.
+
+### Every state
+Each state below is shown in both modes. The arrangement is 0.
+
+```text
+App root (Contacts)                       Sub-page (contact card)
+Classic  │ ← ⌂ ▢ │        ( New )   ⋮ │   Classic  │ ← ⌂ ▢ │       ( Call )   ⋮ │
+Gestures │          ( New )          ⋮ │   Gestures │          ( Call )         ⋮ │
+         ← dimmed: nothing to go back to
+
+Form (contact editor)                     Page with no actions or options (Settings)
+Classic  │ ← ⌂ ▢ │ Cancel ( Save )    │   Classic  │ ← ⌂ ▢ │                    │
+Gestures │  Cancel      ( Save )       │   Gestures │                             │  (empty strip, 56 dp kept)
+
+Options open                              Dialog (QUERY)
+  the shell's sheet rises above the strip   centred card, buttons from the app (≤ 3),
+  Back or a tap outside closes it           destructive one red; Back = the last button
+
+Keyboard open                             Full screen (active call, camera, video)
+  keyboard over the strip, own hide key     no status bar, no strip; the call's own buttons
+  Back first hides the keyboard             Gestures: edges work; Classic: tap → strip for 3 s
+
+Home                                      Apps menu / Open apps (shell screens, same strip)
+  no strip; dock:                           Apps:      primary none, ⋮ none
+  Phone · Messages · ▢ Open apps · Browser · Apps   Open apps: primary Home, ⋮ Close all
+```
+
+- **Incoming call:** full screen with its own Answer and Reject.
+- **Legacy S60 apps:** the app group stays empty. Their softkeys come with the on-screen keypad (docs
+  [legacy.md](legacy.md)).
+- **Lock screen:** G6.
+
+### Window management
+- **Tasks:**
+  - One task per app identity.
+  - Phone, Contacts and Messages are one task, NEOPHONE (`host.rs` `ALIASES`).
+  - Shell screens (Settings, Apps menu, Open apps) are not tasks.
+- **Pages:** each app keeps its own page stack and tells the shell whether Back stays inside it (`can_back`).
+- **Open apps:** the running tasks, most recent first, the current one included.
+- **At most 4 processes**, the resident Phone and a legacy guest included.
+  - Before a new launch, the shell closes the least recently used hidden task that isn't resident.
+  - That task gets `Quit` and has 3 s to save.
+  - Today `host.rs` starts the new app first and then limits (`start` before `limit_running`); the order flips.
+- **The resident Phone** is never closed. Its Open apps card offers Dismiss, which hides it.
+- **Home, switching apps and a forced screen** (an incoming call, an alarm) keep pages and drafts. Apps save drafts
+  as they go.
+
+### The Page API
+Apps declare their page. The shell does the drawing, the Options sheet, dialogs and Back. The protocol is `NeoUi`
+1.7, additive. The pure logic lives in `neoui-proto::page`, host-tested.
+
+| Opcode | Arguments | What |
+|---|---|---|
+| `PAGE = 15` | `Des8` encoded `Page` | Sent whenever the page changes |
+| `QUERY = 16` | `Des8` encoded `Query` | A shell dialog; the answer comes back as an event |
+
+```rust
+Page {
+    title: String,               // the status bar shows it (≤ 48 bytes, like TITLE)
+    can_back: bool,              // Back goes to the app (else the shell handles it)
+    primary: Option<Action>,     // Action { icon: TOOL_*, label }: the pill
+    cancel: bool,                // a form: Cancel beside the primary
+    options: Vec<String>,        // ≤ 12; empty = no ⋮
+    keyboard: u8,                // KEYBOARD_* mode for the page's fields
+    full: bool,                  // full screen: no status bar, no strip
+}
+Query { text: String, buttons: Vec<String> /* ≤ 3 */, destructive: Option<u8> }
+```
+
+- **Events** (16 bytes each, as today): `Primary`, `Cancel`, `Option(i)`, `Back` (only while `can_back`) and
+  `Answer(i)`. `Visible`, `Keyboard`, `Quit`, `Page` and input are unchanged.
+- **`neoapp`:** `app.page(&Page)`, `app.query(&Query)`.
+- **Old apps:** an app that never sends `PAGE` gets an implied Page:
+  - the title from `TITLE`;
+  - the primary from `TOOLBAR`;
+  - `can_back` from its `NAV` Back claim;
+  - an Options claim becomes a bare `⋮` that sends today's `Options` event, so app-drawn sheets keep working.
+
+  Apps move over one at a time.
+- **Full screen:** every app surface is allocated at the full screen size (1080 × 2160 on the Pixel, about +1.5 MB
+  per app). A normal page uses the 639 dp body. A page with `full` gets the whole screen: `neoapp` resizes the app's
+  window when the app sends that Page. The app asked for it, so the resize never comes as a surprise. Mode switches
+  never resize anything.
+
+### Build order
+1. **`neoui-proto`:** `page.rs` (Page and Query encode/decode with limits) and its tests; `ipc.rs` 1.7; the registry
+   key `nav.strip` 0..=2.
+2. **Shell:**
+   - a `Strip` (`ui/components/frame.slint`) replaces `Toolbar`, with both groups, the three arrangements and the
+     full-width app group in Gestures;
+   - the Options sheet (`OptionsMenu`) is filled from the Page;
+   - the shell's own screens declare Pages;
+   - the keyboard gets a hide key;
+   - the new dock.
+3. **Server** (`symbian/src/host.rs`, `lib.rs`):
+   - store each app's Page and build the implied Page;
+   - route Primary, Cancel, Option and Back;
+   - full screen;
+   - evict before launch.
+4. **`neoapp` and the neoui apps:** Clock, Files, Dev tools and Terminal declare honest Pages.
+5. **NEOPHONE:**
+   - its per-view `Chrome` tables (`ctx.rs`) become Pages;
+   - simple dialogs become `query()`;
+   - its own Options sheet goes away.
+6. **`nav.mode` defaults to Gestures** after the phone check.
 
 ## The recognizer (G1)
 A pure state machine in `neoui-proto::gesture` (`no_std`, Apache-2.0, host-tested). It knows nothing about
@@ -171,7 +319,7 @@ default may flip.
 - Under it, one line saying what the edges do in the chosen mode.
 - Later stages add their rows here: Swipe down closes apps (G4), Open apps columns (G3), Home style (G5).
 
-### Classic and Gestures
+### Classic and Gestures (G1; replaced by [Five places](#five-places-one-strip-every-app-two-modes))
 - **Classic** is exactly today's navigation.
 - **Gestures** hides the toolbar's Back button. Action, Options and the keyboard toggle stay, so an app's `NAV`
   claims keep working. Back by gesture runs the same path as the button:
