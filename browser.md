@@ -152,7 +152,7 @@ Even running them needs legacy L4+ (installing .sis at runtime), IAP records (ES
 
 ## Repositories
 
-### `NeoSymbian/browser` (new; created at WB0)
+### `NeoSymbian/browser` (new; created at WB0, 2026-11-16)
 
 - `NEOWEB.EXE` (8.3 ROM name), the embedder:
   - ServoBuilder/WebView;
@@ -208,8 +208,7 @@ Changes go upstream where upstream will take them; never to SymbianSource or Pho
 | [WebRender](https://github.com/servo/webrender) (SWGL) **or** [Mesa](https://gitlab.freedesktop.org/mesa/mesa) | Software GL (see below) |
 | Only if needed | aws-lc-rs / AWS-LC (or switch rustls to another provider), parking_lot, harfbuzz/freetype sys crates, backtrace, memmap2. getrandom takes a custom backend without a fork |
 
-**Branch convention.** This is a proposed amendment to the workspace fork rules. Today's rule says our work goes on
-`main`, so the amendment must be adopted before WB0 creates the first fork:
+**Branch convention (adopted 2026-11-16; in the workspace fork rules):**
 - Servo and most of these upstreams use `main` themselves.
 - Upstream branches and tags stay untouched.
 - Our integration branch is **`neosymbian`** wherever upstream owns `main`.
@@ -284,7 +283,8 @@ Estimates are in person-months (PM), *estimates*. A stage starts only when its g
 
 | Stage | Work | Gate | PM |
 |---|---|---|---:|
-| **WB0** host proof | Create `browser`. Build Servo 0.8.0 for armv7 Linux; run it JIT-less with software GL at 1080×2160 under QEMU and on a real ARM board, capped at 512 MiB and 1 GiB | For the 10 sites below: RSS/PSS, peak VA, threads, stack peaks, render time, scroll fps, a 30-minute soak | 0.5–1 |
+| **WB0** host proof (emulated) | Create `browser`. Build Servo 0.8.0 for armv7 Linux; run it JIT-less with software GL (Mesa softpipe and SWGL) at 1080×2160 under QEMU, capped at 512 MiB and 1 GiB. Plan below | For the 10 sites below: function, RSS/PSS, peak VA (and a 2 GiB `ulimit -v` run), threads, stack peaks, a 30-minute soak. QEMU timings are recorded but don't gate | 0.5–1 |
+| **WB0p** speed gate | The WB0 harness on a physical ARM board (AArch32 userland). Deferred: no board yet (owner, 2026-11-16) | Cached render < 5 s, scrolling ≥ 15 fps | — |
 | **WB1** kernel | smooth-ui S4, M4.3, stack limits, VM primitives, entropy | FP patterns survive preemption and migration; 8 MiB threads; GC-style reserve/decommit tests | 3–5 |
 | **WB2** OS personality | rust + libc forks, the std unix PAL over P.I.P.S., the mio bridge. The EXE runtime for `std`: today `e32::main!` brings its own panic handler, a 64 MiB Rust heap (`e32/src/heap.rs`) and a 1 MiB native heap (`build/emitter/build_rust_exe.py`); a `std` EXE needs std-aware start-up, allocator budgets, panic/unwind, and C/C++ linkage | Rust's std tests on Syborg and the phone; **one EXE mixing `std`, e32 and C++** runs; a Tokio TCP fetch over NeoNet | 6–12 |
 | **WB3** mozjs shell | SpiderMonkey interpreter-only, as an EXE | JS test scripts, GC stress, threads, a clean OOM on the phone | 3–6 |
@@ -307,9 +307,46 @@ Estimates are in person-months (PM), *estimates*. A stage starts only when its g
   - interpreter-only JS is unusably slow.
 
 WB0 changes nothing on the phone. It is the cheap go/no-go before the kernel and std work.
-- **Emulated runs** (QEMU on ZimaOS or the Mac) check function and memory.
-- **The performance gate** needs a physical ARMv8 board running AArch32 userland (e.g. a Raspberry Pi 4/5 with
-  armhf). That hardware is a WB0 prerequisite, to be named.
+- **Emulated runs** (QEMU on the Mac) check function and memory (WB0).
+- **The performance gate** (WB0p) needs a physical ARMv8 board running AArch32 userland (e.g. a Raspberry Pi 4 with
+  armhf; a Pi 5 works with a 64-bit kernel). The owner chose emulation only for now (2026-11-16), so WB0p waits for
+  a board.
+
+### WB0 plan (2026-11-16)
+
+Checked against Servo v0.8.0 (a Codex pass plus spot checks); items marked *unverified* are WB0's first gates.
+
+- **Build:** in a Debian trixie arm64 container on the Mac, cross to `armv7-unknown-linux-gnueabihf` with plain Cargo
+  and Rust 1.99.1 (Servo's `rust-toolchain.toml`). `mach` rejects cross targets other than Android and OHOS
+  ([build_target.py](https://github.com/servo/servo/blob/v0.8.0/python/servo/platform/build_target.py)).
+  - Features: `--no-default-features --features bundled,baked-in-resources,subtlecrypto`. This drops GStreamer,
+    WebGL/WebGPU/XR, jemalloc, multiprocess and `js_jit` (mozjs then configures `--disable-jit`).
+  - mozjs_sys 153.6.0-1 has no armv7 Linux prebuilt: `MOZJS_FROM_SOURCE=1`, cross `CC_/CXX_/AR_` variables and
+    cross pkg-config. *Unverified* until it builds.
+  - Linux needs fontconfig and FreeType; servoshell still links X11/Wayland even headless.
+- **Interpreter only:** no `js_jit` at build time, plus the prefs `js_disable_jit=true` and `js_baseline_*`,
+  `js_ion_enabled`, `js_native_regex_enabled`, `js_wasm_enabled` set false. Evidence: mozjs's configure log and the
+  "Disabling JIT" start-up message.
+- **Stock software GL:** headless servoshell uses `SoftwareRenderingContext` over surfman, which falls back to Mesa's
+  surfaceless EGL (no OSMesa, no GBM). We force `GALLIUM_DRIVER=softpipe` (no code generation, closest to the phone)
+  and record llvmpipe once for reference.
+- **SWGL:** Servo locks WebRender 0.70.1, which is servo/webrender
+  [`d399b904`](https://github.com/servo/webrender/commit/d399b904fdce7bab553fb6514204790155a7fb07); SWGL builds there
+  standalone (C++ and `glsl-to-cxx`). Our `RenderingContext` must also hand Servo a glow handle, which SWGL lacks, so
+  WB0 builds a name → SWGL table. It is time-boxed to 10 days; if SWGL fails, WB0 records the missing GL calls and SWGL
+  stays a WB4 risk.
+- **Harness:** `neoweb-host` in the `browser` repo is a headless embedder on Servo's public API. It drives both GL
+  paths with identical geometry, real touch and key events, and frame-accurate timing, and it is the code
+  `NEOWEB.EXE` grows from.
+- **Emulator:** `qemu-system-arm -M virt,highmem=off -cpu cortex-a15 -smp 4` with a 2 GiB Debian armhf guest (our
+  `symbian-qemu` build has `virt`), shown over VNC.
+  - Memory is read in the guest (`smaps_rollup`, `VmPeak`, the task count). qemu-user's numbers include the emulator
+    and aren't valid.
+  - The caps are cgroup v2 `memory.max` 512M/1G with swap off: the browser's budget, not the machine's.
+- **Stacks:** an `LD_PRELOAD` `pthread_create` interposer paints each stack and reports the high-water mark. It runs
+  apart from the memory runs (painting commits pages) and is checked first on known recursion depths.
+- **Accounts:** Gmail and Docs use a throwaway account whose credentials come from the environment at run time and
+  are never committed. YouTube plays no media until WB7.
 
 ## Open questions
 

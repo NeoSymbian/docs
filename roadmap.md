@@ -242,7 +242,8 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
 - **Web browser (designed 2026-11-15):** [browser.md](browser.md). Servo, native on the phone, in a new
   `NeoSymbian/browser` repo with forks only where needed; stages WB0–WB7 (about 29–56+ PM). It needs smooth-ui S4
   (FP/NEON, ARMv7 atomics), M4.3 (the RAM map, kernel branch `ram-map`), bigger stacks and VM primitives first. WB0, a host proof on armv7 Linux,
-  is the go/no-go.
+  is the go/no-go. **WB0 started 2026-11-16** (emulated under QEMU, plan in browser.md; the speed gate WB0p waits
+  for an ARM board).
 
 **U4: GPU** (stretch)
 - Adreno 615 + GMU + its SMMU. Kernel part in C++; command-stream builder in Rust. Freedreno is the reference.
