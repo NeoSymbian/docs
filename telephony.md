@@ -802,8 +802,11 @@ Exit: an SMS round-trip with the owner's phone, including Armenian and Cyrillic 
 - **neoui:**
   - `messages` is an alias of NEOPHONE's page 6, and the mock Messages screen is gone;
   - the phone service shows an envelope in the status bar and the shade's "N new messages".
-- **Still to check on the phone:** the exit test above, and that Raw Send takes the `00` SMSC prefix (ModemManager's
-  form; libqmi alone doesn't say). Not done: MMS (needs C10), cell broadcast, SMS over IMS.
+- **On the phone (np4 RAM boot, 2026-11-16, 3G SIM):** the owner sent and received messages ("all good"). Sends were
+  delivered (status report 0x0), so the modem takes the `00` SMSC prefix. Get SMSC (52, not provisioned) and List
+  Messages (47) failed at 20 s, before the SIM's subscription was ready; since telephony `aec859f`, MODEMD asks again
+  once registered.
+- Not done: MMS (needs C10), cell broadcast, SMS over IMS.
 
 ### C10: mobile data
 
@@ -895,7 +898,7 @@ Direct GPL ports so far: none.
 | C6 | **done 2026-11-09** (kernel `b12d1ba`, telephony `3f4af12`, neoui `2d55d01`): the ADSP boots (PAS 1), APR in Rust, CS35L36 x2 + RT5514 board driver; two-way call audio on the earpiece and loudspeaker, Mute / Speaker / volume / DTMF; Dev tools audio loopback test; the modem stayed on 3G after a connected call (fixed 2026-11-12, kernel `69bb4cd3`: the codec's rails were on the wrong PMIC) |
 | C7 | **merged 2026-11-12** (C7 PRs merged with main, owner's call to land before the C7 phone acceptance): IPC v2, multi-call, SIM PIN, airplane, ringtone + haptics, modem recovery (never stops the ADSP); phone acceptance of the C7 behaviours pending; wired headset deferred |
 | C8 | **done 2026-11-14**: call log, caller ID, call waiting, contacts and the blocklist; Phone + Contacts as the NEOPHONE app (NeoSymbian/phone), installed on slot a |
-| C9 | **built 2026-11-15**: SMS through QMI WMS in MODEMD, Messages in NEOPHONE (page 6), Reply with message, message blocking; host-tested, phone test pending |
+| C9 | **done 2026-11-16**: SMS through QMI WMS in MODEMD, Messages in NEOPHONE (page 6), Reply with message, message blocking; sent, delivered and received on the phone (RAM boot, not installed) |
 | C10–C12 | not started |
 
 ## Modem restart and the ADSP (2026-11-13, open)
