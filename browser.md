@@ -312,6 +312,32 @@ WB0 changes nothing on the phone. It is the cheap go/no-go before the kernel and
   armhf; a Pi 5 works with a 64-bit kernel). The owner chose emulation only for now (2026-11-16), so WB0p waits for
   a board.
 
+### WB0 result (2026-11-16): GO
+
+Quick verdict ([NeoSymbian/browser `wb0/results/2026-11-16/summary.md`](https://github.com/NeoSymbian/browser/blob/main/wb0/results/2026-11-16/summary.md)):
+Servo 0.8.0 on 32-bit ARM, JIT off, SWGL, 1080×2160 at DPR 2.75, in QEMU.
+
+**Sites:**
+- 5 of 10 load and render: Wikipedia, GitHub, Stack Overflow, TodoMVC (full workflow: typing and taps), YouTube.
+- The other 5 (DuckDuckGo, BBC, WordPress, Gmail, Docs) all hit **one bug**: the web-font sanitiser (OTS, via
+  `fontsan`) asserts `(Tell() & 3) == 0` on 32-bit. It must be fixed before WB4.
+
+**Memory:**
+- 37–210 MiB per page, with 36–129 threads.
+- Servo's own share is ~45 MiB; the rest is software-GL texture memory, filled as the page is rasterised. It isn't a
+  leak.
+
+**SWGL works:**
+- pixel-identical to Mesa softpipe, with a third of the memory and ~10× faster frames (emulated);
+- one Servo patch: no picture-cache quad clears on software WebRender, as in Gecko.
+
+**Design rule:** the embedder must pace scroll input to painted frames. Input faster than rendering piles up
+WebRender work (1 GiB within minutes in emulation).
+
+**Not measured yet:** speed (WB0p, real hardware), full per-site workflows, soaks.
+
+**M4.3 (RAM) is done:** the phone has ~2 GB.
+
 ### WB0 plan (2026-11-16)
 
 Checked against Servo v0.8.0 (a Codex pass plus spot checks); items marked *unverified* are WB0's first gates.
