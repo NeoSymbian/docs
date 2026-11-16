@@ -898,7 +898,7 @@ Direct GPL ports so far: none.
 | C6 | **done 2026-11-09** (kernel `b12d1ba`, telephony `3f4af12`, neoui `2d55d01`): the ADSP boots (PAS 1), APR in Rust, CS35L36 x2 + RT5514 board driver; two-way call audio on the earpiece and loudspeaker, Mute / Speaker / volume / DTMF; Dev tools audio loopback test; the modem stayed on 3G after a connected call (fixed 2026-11-12, kernel `69bb4cd3`: the codec's rails were on the wrong PMIC) |
 | C7 | **merged 2026-11-12** (C7 PRs merged with main, owner's call to land before the C7 phone acceptance): IPC v2, multi-call, SIM PIN, airplane, ringtone + haptics, modem recovery (never stops the ADSP); phone acceptance of the C7 behaviours pending; wired headset deferred |
 | C8 | **done 2026-11-14**: call log, caller ID, call waiting, contacts and the blocklist; Phone + Contacts as the NEOPHONE app (NeoSymbian/phone), installed on slot a |
-| C9 | **done 2026-11-16**: SMS through QMI WMS in MODEMD, Messages in NEOPHONE (page 6), Reply with message, message blocking; sent, delivered and received on the phone (RAM boot, not installed) |
+| C9 | **done 2026-11-16**: SMS through QMI WMS in MODEMD, Messages in NEOPHONE (page 6), Reply with message, message blocking; sent, delivered and received on the phone; installed on slot a the same day (the final ROM with the old apps: build `27bc36b`, kernel `f0b70dff`, telephony `aec859f`, phone `7d82526`, neoui `e81d5f7`) |
 | C10–C12 | not started |
 
 ## Modem restart and the ADSP (2026-11-13, open)
