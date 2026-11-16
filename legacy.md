@@ -104,6 +104,24 @@ It opened up both test apps:
 A RAM-loaded EXE also gets 64 KB of stack at least (the F32 loader). RVCT's default is 8 KB, and our GCC-built Avkon
 needs more than that: Frozen Bubble overflowed in `CEikStatusPaneLayoutTree::AknLayoutRect`.
 
+**Two runtime rules came from the phone:**
+- **The guest desktop is persistent.** The guest window server and Avkon's system servers (AknCapServer, EikSrv,
+  skins) stay up when LEGACY closes, and a later LEGACY reuses them.
+  - Taken down, the system-critical AknCapServer panicked CONE 9 and faulted the kernel: the phone reset when Old
+    apps was closed from Open apps.
+  - Killed first, AknCapServer could not start again (`KErrAlreadyExists`).
+- **Old apps run SMP-unsafe.** Every image we build carries `KImageSMPSafe`, and the kernel runs
+  `EKernelConfigSMPUnsafeCompat`, as Symbian^3 did, so a process that loads an image without the flag (an old `.sis`
+  app) runs one CPU at a time.
+  - Frozen Bubble's realtime mixer thread publishes a pointer its creator uses right after `Resume`, with no
+    handshake.
+  - On a single-core phone the mixer always ran first; on the Pixel's 8 cores the creator read NULL.
+
+**Known limitation: S60 3rd-edition apps take keys, not touch.** Taps reach the guest as pointer events, but Frozen
+Bubble and X-plore's dialogs ignore them. neoui's Options button sends the left softkey, so X-plore's license and
+menus work; a game needs an on-screen key pad (the D-pad, select, the softkeys and the number keys), which is the
+next step.
+
 ## Milestones
 
 | | Work | Done when |
@@ -120,12 +138,12 @@ Each step is tested on QEMU (Syborg, watched over VNC with `neo live`), then on 
 
 **Status (2026-11-15):**
 - L0 and L0.5 are done.
-- L2 has started:
-  - X-plore 1.64 opens its file browser.
+- L2 has started, on QEMU and on the Pixel:
+  - X-plore 1.64 opens its file browser, with C: and E: on the phone.
   - Frozen Bubble opens its main menu, silent: there is no audio server yet.
+  - Closing and reopening Old apps is stable.
 - Next:
-  - an on-screen key pad, since S60 3rd-edition games are driven by keys;
-  - the phone run with the full RAM map;
+  - an on-screen key pad;
   - AknFep;
   - an audio server.
 
