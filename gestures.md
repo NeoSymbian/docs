@@ -122,6 +122,13 @@ model; both arrived at "apps declare, the shell draws". This chapter is the merg
 10. **Classic always shows the strip,** home included. There, the page's main action is Apps (the app menu) and ⋮ holds
     Edit home and Wallpaper. Gestures home has no strip; its dock carries Apps, and the edges do the rest. (Owner,
     2026-11-16.)
+11. **One title, in the status bar.** The shell shows the page's title at the left of the 25 dp status bar, as Belle
+    did, and the app draws no header or title strip: its content starts right under the status bar.
+    - A page switch (Phone | Contacts) is a sideways swipe plus dots that the shell draws beside the title
+      (`Phone ● ○`).
+    - Icons that sat in a header (the contact card's ★) move into the content or into ⋮.
+    - Before this rule, NEOPHONE drew a 52 dp title strip under a status bar that already showed the title, so the
+      title appeared twice.
 
 ### Arrangement (`nav.strip`, Classic only)
 | Value | Strip | Note |
@@ -133,7 +140,8 @@ model; both arrived at "apps declare, the shell draws". This chapter is the merg
 In Gestures the arrangement doesn't matter. The app group fills the strip: `│  Cancel      ( Save )       ⋮  │`.
 
 ### Every state
-Each state below is shown in both modes. The arrangement is 0.
+Each state below is shown in both modes. The arrangement is 0. Every state carries its title in the status bar
+(rule 11); the sketches show the strip only.
 
 ```text
 App root (Contacts)                       Sub-page (contact card)
@@ -199,6 +207,7 @@ Page {
     options: Vec<String>,        // ≤ 12; empty = no ⋮
     keyboard: u8,                // KEYBOARD_* mode for the page's fields
     full: bool,                  // full screen: no status bar, no strip
+    pages: Option<(u8, u8)>,     // a page switch: (count, current); the shell draws the dots beside the title
 }
 Query { text: String, buttons: Vec<String> /* ≤ 3 */, destructive: Option<u8> }
 ```
