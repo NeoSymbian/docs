@@ -408,6 +408,9 @@ the ABI or enabling extra memory/paging.
 [physical type](https://github.com/NeoSymbian/kernel/blob/792d36ef1a9169b3fc9084fcc494b209501a7487/kernel/eka/include/kernel/kernel.h#L51-L55),
 [ASIDs](https://github.com/NeoSymbian/kernel/blob/792d36ef1a9169b3fc9084fcc494b209501a7487/kernel/eka/include/memmodel/epoc/flexible/arm64/mmboot.h#L125-L129).
 
+Usable memory (2026-11-15): the boot stub reads the bootloader's DTB. On the Pixel, the RAM below 4 GB minus the
+`/reserved-memory` regions gives 1687 MB in 8 banks. The other 2 GB lie above 4 GB and need a 64-bit `TPhysAddr`.
+
 **Fix/close:** document usable memory and reserved ranges, pointer/physical/size conversions, process/thread/handle/
 shared-memory budgets, time-width/wrap behavior and paging configuration. Widen only with a versioned kernel/
 driver/DMA migration plan. **Acceptance:** ASID exhaustion/reuse, process churn, page pin/unmap/death, high physical
