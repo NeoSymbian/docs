@@ -229,13 +229,16 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
 - Old Symbian text apps keep running from a terminal app.
 - Shell services (settings store, notifications, home pages with widgets, pin/unpin): designed in
   [neoui-shell.md](neoui-shell.md). The settings store is done; the others are planned.
-- **Navigation v2 and the neoui kit** ([gestures.md](gestures.md), [neoui-kit.md](neoui-kit.md); built
-  2026-11-17, not installed yet):
+- **Navigation v2 and the neoui kit** ([gestures.md](gestures.md), [neoui-kit.md](neoui-kit.md); merged to main
+  2026-11-17, RAM-booted on the Pixel, not installed yet):
   - apps draw their header and footer with a shared kit (`neoui-kit`, `@neoui/kit.slint`) and talk to the shell
-    through the app API (`neoapp`, protocol 1.8: toasts, the shade, badges, the clipboard);
+    through the app API (`neoapp`; protocol 1.8: toasts, the shade, badges, the clipboard; 1.9: apps open each
+    other, notification actions);
   - three modes: Buttons (a key row), Gestures (the Thumb map, the default), N9 gestures;
-  - Clock, Files, Dev tools, Terminal and NEOPHONE are on the kit; NEOKIT.EXE is the gallery and the new-app template;
-  - next: the Syborg CI paths and an install, then N9 peek, live Open apps, swipe to close, Lanes home and a lock
+  - the UI's font is NeoSans (Inter with Noto Sans Armenian, 400–700);
+  - Clock, Files, Dev tools, Terminal, Phone, Contacts and Messages are on the kit; NEOKIT.EXE is the gallery and the
+    new-app template;
+  - next: an install, then the other apps' v2 boards, N9 peek, live Open apps, swipe to close, Lanes home and a lock
     screen (G2–G6).
 - **System keyboard (done 2026-11-12):**
   - English, Armenian and Russian, managed in Settings → Language & keyboard;
@@ -243,10 +246,18 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   - shell text fields that bring it up (the Wi-Fi password);
   - [rust-integration.md](rust-integration.md) R6d.
 - **Phone and Contacts (done 2026-11-14):**
-  - NEOPHONE, one resident app behind both icons ([NeoSymbian/phone](https://github.com/NeoSymbian/phone));
+  - first as NEOPHONE, one resident app behind both icons ([NeoSymbian/phone](https://github.com/NeoSymbian/phone));
   - dialer, Recents, speed dial, every call screen, contacts with per-script sections, settings and the blocklist;
   - [telephony.md](telephony.md) C8;
   - the keyboard got number and phone pads and a toolbar key to put it away.
+- **Phone, Contacts and Messages v2 (merged to main 2026-11-17, not installed yet):** [phone-apps.md](phone-apps.md).
+  - three apps that open each other (protocol 1.9): NEOPHONE and NEOMSG resident, NEOCONT the only writer of the book;
+    each has its own card in Open apps, and a footer switches between them;
+  - every `p2-*` board of the design canvas, the proposals included: Recents with a keypad sheet, one Settings page
+    (the system Settings app's "Calls & Messages"), Return to call, Archive / Delete with Undo, one shade entry per
+    conversation with Reply and Call;
+  - MODEMD modem-ipc 2.5 (archive, unblock sender, delete all, why a message failed);
+  - the gaps left: contact photos (needs a Photos app) and Email (needs an Email app).
 - **Web browser (designed 2026-11-15):** [browser.md](browser.md). Servo, native on the phone, in a new
   `NeoSymbian/browser` repo with forks only where needed; stages WB0–WB7 (about 29–56+ PM). It needs smooth-ui S4
   (FP/NEON, ARMv7 atomics), M4.3 (the RAM map, kernel branch `ram-map`), bigger stacks and VM primitives first. WB0, a host proof on armv7 Linux,
@@ -266,7 +277,7 @@ C0–C12). The stage names below are kept because the dependency graph uses them
 |---|---|---|
 | **P1 remote processors** (needs H1) | C0–C4: backups, Linux reference run, SCM/SMEM/SMP2P/GLINK, MSS boot, rmtfs/pd-mapper/tqftp | The modem is up and answers QMI |
 | **P2 QMI in Rust** | C5: `modemsrv` + dialer (no ETel at first) | Operator and bars in the status bar; calls ring and answer |
-| **P3 SMS and mobile data** | C9, C10 | SMS round-trip; a web page over LTE. **2026-11-16: C9 done**: SMS in MODEMD over QMI WMS, Messages as NEOPHONE's third app; sent, delivered and received on the phone |
+| **P3 SMS and mobile data** | C9, C10 | SMS round-trip; a web page over LTE. **2026-11-16: C9 done**: SMS in MODEMD over QMI WMS, Messages as NEOPHONE's third app; sent, delivered and received on the phone. **2026-11-17:** Messages is its own app (NEOMSG, [phone-apps.md](phone-apps.md)) |
 | **P4 Wi-Fi + Bluetooth** | [wifi.md](wifi.md), [bluetooth.md](bluetooth.md) | Join a WPA2 network. WCN3990 Wi-Fi runs through the modem subsystem and QMI. **2026-11-12: W0–W3 done** (firmware start, copy engines, HTC/WMI, scanning; Settings → Wi-Fi lists networks on the phone). **W4 done the same day: the phone joins a WPA2-PSK network** from Settings (keys installed, decrypted traffic arriving, status bar icon, network details). **W5 done the same day: an IP address and the internet over Wi-Fi** (smoltcp first in NEONET.EXE: DHCP, DNS, TCP; the NeoNet socket API for apps; ESOCK/TCPIP6 stays the long-term option). **2026-11-13: W7 (copy-engine interrupts instead of polling, a handshake guard) and W5a: the 2010 socket server (ESOCK) runs over NeoNet**, with no TCPIP6 (`neonet.prt`, an always-up tier). 2010 programs fetch over Wi-Fi through `RSocket`; C++ programs can also use `NEONET.DLL`. **2026-11-15: the Bluetooth design** ([bluetooth.md](bluetooth.md)): a new Rust host stack in neolink, the 2010 client DLLs over a new ESOCK facade, milestones B0–B9 (BLE first) |
 | **P5 voice calls** | C6–C8, C11 | Two-way call audio. 2026-11-08: the owner's network still has 3G, so calls use CSFB first. VoLTE is the C11 stretch. **C6 done 2026-11-09**: two-way call audio on the earpiece and loudspeaker |
 
