@@ -120,7 +120,8 @@ files/                       host workspace, Cargo.lock
   in the hex view.
 - **Memory:** the Rust heap is one 64 MB chunk (`e32/src/heap.rs`). A 12 MP photo is 48 MB as RGBA, so images decode
   scaled down (JPEG DCT scaling) and documents lay out a page at a time.
-- **Speed:** codecs run soft-float on ARMv5TE until apps get FP/NEON (KRN-019, smooth-ui S4). Each media phase
+- **Speed:** the kernel saves FP/NEON for apps since WB1 (2026-11-17, KRN-019), but our Rust still builds for
+  ARMv5TE soft-float: codecs speed up with the ARMv7/NEON build (smooth-ui S4's user-side part). Each media phase
   measures before it ships.
 
 ## Platform gaps
@@ -142,8 +143,8 @@ What Files needs that doesn't exist, who owns the fix, and the phase that needs 
 | Open with, file types | OPEN by key, ARG ≤ 256 bytes; a fixed `APPS` table | a handler table (type → app), a file picker, file handles (`EFsFileAdopt`) for long paths | neoui (protocol 1.10), e32-rs | FA8 |
 | Copy and paste files | CLIP: text, ≤ 2048 bytes | a file clip (paths) | neoui | FA8 |
 | Audio out | MODEMD's ringtone PCM only (ASM→ADM→AFE); MMF has no server | an audio service (driver-support.md D3, roadmap H5) | telephony + kernel | FA9 |
-| FP/NEON for apps | off at EL0 (KRN-019) | on, with context switching | kernel | FA9–FA12 |
-| Video | nothing | a decoder, then FP/NEON | files + kernel | FA12 |
+| FP/NEON for apps | the kernel part done (WB1, 2026-11-17: Q0–Q15 saved per thread) | an ARMv7/NEON build of the Rust user side (smooth-ui S4) | e32-rs, neoui, build | FA9–FA12 |
+| Video | nothing | a decoder on the NEON build | files | FA12 |
 | Share E: over USB, Eject | FS6 researched, not started | E: removable (`a64_medblk.cpp`), a DWC3 PSL, mass storage in the ROM, USB power on cold boot, dismount in e32 | kernel, build, e32-rs | FA13 |
 | Send via Bluetooth | — | OBEX, bluetooth.md B5 | neolink | FA13 |
 | Send by MMS | SMS only | MMS, telephony.md C10 | telephony, phone | FA13 |
@@ -170,7 +171,7 @@ Each phase ends with a gate: host tests and board snapshots in the files repo, t
 | **FA9** audio | `neo-format-media`: MP3, AAC, Vorbis, Opus, FLAC, WAV, AMR, MIDI (crate candidates `nanomp3-core`, `rusty_flac`, `ruopus`, a `symphonia` port, `midly`); an audio service for apps (with telephony: MODEMD owns APR today); the audio viewer and "Open in Music" | files, telephony, kernel | an MP3 plays on the Pixel without gaps; a call interrupts it | [`view-audio`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-84826f21b3aa) |
 | **FA10** documents I | EPUB (zip + XHTML, reflow, chapters, position), docx / odt / rtf reflowed, xlsx as a read-only grid (`xmlparser`) | files | a 300-page EPUB pages smoothly; the docx with Armenian text from the board renders | [`view-epub`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-a7f9e4db02c8), [`view-docx`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-eb23122f75d9), [`view-xlsx`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-636480de5643) |
 | **FA11** documents II | PDF: parse (`hayro-syntax`), our renderer (paths, text with embedded fonts, images), pages, thumbnails | files | the boarding pass from the board renders; a 100-page PDF scrolls | [`view-pdf`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-7c18c7fd6f77) |
-| **FA12** video | FP/NEON at EL0 (KRN-019, smooth-ui S4) first; then a decoder for MP4/3GP (H.264 baseline) and WebM (VP8), with the audio service | kernel, files | a 720p clip plays on the Pixel | [`view-video`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-0a854b5f4d99) |
+| **FA12** video | the ARMv7/NEON build (smooth-ui S4; the kernel part is done) first; then a decoder for MP4/3GP (H.264 baseline) and WebM (VP8), with the audio service | kernel, files | a 720p clip plays on the Pixel | [`view-video`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-0a854b5f4d99) |
 | **FA13** outside Files | Share E: over USB and Eject (FS6); Send via Bluetooth (B5); MMS (C10); install .sis on the device (L4); heic, mkv, 7z, rar, pptx | kernel, build, neolink, telephony, legacy | each in its own repo's stages; Files only wires the buttons | [`share`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-3db79c4164d1), [`view-app`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-093a96e8c80a), [`spec-types`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-addb580badcb) |
 
 The replacement map (old boards → new) is [`spec-replace`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-79a68f1005f5).

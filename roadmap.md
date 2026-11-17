@@ -230,7 +230,7 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
 - Shell services (settings store, notifications, home pages with widgets, pin/unpin): designed in
   [neoui-shell.md](neoui-shell.md). The settings store is done; the others are planned.
 - **Navigation v2 and the neoui kit** ([gestures.md](gestures.md), [neoui-kit.md](neoui-kit.md); merged to main
-  2026-11-17, RAM-booted on the Pixel, not installed yet):
+  2026-11-17, installed into slot a the same day):
   - apps draw their header and footer with a shared kit (`neoui-kit`, `@neoui/kit.slint`) and talk to the shell
     through the app API (`neoapp`; protocol 1.8: toasts, the shade, badges, the clipboard; 1.9: apps open each
     other, notification actions);
@@ -238,7 +238,7 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   - the UI's font is NeoSans (Inter with Noto Sans Armenian, 400–700);
   - Clock, Files, Dev tools, Terminal, Phone, Contacts and Messages are on the kit; NEOKIT.EXE is the gallery and the
     new-app template;
-  - next: an install, then the other apps' v2 boards, N9 peek, live Open apps, swipe to close, Lanes home and a lock
+  - next: the other apps' v2 boards, N9 peek, live Open apps, swipe to close, Lanes home and a lock
     screen (G2–G6).
 - **System keyboard (done 2026-11-12):**
   - English, Armenian and Russian, managed in Settings → Language & keyboard;
@@ -250,7 +250,15 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   - dialer, Recents, speed dial, every call screen, contacts with per-script sections, settings and the blocklist;
   - [telephony.md](telephony.md) C8;
   - the keyboard got number and phone pads and a toolbar key to put it away.
-- **Phone, Contacts and Messages v2 (merged to main 2026-11-17, not installed yet):** [phone-apps.md](phone-apps.md).
+- **Phone, Contacts and Messages v2 (merged to main and installed into slot a, 2026-11-17):** [phone-apps.md](phone-apps.md).
+  - a board-by-board audit found every `p2-*` board reached on the device. Its fixes:
+    - the Return to call timer counts from MODEMD's connect time (modem-ipc 2.6);
+    - the launcher badges show missed calls and unread messages;
+    - a Conference screen;
+    - Silence no longer changes the ring settings;
+    - `*#06#` shows the IMEI;
+    - Send as vCard by message;
+    - a choice of number for speed dial.
   - three apps that open each other (protocol 1.9): NEOPHONE and NEOMSG resident, NEOCONT the only writer of the book;
     each has its own card in Open apps, and a footer switches between them;
   - every `p2-*` board of the design canvas, the proposals included: Recents with a keypad sheet, one Settings page
@@ -263,10 +271,15 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   (FP/NEON, ARMv7 atomics), M4.3 (the RAM map, kernel branch `ram-map`), bigger stacks and VM primitives first. WB0, a host proof on armv7 Linux,
   is the go/no-go. **WB0 done 2026-11-16: GO** (5/10 sites; the other 5 share one 32-bit
   web-font bug; 37–210 MiB per page; SWGL works). The speed gate WB0p waits for real hardware.
+  **WB1 done 2026-11-17** (kernel#19): FP/NEON for apps (smooth-ui S4's kernel part), 16 MiB stacks, a seeded
+  secure RNG; GC-style memory works with disconnected chunks. Tested on the Pixel. Next: WB2 (Rust `std` over P.I.P.S.).
+  **The app UI is specified** in [browser-ui.md](browser-ui.md) (2026-11-17): every Browser v2 canvas screen in phases
+  UI0–UI6, built first on a stand-in engine in parallel with WB2–WB4.
 - **Files (proposed 2026-11-17):** [files-app.md](files-app.md). The canvas's 60 `files2-*` boards in a new
-  `NeoSymbian/files` repo (NEOFILES moves out of neoui, UID 0xE0006001): browsing, copy/move with a per-drive Recycle
-  bin, search, archives, viewers for 55 file types and editors for 24, in phases FA0–FA13. Audio, documents and video
-  need platform work first (an audio service, FP/NEON); next is FA0, the move.
+  `NeoSymbian/files` repo (UID 0xE0006001): browsing, copy/move with a per-drive Recycle bin, search, archives,
+  viewers for 55 file types and editors for 24, in phases FA0–FA13. **FA0 done 2026-11-17:** NEOFILES moved out of
+  neoui into [NeoSymbian/files](https://github.com/NeoSymbian/files), unchanged (Syborg CI and the Pixel). Audio and
+  video need an audio service first; next is FA1, the v2 browsing screens.
 
 **U4: GPU** (stretch)
 - Adreno 615 + GMU + its SMMU. Kernel part in C++; command-stream builder in Rust. Freedreno is the reference.

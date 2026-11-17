@@ -255,7 +255,21 @@ on the phone; `a64_sha256.S`, self-tested at boot, the C one as fallback), so th
   - Updates: `fastboot flash boot_b`; `system_b` is written by a `ROFS_INSTALL` image RAM-booted on slot b, since
     ABL refuses `system_*` outside fastbootd; then `fastboot set_active b`.
   - Tested on the phone: update into b, then a broken b rolls back to a by itself.
-  - **Installed 2026-11-12 (evening) into slot a** (now current): everything merged that day: Wi-Fi W4 (joins WPA2,
+  - **Installed 2026-11-17 into slot a** (now current): UI v2 and NEOPHONE v2. It includes:
+    - the neoui kit and protocol 1.9;
+    - Phone, Contacts and Messages as three EXEs;
+    - modem-ipc 2.6: conference flag, connect time, IMEI, SILENCE.
+
+    Revisions: build `27bc36b`, kernel `f0b70dff`, neoui `e6aa05e`, phone `d7012d6`, telephony `4095a4b`, neolink `3c19f03`.
+
+    How it was built: a clean build in a fresh volume (`FULL=1`), with `SIS=xplore,frozenbubble` and `ROFS_CORE='\.dll$'`.
+
+    Before the install, a RAM test boot showed the UI, MODEMD registered and reading the IMEI, and Phone and Messages started.
+
+    The install: `system_a` got 33640 KB written, verified, hash check passed; `boot_a` was flashed (6188 KB).
+
+    Images are in `private/uiv2-20261117` and ZimaOS `logs/uiv2-1117`. Slot b keeps its earlier install as the fallback.
+  - **Installed 2026-11-12 (evening) into slot a** (replaced 2026-11-17): everything merged that day: Wi-Fi W4 (joins WPA2,
     Settings current network + details, status bar icon), C7 calls (IPC v2, multi-call, SIM PIN, airplane, ringtone +
     haptics, modem recovery that never stops the ADSP) and the codec-rails fix (no more modem crash or 3G after a
     call). Kernel `e4323c37`, build `f865a34`, neoui `1ee3245`, telephony `b99883f`, neolink `7db5000`.

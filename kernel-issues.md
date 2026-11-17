@@ -317,6 +317,10 @@ regression. A hardware pass alone does not close the supported-emulator failure.
 
 ### KRN-019: Register and FP context support
 
+**Update 2026-11-17 (kernel#19, browser WB1):** the FP/NEON part is done: per-thread eager save/restore of
+Q0–Q15/FPSR/FPCR, FPEN on, the SHA path preserves the thread's state; preemption and migration tested on QEMU and the
+Pixel (`NEOWB1.EXE`). Get/SetUserContext and the remote context accessor remain open.
+
 NThread Get/SetUserContext are empty, CompleteContextSave is empty, and the generic context accessor can report a
 stale frame for a thread running on another CPU. FP save/restore hooks default to no-ops. Existing S4 work remains
 open; enabling user FP/NEON before complete ownership/save/restore would be unsafe.

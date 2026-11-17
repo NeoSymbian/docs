@@ -198,7 +198,8 @@ owner: touch boost.
 
 ### S4: FP/NEON for user code and an ARMv7/ARMv8-AArch32 build
 
-**Owner:** kernel session first, then e32-rs and neoui. **Status:** not started.
+**Owner:** kernel session first, then e32-rs and neoui. **Status:** kernel part done 2026-11-17 (browser WB1,
+kernel#19: eager save/restore, Qualcomm's EL2 does not trap AArch32 FP, tested on the Pixel); the Rust target is open.
 
 - **Kernel:**
   - set CPACR_EL1.FPEN for EL0;
@@ -280,7 +281,7 @@ graph LR
 |---|---|---|
 | ~~Real CPU clocks after ABL~~ (S3b: silver 1708, gold 300 MHz; the PMU is not trapped). DDR clock | S3 | DDR: not measured yet |
 | Panel video vs command mode; which pipe the splash uses | S5 | The phone's DTB (`private/bonito.dtb`), DPU register dump |
-| AArch32 FP traps at EL2 (Qualcomm hypervisor) | S4 | Enable FPEN, run one VFP instruction at EL0 |
+| ~~AArch32 FP traps at EL2 (Qualcomm hypervisor)~~ No trap (WB1, 2026-11-17: `NEOWB1.EXE` on the Pixel) | S4 | — |
 | How often alignment (LDRD/LDM) and SWP traps fire | S4 | Counters in `a64e_a32fix.cpp` |
 | SDM670 entry in Linux's DPU catalog | S5 | Read `dpu1/catalog/` in a current kernel tree |
 | Every gain estimate above | each stage | The stage's exit check |

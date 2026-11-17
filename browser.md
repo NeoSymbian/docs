@@ -5,6 +5,9 @@ Written 2026-11-15. This is the design and estimate for a native web browser (ro
 The browser tile in the dock still opens a mock screen (`neoui/ui/screens/browser.slint`), and Wi-Fi captive
 portals wait for a real browser (`neoui/symbian/src/wifi.rs:52`).
 
+**The app's screens and their phases are in [browser-ui.md](browser-ui.md)** (2026-11-17), from the canvas's Browser v2
+page. This doc is the engine plan.
+
 **Sources:**
 - a read of our kernel, e32-rs, neoui, neolink, legacy and build trees;
 - the sibling N8 experiments in `~/WS/Symbian` (LiveTo, NeoLite, NeoNetSurf, NeoWeb);
@@ -145,7 +148,7 @@ Even running them needs legacy L4+ (installing .sis at runtime), IAP records (ES
 
 **Risks:**
 - web compatibility;
-- memory: the one-tab RSS is not measured; one 1080×2160 surface alone is 8.9 MiB;
+- memory: the one-tab RSS is not measured; one full-screen 1080×2160 surface alone is 8.9 MiB (the Gestures app area 1080×2037: 8.4 MiB);
 - CPU rendering speed through software GL;
 - ARM32 at run time: Servo's CI builds `armv7-linux-androideabi` but runs nothing on it;
 - the std port's size.
@@ -164,9 +167,11 @@ Even running them needs legacy L4+ (installing .sis at runtime), IAP records (ES
   - touch → Servo input events;
   - keys and the system keyboard → text. The neoui protocol has key events but no composition/preedit contract yet
     (`neoui-proto/src/ipc.rs`), so WB5 starts with direct Unicode input;
-  - Back (`claim_nav`);
+  - Back through `PAGE`'s `can_back` and `AppEvent::Back` (protocol 1.8 removed NAV);
   - a keyboard height change → a viewport resize.
-- The browser chrome in Slint: URL bar, tabs, menu, downloads, certificate errors.
+- The browser chrome and every screen, on the neoui kit: [browser-ui.md](browser-ui.md). They live in `app/neoweb-core`
+  (Apache), `app/neoweb-ui` (GPL, Slint) and `symbian/neoweb` (GPL, the EXE), and are built first on a stand-in
+  `FakeEngine` (UI0–UI6); Servo plugs in behind the same `Engine` trait at WB4.
 - Bundled fonts (DejaVu Sans covers Latin, Cyrillic and Armenian; Noto for more scripts) and Servo's resources.
 - Target JSON `armv7a-neosymbian-eabi`:
   - ARMv7-A/ARMv8-AArch32 with NEON;
@@ -269,13 +274,13 @@ Tokio → mio → P.I.P.S. sockets → ESOCK → NeoNet (Wi-Fi now, mobile data 
 
 | Item | Owner | Where it is planned |
 |---|---|---|
-| FP/NEON per thread at EL0 (lazy save of V0–V31, FPSR, FPCR; checking whether Qualcomm's EL2 traps AArch32 FP) | kernel | [smooth-ui.md](smooth-ui.md) S4, KRN-019 |
+| ~~FP/NEON per thread at EL0~~ **done (WB1, 2026-11-17):** eager save of Q0–Q15, FPSR, FPCR; Qualcomm's EL2 does not trap AArch32 FP | kernel | [smooth-ui.md](smooth-ui.md) S4, KRN-019 |
 | An ARMv7/v8 AArch32 softfp target, LDREX/STREX and 64-bit atomics (LDREXD/STREXD) | e32-rs + browser | smooth-ui S4 |
-| The phone's RAM below 4 GiB (above it needs a 64-bit `TPhysAddr`) | kernel | M4.3, the RAM map under [roadmap.md](roadmap.md) M4: kernel branch `ram-map`, in progress |
-| Stack limits for 8 MiB threads, and tens of threads per process | kernel | **new** (this doc) |
-| Reserve/align/decommit/protect for SpiderMonkey | kernel + ossrv | **new** |
+| ~~The phone's RAM below 4 GiB~~ **done** (above it needs a 64-bit `TPhysAddr`) | kernel | M4.3, the RAM map under [roadmap.md](roadmap.md) M4 |
+| ~~Stack limits for 8 MiB threads, and tens of threads per process~~ **done (WB1):** 16 MiB cap, 128 threads tested | kernel | WB1 |
+| Reserve/align/decommit for SpiderMonkey: **works with disconnected chunks (WB1 test)**; a protect call only if WB3 needs it | kernel + ossrv | WB1, WB3 |
 | `mprotect`, `poll` (or a mio `select` backend), pthread fixes | ossrv | **new** |
-| An entropy source for getrandom and TLS | kernel | **new** |
+| ~~An entropy source for getrandom and TLS~~ **done (WB1):** IRQ timing everywhere, the SoC PRNG on SDM670 | kernel | WB1 |
 
 ## Stages
 
@@ -285,13 +290,17 @@ Estimates are in person-months (PM), *estimates*. A stage starts only when its g
 |---|---|---|---:|
 | **WB0** host proof (emulated) | Create `browser`. Build Servo 0.8.0 for armv7 Linux; run it JIT-less with software GL (Mesa softpipe and SWGL) at 1080×2160 under QEMU, capped at 512 MiB and 1 GiB. Plan below | For the 10 sites below: function, RSS/PSS, peak VA (and a 2 GiB `ulimit -v` run), threads, stack peaks, a 30-minute soak. QEMU timings are recorded but don't gate | 0.5–1 |
 | **WB0p** speed gate | The WB0 harness on a physical ARM board (AArch32 userland). Deferred: no board yet (owner, 2026-11-16) | Cached render < 5 s, scrolling ≥ 15 fps | — |
-| **WB1** kernel | smooth-ui S4, M4.3, stack limits, VM primitives, entropy | FP patterns survive preemption and migration; 8 MiB threads; GC-style reserve/decommit tests | 3–5 |
+| **WB1** kernel ✅ 2026-11-17 | smooth-ui S4 (kernel part), M4.3, stack limits, VM primitives, entropy. Result below | FP patterns survive preemption and migration; 8 MiB threads; GC-style reserve/decommit tests | 3–5 |
 | **WB2** OS personality | rust + libc forks, the std unix PAL over P.I.P.S., the mio bridge. The EXE runtime for `std`: today `e32::main!` brings its own panic handler, a 64 MiB Rust heap (`e32/src/heap.rs`) and a 1 MiB native heap (`build/emitter/build_rust_exe.py`); a `std` EXE needs std-aware start-up, allocator budgets, panic/unwind, and C/C++ linkage | Rust's std tests on Syborg and the phone; **one EXE mixing `std`, e32 and C++** runs; a Tokio TCP fetch over NeoNet | 6–12 |
 | **WB3** mozjs shell | SpiderMonkey interpreter-only, as an EXE | JS test scripts, GC stress, threads, a clean OOM on the phone | 3–6 |
 | **WB4** Servo → neoui | servo/surfman forks, SWGL, fonts, presentation. **The rustls crypto provider and entropy come here, not in WB6:** `Servo::new` always calls `prewarm_tls` | Local HTML/CSS/JS pages and images draw in `NEOWEB.EXE`; the memory is measured again | 6–12 |
-| **WB5** input and chrome | Touch, scrolling, focus, direct Unicode input (a versioned composition/preedit protocol in neoui + its keyboard comes later), selection, forms, keyboard resize, Back, the Slint chrome | Typing into forms and navigating with Back on the phone | 2–4 |
+| **WB5** input and chrome | Touch, scrolling, focus, direct Unicode input (a versioned composition/preedit protocol in neoui + its keyboard comes later), selection, forms, keyboard resize, Back, the Slint chrome (already built on FakeEngine by UI0–UI4, [browser-ui.md](browser-ui.md)) | Typing into forms and navigating with Back on the phone | 2–4 |
 | **WB6** browser services | certificate handling and errors, cookies/storage on C:, redirects, logins; wifi.rs opens portals in NEOWEB | Signing in to a site; a captive portal over Wi-Fi | 2–4 |
 | **WB7** media | The custom media backend (FFmpeg/dav1d, DevSound/MMF) | Video with sound, seeking, A/V sync, a thermal soak | 6–12+ |
+
+**The UI track runs beside these stages** ([browser-ui.md](browser-ui.md), owner 2026-11-17): UI0–UI6 build every
+screen of the canvas's Browser page as `NEOWEB.EXE` on a stand-in engine now, in parallel with WB2–WB4; each screen's
+engine side arrives with the WB stage in its table.
 
 **Total: about 29–56+ PM**, not counting audio-driver bring-up or upstream web-compatibility work.
 
@@ -337,6 +346,25 @@ WebRender work (1 GiB within minutes in emulation).
 **Not measured yet:** speed (WB0p, real hardware), full per-site workflows, soaks.
 
 **M4.3 (RAM) is done:** the phone has ~2 GB.
+
+### WB1 result (2026-11-17): done
+
+Kernel PR [kernel#19](https://github.com/NeoSymbian/kernel/pull/19), tests [e32-rs#3](https://github.com/NeoSymbian/e32-rs/pull/3)
+(`NEOWB1.EXE`). **6/6 pass on QEMU virt (4 CPUs) and on the Pixel (RAM boot).**
+
+| Item | What changed | Test |
+|---|---|---|
+| FP/NEON for AArch32 apps | `CPACR_EL1.FPEN` on for every CPU; Q0–Q15 + FPSR/FPCR switched with the thread, eagerly (`a64_ctxsw.S`, `NThread::iCoprocessorState`); medverity's SHA-256 keeps the thread's registers | VFP math; 8 threads × 100 rounds fill every register and FPSCR, spin 20 ms, check. Negative control: without the switch, all 8 fail |
+| Stacks | `PP::MaxUserThreadStack` 16 MiB (was 1 MiB) | an 8 MiB stack used to the end, 32 MiB refused; 128 threads alive at once |
+| GC memory | none needed: disconnected chunks | reserve 1 GiB and 256 MiB; commit/decommit 1 MiB pieces at 1 MiB-aligned addresses; a decommitted page faults; recommitted memory is fresh |
+| Entropy | IRQ timing feeds `DSecureRNG` once extensions start; the SDM670 PRNG seeds 512 bits at boot | `Exec::MathSecureRandom` |
+
+- **The open question is answered:** Qualcomm's EL2 does not trap AArch32 FP.
+- **Shortcuts, to revisit only if measured:**
+  - FP is saved on every reschedule (no trap on first use);
+  - stacks are committed in full;
+  - there is no user protect call: no-JIT SpiderMonkey may not need one, and WB3 tells.
+- **Still open from S4:** the Rust ARMv7/NEON softfp target and LDREX atomics, which come with WB2.
 
 ### WB0 plan (2026-11-16)
 

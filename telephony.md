@@ -799,6 +799,13 @@ Exit: an SMS round-trip with the owner's phone, including Armenian and Cyrillic 
   ones in its conversation), `EDIT_DELETE_ALL` 11 (every message but the blocked ones); a FAILED message's `why` says
   why (`FAIL_NO_ANSWER`, `FAIL_REFUSED`, `FAIL_RESTART`, `FAIL_UNDELIVERED`; a retry clears it); `SMS_SEND` answers
   KErrTooBig for an empty or over-long text, KErrArgument for a bad number.
+- **modem-ipc 2.6 (2026-11-17, the v2 audit):**
+  - `Call.multiparty`: the QMI call record's multiparty byte. Phone shows a Conference screen once every connected call is in it.
+  - `Call.since`: MODEMD's tick clock (`e32::time::millis`) when the call connected. Every app shares that clock, so the Return to call bar shows the call screen's time in Phone, Contacts and Messages alike.
+  - An indication without the numbers TLV keeps the presentation along with the number, so a private caller stays private.
+  - `Status.imei`, for `*#06#` (logged masked only).
+  - `SILENCE` 28 quietens one ringing call, tone and vibration, without writing the ring settings.
+  - The Status grew, so every MODEMD client (neoui's SYSSTART, the phone apps) must pin the same rev.
 - **The alert:** two 150 ms buzzes and the first 0.8 s of the ringtone, never during a call or while it rings.
 - **NEOPHONE (page 6):**
   - the conversations, a thread (✓ sent, ✓✓ delivered, retry a failed one), a new message to several recipients, and
