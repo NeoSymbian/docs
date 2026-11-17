@@ -229,10 +229,14 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
 - Old Symbian text apps keep running from a terminal app.
 - Shell services (settings store, notifications, home pages with widgets, pin/unpin): designed in
   [neoui-shell.md](neoui-shell.md). The settings store is done; the others are planned.
-- **Gesture navigation, the "N9 mix"** ([gestures.md](gestures.md), designed 2026-11-16):
-  - edge swipes for Back (left), Open apps (right), Home and the Apps menu (bottom), modelled on the Nokia N9;
-  - Settings → Home screen & navigation picks Classic (the Belle toolbar) or Gestures;
-  - G1 is built; next come N9 peek, live Open apps, swipe to close, Lanes home and a lock screen (G2–G6).
+- **Navigation v2 and the neoui kit** ([gestures.md](gestures.md), [neoui-kit.md](neoui-kit.md); built
+  2026-11-17, not installed yet):
+  - apps draw their header and footer with a shared kit (`neoui-kit`, `@neoui/kit.slint`) and talk to the shell
+    through the app API (`neoapp`, protocol 1.8: toasts, the shade, badges, the clipboard);
+  - three modes: Buttons (a key row), Gestures (the Thumb map, the default), N9 gestures;
+  - Clock, Files, Dev tools, Terminal and NEOPHONE are on the kit; NEOKIT.EXE is the gallery and the new-app template;
+  - next: the Syborg CI paths and an install, then N9 peek, live Open apps, swipe to close, Lanes home and a lock
+    screen (G2–G6).
 - **System keyboard (done 2026-11-12):**
   - English, Armenian and Russian, managed in Settings → Language & keyboard;
   - a terminal mode;

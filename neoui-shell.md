@@ -306,6 +306,18 @@ If the language's font is not DejaVu Sans, import it in `shell.slint` and in eac
 Key repeat, long-press (accents, ё/ъ for Russian), Ctrl, suggestions, Western Armenian, layouts for hardware keys,
 and translating the UI itself.
 
+## Shell services in protocol 1.8 (built 2026-11-17)
+
+These are built, from the canvas's Shell services (see [neoui-kit.md](neoui-kit.md)):
+- **Toasts:** `NOTE`, with `AppEvent::NoteAction` for the action.
+- **App entries in the shade:** `NOTIFY`. A tap opens the app on a page.
+- **Launcher badge counts:** `BADGE`. Phone and Messages fall back to MODEMD's missed calls and unread messages.
+- **The clipboard:** `CLIP_SET` / `CLIP_GET`, with the keyboard's Select all · Copy · Paste.
+- **The area-height event:** `AppEvent::Area`.
+
+Part 2 below is the fuller notification model (`neoui-proto::notify`, history, grouping). `NOTIFY` is its first, simple
+step.
+
 ## Part 2: notification service
 
 ### Model (`neoui-proto::notify`)
