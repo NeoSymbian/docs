@@ -95,16 +95,27 @@ flowchart LR
 | **A7** | Amp fault IRQs (mute and report), bottom/earpiece use, optional ADSP mixing, optional QEMU audio device | |
 | **A8** | 3.5 mm jack (output, detection, headset mic, buttons), ACDB calibration investigation | |
 
-## Status
+## Status (2026-11-18)
 
-- 2026-11-17: A0–A2 implemented on branches `audio` (telephony, kernel, neoui); host tests and ARM builds pass.
-- 2026-11-17: A5 recording (`apr::Mode::Duplex`: the mic's AFE port, ASM read session 0x0201, ADM TX COPP from
-  PRIMARY_TDM_TX, eight 20 ms read buffers at 0x34000; kernel AudioMem op 4 copies them out), A6 Settings → Sound →
-  Media (media volume, where media plays, microphone, "Test sound", "Record and play back"; the volume keys set the
-  media volume outside a call), A7 amp protection polling (kernel op 7, MODEMD every 250 ms) and the mic choice
-  (op 6: DMIC1/DMIC2, to find the top mic). Phone round 2 next.
-- In progress: A3 (our `mmfdevsoundadaptor.dll`, the server launcher, the server DLLs; `legacy/audio`), A4 (the
-  WAV controller closure), A8 (the 3.5 mm jack: kernel `a64_jack.cpp` with polled detection, the headphone and
-  headset-mic paths; the ADSP's internal MI2S ports in APR).
-- Not planned: an audible QEMU device (our board's `syborg-virtio-audio` is unimplemented and VNC carries no
-  sound); ACDB calibration (a proprietary format; the ADSP's built-in topologies stay) — both recorded as gaps.
+All of A0–A8 is implemented on the `audio` branches (telephony, kernel, neoui, legacy, docs); host tests, ARM builds
+and clippy pass. Results on the Pixel (RAM boots, nothing flashed) and on QEMU:
+
+| Stage | Result |
+|---|---|
+| A1 | QEMU: MODEMD finds no modem, serves NeoAudio only (clock sink); SYSSTART's media settings reach it |
+| A2 | Pixel: the test sound plays through the ADSP (`38808 frames, 1 underrun` = the end, `sink 1` = DSP); routes both / bottom / earpiece reach the amps; volume changes apply live |
+| A3 | Pixel: Frozen Bubble starts `MMFAudioServerStart.exe`, opens a NeoAudio stream (16 kHz mono) through our DevSound adaptor, media runs on the ADSP while it plays; no panics. Audible level not yet confirmed by ear |
+| A4 | Built into the ROM: tones and DTMF (synthesized in the adaptor), the WAV controller, format, source/sink and codecs; not exercised yet (no app on the phone plays a WAV) |
+| A5 | Pixel: 5 s recording = 480000 bytes, played back with 0 underruns. The READ opcode is ASM_DATA_CMD_READ_V2 `0x10dac` (`0x10db5` is refused with status 3). Peaks reach 32767: the call mic's +16.5 dB may clip recordings close up |
+| A6 | Pixel: Settings → Sounds → Media works; the volume keys step the media volume outside a call |
+| A7 | Built: amp protection polling (no event seen), mic choice DMIC1/DMIC2 (which is the top mic: not yet found) |
+| A8 | Pixel: the jack driver comes up (`jack ok: unplugged`, no faults); headphones and the headset mic are untested (nothing plugged in) |
+
+**Gaps:**
+- QEMU has no audible device: our board's `syborg-virtio-audio` is unimplemented and VNC carries no sound.
+- No ACDB calibration: the format is proprietary, and the ADSP's built-in topologies stay.
+- The headset mic records only through the kernel's op 10; APR has no INT3 MI2S TX path yet (recordings use the
+  built-in mic with headphones in).
+
+**Fixed on the way:** "Action failed (-2)" on Settings → Sounds. It was MODEMD's stale result from the modem
+refusing "online" (QMI 52, invalid transition) about 20 s into every boot; it no longer counts as a failed action.
