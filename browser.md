@@ -5,6 +5,9 @@ Written 2026-11-15. This is the design and estimate for a native web browser (ro
 The browser tile in the dock still opens a mock screen (`neoui/ui/screens/browser.slint`), and Wi-Fi captive
 portals wait for a real browser (`neoui/symbian/src/wifi.rs:52`).
 
+**The app's screens and their phases are in [browser-ui.md](browser-ui.md)** (2026-11-17), from the canvas's Browser v2
+page. This doc is the engine plan.
+
 **Sources:**
 - a read of our kernel, e32-rs, neoui, neolink, legacy and build trees;
 - the sibling N8 experiments in `~/WS/Symbian` (LiveTo, NeoLite, NeoNetSurf, NeoWeb);
@@ -145,7 +148,7 @@ Even running them needs legacy L4+ (installing .sis at runtime), IAP records (ES
 
 **Risks:**
 - web compatibility;
-- memory: the one-tab RSS is not measured; one 1080×2160 surface alone is 8.9 MiB;
+- memory: the one-tab RSS is not measured; one full-screen 1080×2160 surface alone is 8.9 MiB (the Gestures app area 1080×2037: 8.4 MiB);
 - CPU rendering speed through software GL;
 - ARM32 at run time: Servo's CI builds `armv7-linux-androideabi` but runs nothing on it;
 - the std port's size.
@@ -164,9 +167,11 @@ Even running them needs legacy L4+ (installing .sis at runtime), IAP records (ES
   - touch → Servo input events;
   - keys and the system keyboard → text. The neoui protocol has key events but no composition/preedit contract yet
     (`neoui-proto/src/ipc.rs`), so WB5 starts with direct Unicode input;
-  - Back (`claim_nav`);
+  - Back through `PAGE`'s `can_back` and `AppEvent::Back` (protocol 1.8 removed NAV);
   - a keyboard height change → a viewport resize.
-- The browser chrome in Slint: URL bar, tabs, menu, downloads, certificate errors.
+- The browser chrome and every screen, on the neoui kit: [browser-ui.md](browser-ui.md). They live in `app/neoweb-core`
+  (Apache), `app/neoweb-ui` (GPL, Slint) and `symbian/neoweb` (GPL, the EXE), and are built first on a stand-in
+  `FakeEngine` (UI0–UI6); Servo plugs in behind the same `Engine` trait at WB4.
 - Bundled fonts (DejaVu Sans covers Latin, Cyrillic and Armenian; Noto for more scripts) and Servo's resources.
 - Target JSON `armv7a-neosymbian-eabi`:
   - ARMv7-A/ARMv8-AArch32 with NEON;
@@ -289,9 +294,13 @@ Estimates are in person-months (PM), *estimates*. A stage starts only when its g
 | **WB2** OS personality | rust + libc forks, the std unix PAL over P.I.P.S., the mio bridge. The EXE runtime for `std`: today `e32::main!` brings its own panic handler, a 64 MiB Rust heap (`e32/src/heap.rs`) and a 1 MiB native heap (`build/emitter/build_rust_exe.py`); a `std` EXE needs std-aware start-up, allocator budgets, panic/unwind, and C/C++ linkage | Rust's std tests on Syborg and the phone; **one EXE mixing `std`, e32 and C++** runs; a Tokio TCP fetch over NeoNet | 6–12 |
 | **WB3** mozjs shell | SpiderMonkey interpreter-only, as an EXE | JS test scripts, GC stress, threads, a clean OOM on the phone | 3–6 |
 | **WB4** Servo → neoui | servo/surfman forks, SWGL, fonts, presentation. **The rustls crypto provider and entropy come here, not in WB6:** `Servo::new` always calls `prewarm_tls` | Local HTML/CSS/JS pages and images draw in `NEOWEB.EXE`; the memory is measured again | 6–12 |
-| **WB5** input and chrome | Touch, scrolling, focus, direct Unicode input (a versioned composition/preedit protocol in neoui + its keyboard comes later), selection, forms, keyboard resize, Back, the Slint chrome | Typing into forms and navigating with Back on the phone | 2–4 |
+| **WB5** input and chrome | Touch, scrolling, focus, direct Unicode input (a versioned composition/preedit protocol in neoui + its keyboard comes later), selection, forms, keyboard resize, Back, the Slint chrome (already built on FakeEngine by UI0–UI4, [browser-ui.md](browser-ui.md)) | Typing into forms and navigating with Back on the phone | 2–4 |
 | **WB6** browser services | certificate handling and errors, cookies/storage on C:, redirects, logins; wifi.rs opens portals in NEOWEB | Signing in to a site; a captive portal over Wi-Fi | 2–4 |
 | **WB7** media | The custom media backend (FFmpeg/dav1d, DevSound/MMF) | Video with sound, seeking, A/V sync, a thermal soak | 6–12+ |
+
+**The UI track runs beside these stages** ([browser-ui.md](browser-ui.md), owner 2026-11-17): UI0–UI6 build every
+screen of the canvas's Browser page as `NEOWEB.EXE` on a stand-in engine now, in parallel with WB2–WB4; each screen's
+engine side arrives with the WB stage in its table.
 
 **Total: about 29–56+ PM**, not counting audio-driver bring-up or upstream web-compatibility work.
 

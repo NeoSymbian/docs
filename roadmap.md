@@ -273,6 +273,8 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   web-font bug; 37–210 MiB per page; SWGL works). The speed gate WB0p waits for real hardware.
   **WB1 done 2026-11-17** (kernel#19): FP/NEON for apps (smooth-ui S4's kernel part), 16 MiB stacks, a seeded
   secure RNG; GC-style memory works with disconnected chunks. Tested on the Pixel. Next: WB2 (Rust `std` over P.I.P.S.).
+  **The app UI is specified** in [browser-ui.md](browser-ui.md) (2026-11-17): every Browser v2 canvas screen in phases
+  UI0–UI6, built first on a stand-in engine in parallel with WB2–WB4.
 
 **U4: GPU** (stretch)
 - Adreno 615 + GMU + its SMMU. Kernel part in C++; command-stream builder in Rust. Freedreno is the reference.
