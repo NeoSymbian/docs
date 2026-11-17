@@ -269,13 +269,13 @@ Tokio → mio → P.I.P.S. sockets → ESOCK → NeoNet (Wi-Fi now, mobile data 
 
 | Item | Owner | Where it is planned |
 |---|---|---|
-| FP/NEON per thread at EL0 (lazy save of V0–V31, FPSR, FPCR; checking whether Qualcomm's EL2 traps AArch32 FP) | kernel | [smooth-ui.md](smooth-ui.md) S4, KRN-019 |
+| ~~FP/NEON per thread at EL0~~ **done (WB1, 2026-11-17):** eager save of Q0–Q15, FPSR, FPCR; Qualcomm's EL2 does not trap AArch32 FP | kernel | [smooth-ui.md](smooth-ui.md) S4, KRN-019 |
 | An ARMv7/v8 AArch32 softfp target, LDREX/STREX and 64-bit atomics (LDREXD/STREXD) | e32-rs + browser | smooth-ui S4 |
-| The phone's RAM below 4 GiB (above it needs a 64-bit `TPhysAddr`) | kernel | M4.3, the RAM map under [roadmap.md](roadmap.md) M4: kernel branch `ram-map`, in progress |
-| Stack limits for 8 MiB threads, and tens of threads per process | kernel | **new** (this doc) |
-| Reserve/align/decommit/protect for SpiderMonkey | kernel + ossrv | **new** |
+| ~~The phone's RAM below 4 GiB~~ **done** (above it needs a 64-bit `TPhysAddr`) | kernel | M4.3, the RAM map under [roadmap.md](roadmap.md) M4 |
+| ~~Stack limits for 8 MiB threads, and tens of threads per process~~ **done (WB1):** 16 MiB cap, 128 threads tested | kernel | WB1 |
+| Reserve/align/decommit for SpiderMonkey: **works with disconnected chunks (WB1 test)**; a protect call only if WB3 needs it | kernel + ossrv | WB1, WB3 |
 | `mprotect`, `poll` (or a mio `select` backend), pthread fixes | ossrv | **new** |
-| An entropy source for getrandom and TLS | kernel | **new** |
+| ~~An entropy source for getrandom and TLS~~ **done (WB1):** IRQ timing everywhere, the SoC PRNG on SDM670 | kernel | WB1 |
 
 ## Stages
 
@@ -285,7 +285,7 @@ Estimates are in person-months (PM), *estimates*. A stage starts only when its g
 |---|---|---|---:|
 | **WB0** host proof (emulated) | Create `browser`. Build Servo 0.8.0 for armv7 Linux; run it JIT-less with software GL (Mesa softpipe and SWGL) at 1080×2160 under QEMU, capped at 512 MiB and 1 GiB. Plan below | For the 10 sites below: function, RSS/PSS, peak VA (and a 2 GiB `ulimit -v` run), threads, stack peaks, a 30-minute soak. QEMU timings are recorded but don't gate | 0.5–1 |
 | **WB0p** speed gate | The WB0 harness on a physical ARM board (AArch32 userland). Deferred: no board yet (owner, 2026-11-16) | Cached render < 5 s, scrolling ≥ 15 fps | — |
-| **WB1** kernel | smooth-ui S4, M4.3, stack limits, VM primitives, entropy | FP patterns survive preemption and migration; 8 MiB threads; GC-style reserve/decommit tests | 3–5 |
+| **WB1** kernel ✅ 2026-11-17 | smooth-ui S4 (kernel part), M4.3, stack limits, VM primitives, entropy. Result below | FP patterns survive preemption and migration; 8 MiB threads; GC-style reserve/decommit tests | 3–5 |
 | **WB2** OS personality | rust + libc forks, the std unix PAL over P.I.P.S., the mio bridge. The EXE runtime for `std`: today `e32::main!` brings its own panic handler, a 64 MiB Rust heap (`e32/src/heap.rs`) and a 1 MiB native heap (`build/emitter/build_rust_exe.py`); a `std` EXE needs std-aware start-up, allocator budgets, panic/unwind, and C/C++ linkage | Rust's std tests on Syborg and the phone; **one EXE mixing `std`, e32 and C++** runs; a Tokio TCP fetch over NeoNet | 6–12 |
 | **WB3** mozjs shell | SpiderMonkey interpreter-only, as an EXE | JS test scripts, GC stress, threads, a clean OOM on the phone | 3–6 |
 | **WB4** Servo → neoui | servo/surfman forks, SWGL, fonts, presentation. **The rustls crypto provider and entropy come here, not in WB6:** `Servo::new` always calls `prewarm_tls` | Local HTML/CSS/JS pages and images draw in `NEOWEB.EXE`; the memory is measured again | 6–12 |
@@ -337,6 +337,25 @@ WebRender work (1 GiB within minutes in emulation).
 **Not measured yet:** speed (WB0p, real hardware), full per-site workflows, soaks.
 
 **M4.3 (RAM) is done:** the phone has ~2 GB.
+
+### WB1 result (2026-11-17): done
+
+Kernel PR [kernel#19](https://github.com/NeoSymbian/kernel/pull/19), tests [e32-rs#3](https://github.com/NeoSymbian/e32-rs/pull/3)
+(`NEOWB1.EXE`). **6/6 pass on QEMU virt (4 CPUs) and on the Pixel (RAM boot).**
+
+| Item | What changed | Test |
+|---|---|---|
+| FP/NEON for AArch32 apps | `CPACR_EL1.FPEN` on for every CPU; Q0–Q15 + FPSR/FPCR switched with the thread, eagerly (`a64_ctxsw.S`, `NThread::iCoprocessorState`); medverity's SHA-256 keeps the thread's registers | VFP math; 8 threads × 100 rounds fill every register and FPSCR, spin 20 ms, check. Negative control: without the switch, all 8 fail |
+| Stacks | `PP::MaxUserThreadStack` 16 MiB (was 1 MiB) | an 8 MiB stack used to the end, 32 MiB refused; 128 threads alive at once |
+| GC memory | none needed: disconnected chunks | reserve 1 GiB and 256 MiB; commit/decommit 1 MiB pieces at 1 MiB-aligned addresses; a decommitted page faults; recommitted memory is fresh |
+| Entropy | IRQ timing feeds `DSecureRNG` once extensions start; the SDM670 PRNG seeds 512 bits at boot | `Exec::MathSecureRandom` |
+
+- **The open question is answered:** Qualcomm's EL2 does not trap AArch32 FP.
+- **Shortcuts, to revisit only if measured:**
+  - FP is saved on every reschedule (no trap on first use);
+  - stacks are committed in full;
+  - there is no user protect call: no-JIT SpiderMonkey may not need one, and WB3 tells.
+- **Still open from S4:** the Rust ARMv7/NEON softfp target and LDREX atomics, which come with WB2.
 
 ### WB0 plan (2026-11-16)
 

@@ -263,6 +263,8 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   (FP/NEON, ARMv7 atomics), M4.3 (the RAM map, kernel branch `ram-map`), bigger stacks and VM primitives first. WB0, a host proof on armv7 Linux,
   is the go/no-go. **WB0 done 2026-11-16: GO** (5/10 sites; the other 5 share one 32-bit
   web-font bug; 37–210 MiB per page; SWGL works). The speed gate WB0p waits for real hardware.
+  **WB1 done 2026-11-17** (kernel#19): FP/NEON for apps (smooth-ui S4's kernel part), 16 MiB stacks, a seeded
+  secure RNG; GC-style memory works with disconnected chunks. Tested on the Pixel. Next: WB2 (Rust `std` over P.I.P.S.).
 
 **U4: GPU** (stretch)
 - Adreno 615 + GMU + its SMMU. Kernel part in C++; command-stream builder in Rust. Freedreno is the reference.
