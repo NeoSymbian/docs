@@ -230,7 +230,7 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
 - Shell services (settings store, notifications, home pages with widgets, pin/unpin): designed in
   [neoui-shell.md](neoui-shell.md). The settings store is done; the others are planned.
 - **Navigation v2 and the neoui kit** ([gestures.md](gestures.md), [neoui-kit.md](neoui-kit.md); merged to main
-  2026-11-17, RAM-booted on the Pixel, not installed yet):
+  2026-11-17, installed into slot a the same day):
   - apps draw their header and footer with a shared kit (`neoui-kit`, `@neoui/kit.slint`) and talk to the shell
     through the app API (`neoapp`; protocol 1.8: toasts, the shade, badges, the clipboard; 1.9: apps open each
     other, notification actions);
@@ -238,7 +238,7 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   - the UI's font is NeoSans (Inter with Noto Sans Armenian, 400–700);
   - Clock, Files, Dev tools, Terminal, Phone, Contacts and Messages are on the kit; NEOKIT.EXE is the gallery and the
     new-app template;
-  - next: an install, then the other apps' v2 boards, N9 peek, live Open apps, swipe to close, Lanes home and a lock
+  - next: the other apps' v2 boards, N9 peek, live Open apps, swipe to close, Lanes home and a lock
     screen (G2–G6).
 - **System keyboard (done 2026-11-12):**
   - English, Armenian and Russian, managed in Settings → Language & keyboard;
@@ -250,7 +250,15 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   - dialer, Recents, speed dial, every call screen, contacts with per-script sections, settings and the blocklist;
   - [telephony.md](telephony.md) C8;
   - the keyboard got number and phone pads and a toolbar key to put it away.
-- **Phone, Contacts and Messages v2 (merged to main 2026-11-17, not installed yet):** [phone-apps.md](phone-apps.md).
+- **Phone, Contacts and Messages v2 (merged to main and installed into slot a, 2026-11-17):** [phone-apps.md](phone-apps.md).
+  - a board-by-board audit found every `p2-*` board reached on the device. Its fixes:
+    - the Return to call timer counts from MODEMD's connect time (modem-ipc 2.6);
+    - the launcher badges show missed calls and unread messages;
+    - a Conference screen;
+    - Silence no longer changes the ring settings;
+    - `*#06#` shows the IMEI;
+    - Send as vCard by message;
+    - a choice of number for speed dial.
   - three apps that open each other (protocol 1.9): NEOPHONE and NEOMSG resident, NEOCONT the only writer of the book;
     each has its own card in Open apps, and a footer switches between them;
   - every `p2-*` board of the design canvas, the proposals included: Recents with a keypad sheet, one Settings page
