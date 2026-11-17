@@ -97,5 +97,14 @@ flowchart LR
 
 ## Status
 
-- 2026-11-17: A0–A2 implemented on branches `audio` (telephony, kernel, neoui); host tests and ARM builds pass;
-  phone test pending.
+- 2026-11-17: A0–A2 implemented on branches `audio` (telephony, kernel, neoui); host tests and ARM builds pass.
+- 2026-11-17: A5 recording (`apr::Mode::Duplex`: the mic's AFE port, ASM read session 0x0201, ADM TX COPP from
+  PRIMARY_TDM_TX, eight 20 ms read buffers at 0x34000; kernel AudioMem op 4 copies them out), A6 Settings → Sound →
+  Media (media volume, where media plays, microphone, "Test sound", "Record and play back"; the volume keys set the
+  media volume outside a call), A7 amp protection polling (kernel op 7, MODEMD every 250 ms) and the mic choice
+  (op 6: DMIC1/DMIC2, to find the top mic). Phone round 2 next.
+- In progress: A3 (our `mmfdevsoundadaptor.dll`, the server launcher, the server DLLs; `legacy/audio`), A4 (the
+  WAV controller closure), A8 (the 3.5 mm jack: kernel `a64_jack.cpp` with polled detection, the headphone and
+  headset-mic paths; the ADSP's internal MI2S ports in APR).
+- Not planned: an audible QEMU device (our board's `syborg-virtio-audio` is unimplemented and VNC carries no
+  sound); ACDB calibration (a proprietary format; the ADSP's built-in topologies stay) — both recorded as gaps.
