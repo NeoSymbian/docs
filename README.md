@@ -24,6 +24,7 @@ NeoSymbian brings the open-source 2010 Symbian (EKA2, the Symbian^3 release) bac
 | [neoui-shell.md](neoui-shell.md) | Shell services design: settings store, notifications, home pages, widgets (planned) |
 | [neoui-kit.md](neoui-kit.md) | The neoui kit (shared Slint components), the app API (`neoapp`), protocols 1.8 and 1.9, creating an app |
 | [phone-apps.md](phone-apps.md) | Phone, Contacts and Messages v2: three apps that open each other; shared data; missing platform functions |
+| [files-app.md](files-app.md) | Files: the new files repo, every canvas screen, platform gaps, phases FA0–FA13 |
 | [browser.md](browser.md) | Web browser design: every candidate, why Servo, the browser repo and forks, stages WB0–WB7 |
 | [port-map.md](port-map.md) | How EKA2 maps onto AArch64: what was reused, adapted and written new |
 | [ekern-backend.md](ekern-backend.md) | The full kernel's AArch64 backend |

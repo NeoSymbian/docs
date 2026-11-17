@@ -37,7 +37,8 @@ touches are mock-ups:
   - `GEOMETRY`, `SURFACE`, `DAMAGE`, `NEXT_EVENT`, `KEYBOARD`, `NAV`, `POWER`;
   - the events are `AppEvent::{Input, Quit, Back, Options, Visible}`, 16 bytes each.
 - **Apps:** a fixed table `APPS` (`symbian/src/host.rs`) maps screen keys to EXEs:
-  - `clock` → `NEOCLOCK.EXE`, `terminal` → `NEOTERM.EXE`, `files` → `NEOFILES.EXE`, `devtools` → `NEODEV.EXE`;
+  - `clock` → `NEOCLOCK.EXE`, `terminal` → `NEOTERM.EXE`, `files` → `NEOFILES.EXE`, `devtools` → `NEODEV.EXE`
+    (NEOFILES moves to its own repo in [files-app.md](files-app.md) FA0);
   - UIDs `0xE0002002`–`0xE0002005` in `symbian/exes.txt`, with `SYSSTART` at `0xE0002001`;
   - other screens (phone, messages, calendar, settings…) are drawn by the shell itself.
 - **Saving files:** the only pattern so far is Clock's `C:\private\e0002001\clock.dat` (`symbian/src/clock.rs`,

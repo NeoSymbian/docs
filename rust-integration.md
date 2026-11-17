@@ -365,27 +365,12 @@ touch. Nothing else changes in the ROM.
   - **Dates:** Symbian's `TTime` calendar counts leap years before 1600 the Julian way, so 1970-01-01 is day 719,540,
     not 719,528. e32's dates were 12 days late, the Clock app's date included; fixed in `ecf8697`.
   - **PlatSec:** this ROM doesn't enforce it, so `Z:\sys\bin` lists without AllFiles (47 entries).
-- **`NEOFILES.EXE`** (`neoui/symbian/apps/files`):
-  - drive cards with usage bars;
-  - folders (sorted, with size and date);
-  - a text viewer (UTF-8, or UTF-16 with a BOM; first 64 KB);
-  - New folder / Rename / Delete from Options, with the name typed on the system keyboard and a confirm dialog.
-
-  The model is `neoui/crates/neoui-files`, tested on the host.
-- **Apps can claim the toolbar's Back and Options** (`NAV`, op 6). The shell then forwards them as
-  `AppEvent::Back`/`Options`. Files claims Back below the drive list, so Back walks up the folders and closes the app
-  at the top.
-- **Syborg CI:**
-  - browses `Z:\Sys\Bin`;
-  - opens `estart.txt`;
-  - makes `C:\neo\` by keyboard;
-  - deletes it through the confirm dialog;
-  - closes the app with Back.
-- Not yet:
-  - copy/move, recursive delete;
-  - opening images;
-  - long-press;
-  - names outside the glyphs the app embeds (the UI fonts are subset at build time; ASCII is safe).
+- **`NEOFILES.EXE`** (`neoui/symbian/apps/files`, model `neoui/crates/neoui-files`): drive cards, folders, a text
+  viewer, New folder / Rename / Delete. What it does today, and the plan for the full app (a `NeoSymbian/files`
+  repo, phases FA0–FA13), are in [files-app.md](files-app.md). At R8 it claimed the v1 toolbar's Back (`NAV`, op 6);
+  since Navigation v2 it uses `Page` and the kit.
+- **Syborg CI:** browses `Z:\Sys\Bin`, opens `estart.txt`, makes `C:\neo\` by keyboard, deletes it, closes the app
+  with Back.
 
 **Phone handoff:** rebuild `neoui/symbian` from `d577344` or later, and add
 `NEOFILES.EXE 0xE0002004 libneofiles.a` from `neoui/symbian/exes.txt`. On the Pixel, C: is the persistent eMMC drive

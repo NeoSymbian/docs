@@ -225,7 +225,7 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   Measured at ~15 fps (R9); the way to 60 fps is [smooth-ui.md](smooth-ui.md).
 
 **U3: system apps in Rust**
-- Launcher, status bar (battery from H3, signal from P2), settings, dialer, messages, contacts, file manager.
+- Launcher, status bar (battery from H3, signal from P2), settings, dialer, messages, contacts, Files.
 - Old Symbian text apps keep running from a terminal app.
 - Shell services (settings store, notifications, home pages with widgets, pin/unpin): designed in
   [neoui-shell.md](neoui-shell.md). The settings store is done; the others are planned.
@@ -263,6 +263,10 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   (FP/NEON, ARMv7 atomics), M4.3 (the RAM map, kernel branch `ram-map`), bigger stacks and VM primitives first. WB0, a host proof on armv7 Linux,
   is the go/no-go. **WB0 done 2026-11-16: GO** (5/10 sites; the other 5 share one 32-bit
   web-font bug; 37–210 MiB per page; SWGL works). The speed gate WB0p waits for real hardware.
+- **Files (proposed 2026-11-17):** [files-app.md](files-app.md). The canvas's 60 `files2-*` boards in a new
+  `NeoSymbian/files` repo (NEOFILES moves out of neoui, UID 0xE0006001): browsing, copy/move with a per-drive Recycle
+  bin, search, archives, viewers for 55 file types and editors for 24, in phases FA0–FA13. Audio, documents and video
+  need platform work first (an audio service, FP/NEON); next is FA0, the move.
 
 **U4: GPU** (stretch)
 - Adreno 615 + GMU + its SMMU. Kernel part in C++; command-stream builder in Rust. Freedreno is the reference.
