@@ -106,9 +106,9 @@ and clippy pass. Results on the Pixel (RAM boots, nothing flashed) and on QEMU:
 | A2 | Pixel: the test sound plays through the ADSP (`38808 frames, 1 underrun` = the end, `sink 1` = DSP); routes both / bottom / earpiece reach the amps; volume changes apply live |
 | A3 | Pixel: Frozen Bubble starts `MMFAudioServerStart.exe`, opens a NeoAudio stream (16 kHz mono) through our DevSound adaptor, media runs on the ADSP while it plays; no panics. Audible level not yet confirmed by ear |
 | A4 | Built into the ROM: tones and DTMF (synthesized in the adaptor), the WAV controller, format, source/sink and codecs; not exercised yet (no app on the phone plays a WAV) |
-| A5 | Pixel: 5 s recording = 480000 bytes, played back with 0 underruns. The READ opcode is ASM_DATA_CMD_READ_V2 `0x10dac` (`0x10db5` is refused with status 3). Peaks reach 32767: the call mic's +16.5 dB may clip recordings close up |
+| A5 | Pixel: 5 s recording = 480000 bytes, played back with 0 underruns. The READ opcode is ASM_DATA_CMD_READ_V2 `0x10dac` (`0x10db5` is refused with status 3). The full-scale samples are the mic's start (its first 7–12 ms), not clipping: a quiet room after 0.5 s reads RMS 7–11, peak 29–52 |
 | A6 | Pixel: Settings → Sounds → Media works; the volume keys step the media volume outside a call |
-| A7 | Built: amp protection polling (no event seen), mic choice DMIC1/DMIC2 (which is the top mic: not yet found) |
+| A7 | Amp protection polling runs (no event seen). Mics (Dev tools → "find the microphones", a 1 kHz tone on one speaker recorded by each mic): earpiece → DMIC1 5031 / DMIC2 5730 RMS; bottom speaker → DMIC1 5862 / DMIC2 5983. DMIC1, the call mic, is the bottom mic; DMIC2 is most likely the top one (the body couples both strongly, so the margin is small) |
 | A8 | Pixel: the jack driver comes up (`jack ok: unplugged`, no faults); headphones and the headset mic are untested (nothing plugged in) |
 
 **Gaps:**
