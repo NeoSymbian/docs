@@ -114,8 +114,9 @@ and clippy pass. Results on the Pixel (RAM boots, nothing flashed) and on QEMU:
 **Gaps:**
 - QEMU has no audible device: our board's `syborg-virtio-audio` is unimplemented and VNC carries no sound.
 - No ACDB calibration: the format is proprietary, and the ADSP's built-in topologies stay.
-- The headset mic records only through the kernel's op 10; APR has no INT3 MI2S TX path yet (recordings use the
-  built-in mic with headphones in).
+- Headphones and the headset mic are implemented end to end, but untried: no headset has been plugged in yet.
+  - Media on headphones: INT0 MI2S RX, the codec's MCLK, the kernel's op 9.
+  - Recording from a headset: INT3 MI2S TX, the kernel's op 10.
 
 **Fixed on the way:** "Action failed (-2)" on Settings → Sounds. It was MODEMD's stale result from the modem
 refusing "online" (QMI 52, invalid transition) about 20 s into every boot; it no longer counts as a failed action.
