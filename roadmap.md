@@ -280,6 +280,10 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   viewers for 55 file types and editors for 24, in phases FA0–FA13. **FA0 done 2026-11-17:** NEOFILES moved out of
   neoui into [NeoSymbian/files](https://github.com/NeoSymbian/files), unchanged (Syborg CI and the Pixel). Audio and
   video need an audio service first; next is FA1, the v2 browsing screens.
+- **Clock + Calendar (proposed 2026-11-17):** [datetime.md](datetime.md). A new `NeoSymbian/datetime` repo
+  (UIDs 0xE0008001–3): NEOCLOCK moves out of neoui and gets a v2 UI (3 tabs); NEOCAL is new (Month, Week, Day,
+  To-do, .ics); a resident DTSRV owns alarms, timers, events and to-dos and rings them, replacing clockwork's alarm
+  check. Phases DT0–DT7; the canvas's Clock and Calendar pages hold the design.
 
 **U4: GPU** (stretch)
 - Adreno 615 + GMU + its SMMU. Kernel part in C++; command-stream builder in Rust. Freedreno is the reference.
