@@ -241,7 +241,8 @@ The app can live in another repo, as NEOPHONE does (NeoSymbian/phone). It pins n
 | NV11, NV12 | this doc, `gestures.md`, the roadmap; Gestures is the default | docs written; install pending |
 
 **Not done yet:**
-- A Pixel install and the Syborg CI tap paths for v2: `neoui/.github/workflows/syborg.yml` still taps the v1 strip.
+- A Pixel install, and the Syborg CI from the Terminal on: the Navigation and Files steps pass again (neoui PR #14),
+  but the v2 Terminal app draws nothing until ESHELL writes, and ESHELL is silent on Syborg.
 - An editor for home and a wallpaper picker: the long-press menu opens their Settings pages.
 - Flipping a long-press menu near the bottom.
 - The edit bar for the shell's own fields.

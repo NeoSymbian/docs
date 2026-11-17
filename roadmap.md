@@ -225,7 +225,7 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   Measured at ~15 fps (R9); the way to 60 fps is [smooth-ui.md](smooth-ui.md).
 
 **U3: system apps in Rust**
-- Launcher, status bar (battery from H3, signal from P2), settings, dialer, messages, contacts, file manager.
+- Launcher, status bar (battery from H3, signal from P2), settings, dialer, messages, contacts, Files.
 - Old Symbian text apps keep running from a terminal app.
 - Shell services (settings store, notifications, home pages with widgets, pin/unpin): designed in
   [neoui-shell.md](neoui-shell.md). The settings store is done; the others are planned.
@@ -275,6 +275,11 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   secure RNG; GC-style memory works with disconnected chunks. Tested on the Pixel. Next: WB2 (Rust `std` over P.I.P.S.).
   **The app UI is specified** in [browser-ui.md](browser-ui.md) (2026-11-17): every Browser v2 canvas screen in phases
   UI0–UI6, built first on a stand-in engine in parallel with WB2–WB4.
+- **Files (proposed 2026-11-17):** [files-app.md](files-app.md). The canvas's 60 `files2-*` boards in a new
+  `NeoSymbian/files` repo (UID 0xE0006001): browsing, copy/move with a per-drive Recycle bin, search, archives,
+  viewers for 55 file types and editors for 24, in phases FA0–FA13. **FA0 done 2026-11-17:** NEOFILES moved out of
+  neoui into [NeoSymbian/files](https://github.com/NeoSymbian/files), unchanged (Syborg CI and the Pixel). Audio and
+  video need an audio service first; next is FA1, the v2 browsing screens.
 
 **U4: GPU** (stretch)
 - Adreno 615 + GMU + its SMMU. Kernel part in C++; command-stream builder in Rust. Freedreno is the reference.
