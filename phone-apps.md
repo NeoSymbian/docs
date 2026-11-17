@@ -100,4 +100,4 @@ MODEMD (modem-ipc 2.5); why a message failed.
 | the split into three EXEs, the shared frame | on main; RAM-booted on the Pixel |
 | Phone, Contacts, Messages v2 (every `p2-*` board, `snapshots/p2-*.png`) | on main |
 | the board audit (2026-11-17): every board reached with real data; fixes for the bar timer, badges, Conference, Silence, IMEI, Send as vCard, the speed-dial number; boards `p2-call-conference`, `p2-msg-archived` | on main (telephony 2.6) |
-| a Pixel install | not yet |
+| a Pixel install | installed into slot a, 2026-11-17 (`filesystem.md`) |
