@@ -1,9 +1,18 @@
-# Gesture navigation: the N9 mix
+# Gesture navigation: Navigation v2 (and the N9 mix before it)
 
-**Status: designed 2026-11-16 (reviewed by Codex the same day); G1 and the [Five places](#five-places-one-strip-every-app-two-modes) strip and Page API built (neoui, NEOPHONE), checked on the phone from RAM.** This page designs gesture navigation for neoui, the Rust UI shell.
-It is written so that a later session can build any stage from this page alone. The model is the Nokia N9's Swipe UI
-(MeeGo Harmattan, 2011). It is not Android's or iOS's. Gestures sit beside the classic Belle/N8 toolbar, and the
-user picks one or the other in Settings.
+**Status: Navigation v2 built 2026-11-17** on neoui `ui-v2`: three modes, the app-drawn header, the 639 / 679 dp
+surfaces. It is not installed on the phone yet. The design is the canvas's Navigation page
+(https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ), decisions D12–D20, approved 2026-11-16.
+
+The model is the Nokia N9's Swipe UI (MeeGo Harmattan, 2011), not Android's or iOS's. Gestures sit beside a key row of
+system buttons, and the user picks in Settings.
+
+How apps build their part (the kit, the app API, protocol 1.8) is in [neoui-kit.md](neoui-kit.md).
+
+The chapters after "Navigation v2" are v1, kept for the record:
+- the N9 map, which v2 keeps as "N9 gestures";
+- the recognizer;
+- Five places, whose strip and shell-drawn page actions v2 replaced.
 
 It belongs to roadmap stage U3 ("system apps in Rust", [roadmap.md](roadmap.md)) and builds on
 [neoui-shell.md](neoui-shell.md) (the settings store, notifications, home pages) and [smooth-ui.md](smooth-ui.md)
@@ -11,13 +20,90 @@ It belongs to roadmap stage U3 ("system apps in Rust", [roadmap.md](roadmap.md))
 
 | Stage | What | Status |
 |---|---|---|
-| G1 | Edge recognizer; `nav.mode`; Settings → Home screen & navigation; Back, Open apps, Home and Apps menu by edge swipe; an edge hint | Built 2026-11-16 (host tests, CI flow, phone) |
-| P | **Five places:** one shell-drawn bottom strip for every app, the Page API (apps declare, the shell draws), window rules | Built 2026-11-16 (P1–P3 below); Gestures as the default still to do |
+| G1 | Edge recognizer; `nav.mode`; Settings → Home screen & navigation; Back, Open apps, Home and Apps menu by edge swipe; an edge hint | Built 2026-11-16 |
+| P | v1's Five places: the shell-drawn strip and Page API | Built 2026-11-16; **replaced by v2** |
+| NV1–NV10 | **Navigation v2:** protocol 1.8, the kit header, key row / band, the Thumb and N9 maps, the Back bubble, home long press, the keyboard swipe, the apps moved | **Built 2026-11-17** (host tests, ARM builds) |
+| NV11 | Docs (this page, neoui-kit.md, the roadmap) | Written 2026-11-17 |
+| NV12 | Gestures (the Thumb map) as the default (done: `nav.mode` default 1); install on the phone | Install pending |
 | G2 | N9 peek: the screen follows the finger, with the target underneath; letting go early cancels | Planned |
 | G3 | Open apps with live thumbnails, 2 or 3 columns, N9 long-press close mode | Planned |
 | G4 | Swipe down from the top to close an app (N9's option) | Planned |
 | G5 | Lanes home: Events · Home · Open apps side by side | Planned |
 | G6 | N9 lock screen: swipe in from any edge to unlock; double-tap to wake | Planned |
+
+## Navigation v2
+
+**The decisions D12–D20** (owner, 2026-11-16):
+- **D12.** Classic becomes Buttons: a key row with system keys only (← ⌂ ▢).
+- **D13.** App actions live in an app-drawn header: root `[Name · ≤ 3 icons]`, sub-page `[← Name · ≤ 3]`.
+- **D14.** A form is `[✕ Title ✓]`. Big actions (Call, Send, Shutter, Answer) stay in the content.
+- **D15.** One shared header component, the kit's `Header`.
+- **D16.** The title is in the header only. The status bar shows the clock and indicators.
+- **D17.** A mode switch may resize apps (639 ↔ 679 dp).
+- **D18.** Buttons has no edge gestures.
+- **D19.** Two gesture maps: Gestures (the Thumb map, the default) and N9 gestures.
+- **D20.** The live Back arrow, the last-app flick, home's long press, and a swipe down on the keyboard.
+
+### The rules (v2; they replace v1's eleven)
+1. **Status bar.** 25 dp in every mode except full screen: the clock at the left, the network's name, signal, Wi-Fi
+   and battery at the right. No title.
+2. **Apps draw their header** (48 dp, the kit): Header, SubHeader, FormHeader, SearchHeader, SelectionHeader. Icon
+   targets are 48 × 48 with 24 dp glyphs.
+3. **⋮ is one of the three header actions.** It opens the kit's Menu, a dropdown under it. It shows only when there are
+   items; a tap outside or Back closes it.
+4. **Big task actions stay in the content.** NEOPHONE's dialer has Call in a band under the keypad.
+5. **Three modes.** `nav.mode`: 0 Buttons, 1 Gestures (the default), 2 N9 gestures.
+6. **Buttons: system keys only.** A 56 dp key row, ← ⌂ ▢ in thirds. ← dims on home and becomes ˅ with the keyboard.
+   There are no edge gestures.
+7. **The Thumb map.**
+   - Either side edge, inward: Back.
+   - Up from the bottom: Home; on home, the Apps menu.
+   - Up and held still for about 300 ms: Open apps.
+   - Along the bottom band, past 72 dp: the previous (rightwards) or next (leftwards) running app.
+   - On home, only the bottom edge is live.
+8. **The N9 map.**
+   - The left edge: Back.
+   - A drag from the right edge: Open apps. A quick flick (≥ 24 dp at ≥ 0.5 dp/ms): the last app.
+   - Up from the bottom: Home; past half the screen, the Apps menu.
+9. **The live Back arrow.** A 36 dp bubble with ← follows the finger in from a Back edge. It is grey, and turns accent
+   at the 72 dp commit point.
+10. **Back, in order.**
+    - Close a menu, sheet or dialog: the kit's layers (`neoapp::kit_back!`) and the shell's QUERY.
+    - Hide the keyboard.
+    - Go up one page; the header's ← takes the same path.
+    - At the app's top page, go back to where it was opened from.
+11. **Home and Open apps keep everything.** Only × on an Open apps card closes an app.
+12. **Home.** No ⋮ in any mode, and Apps is always in the dock. A long press opens Edit home · Wallpaper.
+13. **Full screen.** A call or the camera hides the status bar and the bottom. In Buttons a tap shows the key row for
+    3 s; in Gestures the edges keep working.
+14. **Keyboard.** It sits above the key row or the band at its full height. A swipe down on its top band hides it. The
+    band also has Select all · Copy · Paste for an app's field.
+15. **Dialogs stay with the shell.** QUERY is a centred card with up to 3 buttons, a destructive one in red. Back (or
+    the key row's ←, which stays usable under it) answers the last button.
+16. **A mode switch resizes apps once.** Buttons gives 639 dp, Gestures and N9 679 dp, full screen 720
+    (`AppEvent::Area`).
+
+### Thresholds (dp; `neoui-proto/src/gesture.rs`)
+| | Value |
+|---|---|
+| Edge zone, slop | 16, 8 |
+| Side commit (Back, N9's Open apps), along-the-band commit | 72 |
+| Home | 80, no flings from the bottom |
+| N9 Apps menu | half the screen's height |
+| Fling | ≥ 24 dp at ≥ 0.5 dp/ms |
+| Thumb up-and-hold | 300 ms still (`Recognizer::tick`, called each frame; the server wakes every 50 ms while a gesture is held) |
+
+### Where the code is
+- `neoui-proto`: `gesture.rs` (`Map`, the recognizer, `tick`), `page.rs` (Page 1.8, Note, Notification),
+  `ipc.rs` (opcodes and events).
+- `ui/components/frame.slint`: StatusBar, KeyRow, Band.
+- `ui/shell.slint`: the bottom, the kit header on the shell's screens, the toast, dialogs, the keyboard.
+- `crates/neoui-render`: `Renderer::gesture` (last / previous / next app from the running list) and
+  `back_bubble_pixel`.
+- `symbian/src/lib.rs`: live edges per map, `tick`, the bubble and bar hints. `host.rs`: NOTE, NOTIFY, BADGE, CLIP,
+  `Area` on a body change.
+- Tests: neoui-proto's gesture tests, including the Thumb and N9 maps; neoui-render's `nav.rs` (the v2 chrome),
+  `gestures.rs`, `pads.rs` (keyboard, edit bar, swipe down).
 
 ## The N9 Swipe UI, as it worked
 This is written from memory of using the phone. No Nokia material is copied.
@@ -87,9 +173,10 @@ The owner chose this map on 2026-11-16. It is the N9's with two changes:
 Not taken from Android or iOS: no swipe-up-and-hold for recents, no sideways swipe along the bottom between apps,
 no back from both side edges.
 
-## Five places: one strip, every app, two modes
+## Five places: one strip, every app, two modes (v1, replaced by Navigation v2)
 
-**Decided 2026-11-16** by the owner, after a first idea (apps drawing their own bars, a system bar under an app bar in
+**v1. Replaced 2026-11-17 by [Navigation v2](#navigation-v2):** apps draw their header, and the strip is now a key
+row or a band. **Decided 2026-11-16** by the owner, after a first idea (apps drawing their own bars, a system bar under an app bar in
 Classic, ⋮ moving between the app bar and the status bar) turned out too complex. Codex and Claude each proposed a
 model; both arrived at "apps declare, the shell draws". This chapter is the merged result. It replaces G1's
 "Classic and Gestures" section.
