@@ -795,6 +795,10 @@ Exit: an SMS round-trip with the owner's phone, including Armenian and Cyrillic 
   `EDIT_UNARCHIVE_THREAD` 9 (any message of the thread); `SmsEntry.archived` rides in bit 1 of the `incoming` byte, so
   the record keeps its size and a 2.3 record or `sms.db` reads as not archived. A new message from that number brings
   the thread back.
+- **modem-ipc 2.5 (2026-11-17, Messages v2):** `EDIT_UNBLOCK_SENDER` 10 (that number's blocked messages become read
+  ones in its conversation), `EDIT_DELETE_ALL` 11 (every message but the blocked ones); a FAILED message's `why` says
+  why (`FAIL_NO_ANSWER`, `FAIL_REFUSED`, `FAIL_RESTART`, `FAIL_UNDELIVERED`; a retry clears it); `SMS_SEND` answers
+  KErrTooBig for an empty or over-long text, KErrArgument for a bad number.
 - **The alert:** two 150 ms buzzes and the first 0.8 s of the ringtone, never during a call or while it rings.
 - **NEOPHONE (page 6):**
   - the conversations, a thread (✓ sent, ✓✓ delivered, retry a failed one), a new message to several recipients, and

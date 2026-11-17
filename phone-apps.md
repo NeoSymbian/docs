@@ -12,7 +12,7 @@ boards: Phone, Contacts, Messages). They used to be one process behind three ico
 
 | EXE | UID | Key | What | Resident |
 |---|---|---|---|---|
-| `NEOPHONE.EXE` | 0xE0005001 | `phone` | Recents with the keypad sheet, call details, speed dial, the call screens, the shared Settings page (calls, log, contacts, messages), blocked numbers, quick replies | yes: an incoming call shows at once |
+| `NEOPHONE.EXE` | 0xE0005001 | `phone` | Recents with the keypad sheet, call details, speed dial, the call screens, the shared Settings page (the system Settings app's **Calls & Messages** row: calls, log, contacts, messages), blocked numbers, quick replies | yes: an incoming call shows at once |
 | `NEOCONT.EXE` | 0xE0005002 | `contacts` | the list (search, favourites, the three-script letter strip), the card, the editor, selection; the only writer of the book | no |
 | `NEOMSG.EXE` | 0xE0005003 | `messages` | the conversations (search, swipe Archive/Delete with Undo, Archived, selection), a thread (the bubble menu at the finger), a new message, blocked messages, one shade entry per conversation | yes: it posts the shade's entries |
 
@@ -54,26 +54,22 @@ root returns to the app that opened it (the shell's origin), else home.
 **MODEMD.** Messages' Archive uses modem-ipc 2.4 (`EDIT_ARCHIVE_THREAD` 8, `EDIT_UNARCHIVE_THREAD` 9); a new
 message brings the thread back.
 
+**Return to call.** While a call goes on and its screen isn't showing, all three apps draw a green bar under the
+header ("Ava Lindqvist · 04:12 · Return to call", the prototype's hidden call); Back on the call screen hides it.
+
 ## Missing platform functions
 
-These are what the boards show that the platform can't do yet, and what each app does meanwhile.
+What the boards show that the platform can't do yet. Both are drawn as on the boards; a tap says what is missing
+(the owner's decision, 2026-11-17).
 
 | Board | Missing | Meanwhile |
 |---|---|---|
-| Contacts editor: Photo | a photo picker (no Photos app, no file picker) | the slot is shown and does nothing |
-| Contacts card: Email | an Email app | the mail button is hidden on the device |
-| Messages notifications | the shade's entry shows no avatar, no time and only one line of text | the title is the name; the text is the newest message |
-| Messages: Paste | an app can't read the clipboard directly (only through a focused text field) | a hidden field pastes; ⋮ always lists Paste |
-| Messages: badge | the shell already counts unread messages from MODEMD; an app badge would add to it | Messages posts no badge |
+| Contacts editor: Photo | a Photos app or picker, and photos in the book | the slot shows; a tap: "Needs the Photos app" |
+| Contacts card: Email | an Email app | the button shows; a tap: "Needs an Email app" |
 
-Phone found no gap: every action on its boards maps to a MODEMD call or a setting (the IMEI code `*#06#` still only
-shows a note, as before).
-
-**Kit candidates** (built inside the apps; worth moving to the neoui kit when another app needs them): a multi-script
-letter strip (lit section, separators, bubble), a dialog with a detail line and check boxes, a ChoiceSheet with the
-radio on the left, an icon button with a label (the card's and details' Call / Message pills), a ListRow with a
-trailing call button, a press with a 500 ms hold that reports the finger's place, a "menu at the finger" helper,
-Chip / Switch / Sheet that follow the app's state instead of keeping their own.
+Done this round (they were gaps): the shade's entry with an avatar, a time, two lines and a main Reply button (NOTIFY);
+an app reading the clipboard (`app.clipboard()`); unblocking a sender's messages and deleting all conversations in
+MODEMD (modem-ipc 2.5); why a message failed.
 
 ## Status (2026-11-17)
 

@@ -51,7 +51,9 @@ fn main() {
 **One import.** The app's Slint takes everything from one file:
 
 ```slint
-import "@neoui/fonts/Inter-VariableFont.ttf";
+import "@neoui/fonts/NeoSans-Regular.ttf";
+import "@neoui/fonts/NeoSans-Medium.ttf";
+import "@neoui/fonts/NeoSans-SemiBold.ttf";
 import { Theme, Kit, Scroll, Header, Footer, TabPages, NeoList, ListRow } from "@neoui/kit.slint";
 export { Theme, Kit, Scroll }   // Rust sets Theme.dp, reads Scroll, drives Kit (Back)
 ```
@@ -60,6 +62,8 @@ Glyphs are `@image-url("@neoui/icons/sys/<name>.svg")`. There are 84 of them, fr
 - clock, timer, recents, contacts;
 - select_all, archive, share, sort, filter;
 - chevron_left.
+
+**Fonts.** The UI's font is **NeoSans** (`default-font-family: "NeoSans"`): Inter merged with Noto Sans Armenian at 400, 500 and 600, both OFL, made by `neoui/tools/make_fonts.py`. Slint draws a Text in one font with no fallback, and the design draws Inter with Noto Sans Armenian after it, so one family carries both. Text a user types in a field stays DejaVu Sans (every keyboard language). The three subset faces are smaller than the variable Inter they replace.
 
 **The runtime.** On the device, the app's crate depends on `neoapp`, the app API. `neoapp` lives in the neoui repo at `symbian/neoapp` and is GPL because it links Slint.
 
@@ -87,6 +91,8 @@ The signatures follow the canvas's *Shell API · Kit reference*. The table gives
 | `Bubble`, `Composer` (1.9) | Bubble: `text`, `meta`, `mine`, `failed`; `tapped()`, `long-pressed(x, y)`. Composer: `text`, `placeholder`, `counter`, `enabled`; `send(text)`, `edited(text)`, `focus-field()` | a message (theirs left, mine right, failed with a red border) and the field, Send and counter line under a thread |
 | `Toast`, `Spinner`, `ProgressBar`, `EmptyState`, `ErrorState`, `Skeleton`, `PullIndicator` | | the toast's look (the shell draws NOTE with it), states in place of a list |
 | `Badge` | `count` (−1 a dot) | footer tabs, launcher icons |
+| Header extras | `selecting` (the selection header with 0 ticked), `selection-menu` + `selection-menu-picked(i)` (⋮ in selection), `title-font`, `search-first`; `Act.tint` | `SearchHeader` (field 12 dp in, ✕ beside it) and `SelectionHeader` follow `alt` (#0b0c0e) |
+| `ListRow.trailing-room`, `Button.icon`/`has-icon`, `Bubble.held`, `ChoiceSheet.radio-left`, `Menu.bound`, `FormHeader.has-save`/`alt`, `Footer.alt` | | room for a letter strip, pills with a glyph, a held bubble's ring, the phone's pickers, a menu at the finger that opens upwards near the bottom, a form whose action is in its content |
 
 **Defaults (K03).** The kit turns these on, and each has an opt-out:
 - `Header.search` and `Header.tap-to-top`;
@@ -118,6 +124,8 @@ Slint has no destroy hook, so a layer whose component goes away while open isn't
 | `app.notify(&Notification)` / `cancel_notify(id)` | An entry in the shade, with up to 2 actions (1.9). A tap brings the app to the front with `AppEvent::Page { page }` and `AppEvent::Notified { id, action: 0 }`; action `i` sends `Notified { id, action: i + 1 }` |
 | `app.open(key, page, arg)` / `app.arg()` (1.9) | Open another app on one of its pages with an argument (a number). The target gets `AppEvent::Open { page }` and reads the argument with `arg()`; Back at its root returns to the caller |
 | `app.done()` (1.9) | The task the app was opened for is finished (a call ended): the shell shows where the user came from |
+| `app.clipboard()` / `set_clipboard(text)` | The shared clipboard (≤ 2048 B), for Copy text and Paste outside a text field |
+| `app.wake_us()` | When Slint needs the app's loop again (its next timer; 16 ms while animating). A loop that also waits on something else (MODEMD) sleeps no longer than this and then draws: otherwise switches don't redraw and long-presses never fire |
 | `app.badge(id, count)` | A counter on the launcher icon. The counters are summed; 0 removes one |
 | `app.entry(id, caption, icon)` / `app.front(bool)` | Launcher entries, and showing the app's surface or its shell screen |
 | `app.keyboard(mode)` | The system keyboard. `AppEvent::Keyboard { h }` reports later height changes |
@@ -185,7 +193,7 @@ The modes:
 | 22 | `OPEN` | `[key ≤ 16 B, page u16, arg ≤ 256 B]` → 0. The server starts the app `key` or brings it to the front, keeps `arg`, sends `AppEvent::Open { page }`, and shows it with the caller as where Back returns (the shell's origin). `KErrNotFound` for an unknown key |
 | 23 | `ARG` | `[out arg]` → its length; reading takes it |
 | 24 | `DONE` | → 0. From the app in front: the shell's Back past it (to the app that opened it, or home) |
-| 18 | `NOTIFY` | 1.8's record, then optionally `[n ≤ 2]` and the action labels (≤ 16 B). A 1.8 record still decodes |
+| 18 | `NOTIFY` | 1.8's record, then optionally `[n ≤ 2]` and the action labels (≤ 16 B), then optionally the avatar's initials (≤ 8 B) and tint (u32 0xRRGGBB) and a time (≤ 16 B). A newline in the text gives two lines. The shade draws the newest entry expanded (avatar, time, two lines, the first action as the main button) and the others as rows. A 1.8 record still decodes |
 
 | Kind | Event |
 |---|---|
@@ -199,6 +207,10 @@ The modes:
 - The shade's "new messages" summary row hides while Messages posts its own entries.
 
 **Settings shared by apps.** A registered key's owner can be several apps (`Owner::Apps`): Phone's Settings page and a contact card both write `phone.speed` and the `contacts.*` keys. An unregistered key in an app's own namespace (`contacts.rev`) stays writable by that app alone.
+
+**The kit Menu fix.** An item's tap reports its pick before the popup closes: closing tears the item down, and before the fix no ⋮ item ran (`neoui-gallery`'s test now taps one).
+
+**Back to Settings.** An app opened from the Settings app (its Calls & Messages row) returns there on Back.
 
 **Libraries beside `@neoui`.** `neoui_kit::compile_with("ui/app.slint", &[("phone-shared", dir)])` maps an app repo's own Slint library (`@phone-shared/...`), for parts several apps of one repo share.
 
