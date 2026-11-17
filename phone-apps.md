@@ -51,11 +51,32 @@ root returns to the app that opened it (the shell's origin), else home.
 - `symbian/common`: MODEMD's client, the files, the prefs reader, blocking, opening the other apps.
 - `symbian/{phone,contacts,messages}`: each app's event loop and areas.
 
-**MODEMD.** Messages' Archive uses modem-ipc 2.4 (`EDIT_ARCHIVE_THREAD` 8, `EDIT_UNARCHIVE_THREAD` 9); a new
-message brings the thread back.
+**MODEMD.** The apps use these modem-ipc additions (`telephony.md`):
+- **2.4:** Messages' Archive (`EDIT_ARCHIVE_THREAD` 8, `EDIT_UNARCHIVE_THREAD` 9). A new message brings the thread back.
+- **2.5:** Unblock sender, Delete all, and the reason a message failed.
+- **2.6:** a call's conference flag and connect time, the IMEI, and `SILENCE`.
 
 **Return to call.** While a call goes on and its screen isn't showing, all three apps draw a green bar under the
-header ("Ava Lindqvist · 04:12 · Return to call", the prototype's hidden call); Back on the call screen hides it.
+header ("Ava Lindqvist · 04:12 · Return to call", the prototype's hidden call).
+- Its timer counts from MODEMD's connect time (`Call::since`), so it matches the call screen in every app.
+- Back on the call screen hides it.
+
+**Calls.** Known contacts, unknown numbers and private numbers each have their own incoming screen:
+- an unknown number shows the # avatar and Reply with message;
+- a private number shows no Reply.
+
+The other call screens:
+- Silence quietens only this call (MODEMD's `SILENCE`); the ring settings stay as they are.
+- After Merge, every connected call is multiparty, so the Conference screen shows (`p2-call-conference`): "Conference", the callers' names, a group glyph. End ends them all.
+- `*#06#` shows the IMEI.
+
+**Launcher badges.** Both resident apps keep their icon's badge (BADGE) current, hidden or not:
+- Phone shows its new missed calls;
+- Messages shows its unread messages.
+
+**Contacts.**
+- Send as vCard asks: **Message** opens Messages' New message with the card as text (name, then label and number), or **Save as vCard file** writes `C:\Data\<name>.vcf`.
+- Speed dial on a card with several numbers asks which number to use.
 
 ## Missing platform functions
 
@@ -75,8 +96,8 @@ MODEMD (modem-ipc 2.5); why a message failed.
 
 | Part | State |
 |---|---|
-| neoui 1.9 (`apps-split`): OPEN / ARG / DONE, notification actions, two residents, the kit parts (Keypad, Fab, Bubble, Composer, Chip count, Act tint, title font, `alt`, FormHeader `has-save`) | built |
-| the split into three EXEs, the shared frame | built; RAM-booted on the Pixel with the old screens |
-| Phone, Contacts, Messages v2 (every `p2-*` board, `snapshots/p2-*.png`) | built (phone `split`) |
-| telephony 2.4 (archive) | built (`sms-archive`) |
-| a Pixel RAM boot with the v2 screens | next |
+| neoui 1.9: OPEN / ARG / DONE, notification actions, two residents, the kit parts | on main |
+| the split into three EXEs, the shared frame | on main; RAM-booted on the Pixel |
+| Phone, Contacts, Messages v2 (every `p2-*` board, `snapshots/p2-*.png`) | on main |
+| the board audit (2026-11-17): every board reached with real data; fixes for the bar timer, badges, Conference, Silence, IMEI, Send as vCard, the speed-dial number; boards `p2-call-conference`, `p2-msg-archived` | on main (telephony 2.6) |
+| a Pixel install | not yet |
