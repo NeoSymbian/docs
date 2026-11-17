@@ -204,12 +204,12 @@ Changes go upstream where upstream will take them; never to SymbianSource or Pho
 
 | Upstream | Why we fork it |
 |---|---|
-| [rust-lang/rust](https://github.com/rust-lang/rust) | `std` for `target_os = "symbian"` |
-| [rust-lang/libc](https://github.com/rust-lang/libc) | P.I.P.S. bindings |
+| [rust-lang/rust](https://github.com/rust-lang/rust) | `std` for `target_os = "symbian"`: `library/` only, the compiler stays stock ([browser-std.md](browser-std.md#why-forks)) |
+| [rust-lang/libc](https://github.com/rust-lang/libc) | P.I.P.S. bindings: the sizes and constants PIPSPROB measured |
 | [servo/servo](https://github.com/servo/servo) | About 20–50 `cfg(target_os)` sites (*estimate*, from ~172 gates in 52 files): fonts (FreeType + a bundled list, no fontconfig), memory stats, the hang monitor, net/TLS provider, sandbox selection |
 | [servo/mozjs](https://github.com/servo/mozjs) | `configure.py` triplet and OS, the VM and thread layer, interpreter-only |
 | [servo/surfman](https://github.com/servo/surfman) | Likely: a Symbian backend (it's an unconditional dependency) |
-| [tokio-rs/mio](https://github.com/tokio-rs/mio), [socket2](https://github.com/rust-lang/socket2) | Readiness over P.I.P.S. sockets (`select`) |
+| [tokio-rs/mio](https://github.com/tokio-rs/mio), [socket2](https://github.com/rust-lang/socket2) | Readiness over P.I.P.S. sockets (`select`); mio refuses an unknown OS |
 | [WebRender](https://github.com/servo/webrender) (SWGL) **or** [Mesa](https://gitlab.freedesktop.org/mesa/mesa) | Software GL (see below) |
 | Only if needed | aws-lc-rs / AWS-LC (or switch rustls to another provider), parking_lot, harfbuzz/freetype sys crates, backtrace, memmap2. getrandom takes a custom backend without a fork |
 

@@ -18,6 +18,30 @@ NeoSymbian, which Servo, SpiderMonkey's Rust side, Tokio and rustls all need. To
 | **WB2c** | Forks on branch `neosymbian`: `NeoSymbian/libc` (`src/unix/symbian`) and `NeoSymbian/rust` `library/` only (pinned nightly 19833af72): `target_os = "symbian"` in the unix family | next |
 | **WB2d** | `NeoSymbian/mio` (the `poll` selector over our `poll`), Tokio `current_thread`; an HTTP fetch over NeoNet on the phone | — |
 
+## Why forks
+
+Rust's standard library and the crates under it build only for operating systems they already list, and
+`target_os = "symbian"` is on none of those lists. The change has to live somewhere until upstream takes it: forks of
+**rust**, **libc** and **mio** on branch `neosymbian` (the workspace fork rule), with the nightly pinned so nothing
+moves under us.
+
+| Fork | What we add | Why it can't be avoided |
+|---|---|---|
+| `NeoSymbian/rust` (`library/` only; the compiler is the stock pinned nightly) | `symbian` in std's per-OS choices: the thread, file, time and random code to use; no process spawning; the WB2b workarounds (monotonic time from the kernel counter, `poll` over `select`, our timed waits) | std does not build for an unknown OS, and P.I.P.S.'s gaps need Symbian code inside it |
+| `NeoSymbian/libc` | P.I.P.S.'s exact sizes and constants (PIPSPROB: `AF_INET6` = 2054, 32-bit `time_t`, 96-byte `stat`, ...) | Rust calls C through these; a wrong value corrupts memory |
+| `NeoSymbian/mio` | `symbian` on mio's `poll()` backend list | Tokio sits on mio, which does not compile for an unknown OS |
+
+Each change is small: cfg lines, plus one new module in libc and one OS folder in std. Skipping `std` is not an option,
+since Servo and its ~500 dependencies all assume it.
+
+**Later: back to upstream** (on the [roadmap](roadmap.md)). The forks are the start, not the end state:
+- re-sync them on every nightly bump;
+- offer the libc module and the mio cfgs upstream once they are stable;
+- then propose `armv7a-symbian-eabi` as a **tier 3** Rust target, as NuttX, Vita and the 3DS (`horizon`) did. That
+  needs named target maintainers.
+
+Once upstream takes them, the forks shrink to nothing.
+
 ## Building for it
 
 - **Target:** `armv7a-neosymbian-eabi`, which is:

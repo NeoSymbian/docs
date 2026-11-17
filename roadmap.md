@@ -275,6 +275,11 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   secure RNG; GC-style memory works with disconnected chunks. Tested on the Pixel. Next: WB2 (Rust `std` over P.I.P.S.).
   **The app UI is specified** in [browser-ui.md](browser-ui.md) (2026-11-17): every Browser v2 canvas screen in phases
   UI0–UI6, built first on a stand-in engine in parallel with WB2–WB4.
+  **WB2 (Rust `std`) in progress** ([browser-std.md](browser-std.md)): WB2a (ARMv7 + NEON target) and WB2b (P.I.P.S.
+  measured, on the Pixel) done 2026-11-18; WB2c (std + libc forks) next.
+  **Later: upstream sync.** `std` needs forks of rust (`library/` only), libc and mio on branch `neosymbian`
+  ([why](browser-std.md#why-forks)). Keep them synced on every nightly bump, offer libc and mio upstream once stable,
+  then propose a tier 3 `symbian` Rust target (as NuttX, Vita and the 3DS did) so the forks go away.
 - **Files (proposed 2026-11-17):** [files-app.md](files-app.md). The canvas's 60 `files2-*` boards in a new
   `NeoSymbian/files` repo (UID 0xE0006001): browsing, copy/move with a per-drive Recycle bin, search, archives,
   viewers for 55 file types and editors for 24, in phases FA0–FA13. **FA0 done 2026-11-17:** NEOFILES moved out of
