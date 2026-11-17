@@ -81,7 +81,10 @@ The signatures follow the canvas's *Shell API · Kit reference*. The table gives
 | `ListRow` | as before, plus `selecting`, `checked`, `long-pressed()`, `long-x`/`long-y` | long-press is 500 ms (a Slint Timer) |
 | `RowActions` | `actions: [Act]`, `destructive-last`, `revealed`; `action(i)`; the row as its child | swipe left. A full swipe runs the last action |
 | `FastScroll` | `letters`; `jump(letter)` | a 24 dp A–Z strip |
-| `FormRow`, `Chip`, `TextField.error`, `Button.flat`/`enabled` | | form rows, day chips, validation, text buttons |
+| `FormRow`, `Chip`, `TextField.error`, `Button.flat`/`enabled` | Chip: `text`, `on`, `count`, `count-danger`; `toggled(on)` | form rows, chips (picked: a 16 % accent fill and an accent border; a count after the text, red for missed calls), validation, text buttons |
+| `Keypad` (1.9) | `voicemail`; `typed(key)`, `held(key)`, `pressed(key)`, `released(key)` | the phone keypad: digits over letters, voicemail on 1, + on 0. Holding a key 500 ms sends `held` (speed dial) instead of `typed`; `pressed`/`released` follow the finger for call tones |
+| `Fab` (1.9) | `icon`, `label`; `clicked()` | 56 dp, accent; the app places it 16 dp from the content's bottom right |
+| `Bubble`, `Composer` (1.9) | Bubble: `text`, `meta`, `mine`, `failed`; `tapped()`, `long-pressed(x, y)`. Composer: `text`, `placeholder`, `counter`, `enabled`; `send(text)`, `edited(text)`, `focus-field()` | a message (theirs left, mine right, failed with a red border) and the field, Send and counter line under a thread |
 | `Toast`, `Spinner`, `ProgressBar`, `EmptyState`, `ErrorState`, `Skeleton`, `PullIndicator` | | the toast's look (the shell draws NOTE with it), states in place of a list |
 | `Badge` | `count` (−1 a dot) | footer tabs, launcher icons |
 
@@ -112,7 +115,9 @@ Slint has no destroy hook, so a layer whose component goes away while open isn't
 | `app.page(&Page { title, can_back, full })` | The page: its name (Open apps), whether Back stays inside the app, full screen |
 | `app.query(&Query)` / `close_query()` | A shell dialog. `AppEvent::Answer { i }` comes back; Back answers the last button |
 | `app.note(text, action)` / `close_note()` | A toast for 3 s. `AppEvent::NoteAction` comes back |
-| `app.notify(&Notification)` / `cancel_notify(id)` | An entry in the shade. A tap brings the app to the front with `AppEvent::Page { page }` |
+| `app.notify(&Notification)` / `cancel_notify(id)` | An entry in the shade, with up to 2 actions (1.9). A tap brings the app to the front with `AppEvent::Page { page }` and `AppEvent::Notified { id, action: 0 }`; action `i` sends `Notified { id, action: i + 1 }` |
+| `app.open(key, page, arg)` / `app.arg()` (1.9) | Open another app on one of its pages with an argument (a number). The target gets `AppEvent::Open { page }` and reads the argument with `arg()`; Back at its root returns to the caller |
+| `app.done()` (1.9) | The task the app was opened for is finished (a call ended): the shell shows where the user came from |
 | `app.badge(id, count)` | A counter on the launcher icon. The counters are summed; 0 removes one |
 | `app.entry(id, caption, icon)` / `app.front(bool)` | Launcher entries, and showing the app's surface or its shell screen |
 | `app.keyboard(mode)` | The system keyboard. `AppEvent::Keyboard { h }` reports later height changes |
@@ -171,6 +176,32 @@ The modes:
 - `symbian/src/lib.rs`: the live edges, the bubble, the toast, notifications, badges.
 - `ui/shell.slint` and `frame.slint`.
 
+## Protocol 1.9: apps open each other
+
+`VERSION = (1, 9)`. Phone, Contacts and Messages are three apps (NeoSymbian/phone `phone-apps.md`) that open each other's pages: a contact's Call opens Phone on its call page with the number.
+
+| # | Opcode | Arguments → result |
+|---|---|---|
+| 22 | `OPEN` | `[key ≤ 16 B, page u16, arg ≤ 256 B]` → 0. The server starts the app `key` or brings it to the front, keeps `arg`, sends `AppEvent::Open { page }`, and shows it with the caller as where Back returns (the shell's origin). `KErrNotFound` for an unknown key |
+| 23 | `ARG` | `[out arg]` → its length; reading takes it |
+| 24 | `DONE` | → 0. From the app in front: the shell's Back past it (to the app that opened it, or home) |
+| 18 | `NOTIFY` | 1.8's record, then optionally `[n ≤ 2]` and the action labels (≤ 16 B). A 1.8 record still decodes |
+
+| Kind | Event |
+|---|---|
+| 19 | `AppEvent::Open { page }` |
+| 20 | `AppEvent::Notified { id, action }`: 0 the entry, `i + 1` its action `i` |
+
+**The server's side (`symbian/src/host.rs`):**
+- `APPS` has `phone` (NEOPHONE), `contacts` (NEOCONT), `messages` (NEOMSG); 1.7's `ALIASES` (one process behind three icons) are gone. Open apps lists one card per app.
+- `RESIDENT` is Phone and Messages (an incoming call shows at once; Messages posts the shade's entries). They start one at a time, and only while no other app is still connecting, because `connect` binds the newest app without a session. A resident app that was never shown holds no `MAX_RUNNING` slot.
+- `neoapp` asks for the surface on the first frame drawn while the app is on screen, so a hidden resident costs no ~7 MB surface until it is first shown.
+- The shade's "new messages" summary row hides while Messages posts its own entries.
+
+**Settings shared by apps.** A registered key's owner can be several apps (`Owner::Apps`): Phone's Settings page and a contact card both write `phone.speed` and the `contacts.*` keys. An unregistered key in an app's own namespace (`contacts.rev`) stays writable by that app alone.
+
+**Libraries beside `@neoui`.** `neoui_kit::compile_with("ui/app.slint", &[("phone-shared", dir)])` maps an app repo's own Slint library (`@phone-shared/...`), for parts several apps of one repo share.
+
 ## Create an app
 
 1. Copy `neoui/symbian/apps/kit` (NEOKIT.EXE: the kit gallery). It is about 70 lines of Rust and 40 of Slint.
@@ -194,6 +225,7 @@ The app can live in another repo, as NEOPHONE does (NeoSymbian/phone). It pins n
 | NV5, NV6, NV9 | Thumb and N9 maps, keyboard swipe-down | built |
 | A2, A3, NV10 | Clock, Files, Dev tools, Terminal, NEOKIT, the shell's screens on the kit; NEOPHONE ported (the p2 redesign is its own session) | built |
 | copy/paste | the keyboard's edit bar (apps' fields) | built |
+| 1.9 | OPEN / ARG / DONE, notification actions, two residents, Keypad / Fab / Bubble / Composer | built (neoui `apps-split`) |
 | NV11, NV12 | this doc, `gestures.md`, the roadmap; Gestures is the default | docs written; install pending |
 
 **Not done yet:**
