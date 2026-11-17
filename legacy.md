@@ -117,10 +117,38 @@ needs more than that: Frozen Bubble overflowed in `CEikStatusPaneLayoutTree::Akn
     handshake.
   - On a single-core phone the mixer always ran first; on the Pixel's 8 cores the creator read NULL.
 
-**Known limitation: S60 3rd-edition apps take keys, not touch.** Taps reach the guest as pointer events, but Frozen
-Bubble and X-plore's dialogs ignore them. neoui's Options button sends the left softkey, so X-plore's license and
-menus work; a game needs an on-screen key pad (the D-pad, select, the softkeys and the number keys), which is the
-next step.
+## Key pads (S60 apps take keys, not touch)
+
+S60 3rd-edition apps ignore taps: Frozen Bubble and X-plore's dialogs want the phone's keys. LEGACY draws an
+on-screen key pad under the old app (legacy `host/pad.cpp`), designed on the owner's canvas (Old apps · key pads,
+pad states, console, settings; the spec sheets "Pad keys", "Touch & hold", "Pad memory" and "Pad stages").
+- **Pads:** a strip of Nav · Game · 123 · Abc · Hide · ⟳ over the pad.
+  - **Navigator:** the softkeys, the arrows, OK, Call, End, C and Edit (the S60 layout).
+  - **Gamepad:** a d-pad with diagonals, A and B (Settings: arrows or the number keys; A = OK or 5; B = the right
+    softkey, 0 or #).
+  - **Number:** 0-9, `*` and `#` with their letters.
+  - **Abc:** neoui's system keyboard (every language) types into the app's editor as character key events
+    (`RWsSession::SimulateKeyEvent`), so no FEP is needed.
+  - **Hidden:** the app on the whole area; a keyboard button brings the pad back.
+  - **The console:** the Gamepad on its side (⟳): a full-screen page, the canvas turned a quarter, the app in the
+    middle, the d-pad and A/B either side (left-handed swaps them).
+- **Keys:** raw scan codes (`e32keys.h`: the softkeys `EStdKeyDevice0/1`, OK `EStdKeyDevice3`, Call/End
+  `EStdKeyYes/No`, C `EStdKeyBackspace`, Edit `EStdKeyLeftShift`, the arrows, the digits, `*` and `#`), held while the
+  finger is down so the guest window server repeats them. A one-shot key (a softkey, Call, End, C, Edit) fires on a
+  lift inside, so sliding off it presses nothing.
+- **Fingers:** each contact has one owner, chosen at the press (the guest, the d-pad, a button, the strip). Sliding
+  on the d-pad changes direction; a count per scan code means two fingers on one key send one down and one up.
+  Everything held is released when the app goes to the background, closes, the pad changes, the screen goes off
+  (neoui `InputReset`), and once at LEGACY's start (the guest desktop outlives a crashed LEGACY).
+- **Multi-touch:** the bonito touch driver reports up to five fingers, each its pointer number; neoui gives finger 0
+  to the shell and the gestures, and another finger to the app it presses in, so a game can move and fire at once.
+- **Memory and Settings:** each app's pad is the setting `legacy.<uid>.pad` (mode, last pad, orientation, its own A
+  and B, the reset epoch). A first open takes Settings' default pad, else a UID table (Frozen Bubble: the Gamepad),
+  else AppArc's "Games" group (the Gamepad), else the Navigator, and says so in a toast. Settings → Old apps holds
+  key vibration and its strength (neoui `HAPTIC`), the default pad, the Gamepad's directions, A, B, left-handed,
+  games in the console, and Reset remembered pads (`legacy.pad.*`).
+- **The page:** while an old app is in front LEGACY declares a page (neoui protocol 1.10), so the shell draws no
+  header over it: the pad's softkeys replace ⋮.
 
 ## Milestones
 
@@ -136,15 +164,15 @@ next step.
 
 Each step is tested on QEMU (Syborg, watched over VNC with `neo live`), then on the Pixel.
 
-**Status (2026-11-15):**
+**Status (2026-11-17):**
 - L0 and L0.5 are done.
 - L2 has started, on QEMU and on the Pixel:
-  - X-plore 1.64 opens its file browser, with C: and E: on the phone.
-  - Frozen Bubble opens its main menu, silent: there is no audio server yet.
+  - X-plore 1.64 opens its file browser, with C: and E: on the phone, and browses with the Navigator pad.
+  - Frozen Bubble is played with the Gamepad (QEMU: its key setup, a game, held aiming, firing), in portrait and in
+    the console; silent: there is no audio server yet.
   - Closing and reopening Old apps is stable.
 - Next:
-  - an on-screen key pad;
-  - AknFep;
+  - AknFep (multi-tap and T9 on the Number pad);
   - an audio server.
 
 ## Open decisions (owner)
