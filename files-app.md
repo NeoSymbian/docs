@@ -2,8 +2,8 @@
 # Files: the file manager (NEOFILES v2)
 
 Written 2026-11-17. This is the implementation proposal for the Files app: a new `NeoSymbian/files` repo, every screen
-of the design canvas's Files page, the platform work it needs, and the phases FA0–FA13. Today's app (R8, in neoui) is
-built; nothing in this proposal is built yet.
+of the design canvas's Files page, the platform work it needs, and the phases FA0–FA13. Today's app (R8) is built and,
+since FA0, lives in [NeoSymbian/files](https://github.com/NeoSymbian/files); FA1–FA13 are not built yet.
 
 **The design:** the canvas's Files page, https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#page-766d8f9d8c3a
 (60 `files2-*` boards, decisions F01–F11, published 2026-11-17). Each phase below links to its boards. The prototype is
@@ -39,8 +39,9 @@ built; nothing in this proposal is built yet.
 
 ## The app today (R8)
 
-`NEOFILES.EXE` 0xE0002004, `neoui/symbian/apps/files` (GPL) with its model `neoui/crates/neoui-files` (Apache,
-`no_std`, 9 host tests). Done 2026-11-06 (rust-integration.md R8), on the kit since 2026-11-17.
+Built 2026-11-06 in neoui (rust-integration.md R8: `symbian/apps/files`, model `crates/neoui-files`), on the kit since
+2026-11-17, moved by FA0 to NeoSymbian/files: `symbian/app` (GPL), `crates/files-ui` (GPL) and `crates/files-core`
+(Apache, `no_std`, 9 host tests); `NEOFILES.EXE` is now 0xE0006001 (it was 0xE0002004).
 - **Screens:** drive cards with usage bars (ROM drives with a lock); folders, sorted, with size and date; pull to
   refresh; selection by long press with Rename (one row) and Delete; New folder; a text viewer (UTF-8, or UTF-16LE
   with a BOM, first 64 KB). Other types get "No viewer for …".
@@ -48,10 +49,9 @@ built; nothing in this proposal is built yet.
   `File::open`, `read_at`); `neoapp` PAGE, QUERY, NOTE, KEYBOARD, `kit_back!`.
 - **Shell:** the key `files` in `neoui/symbian/src/host.rs` `APPS`, the menu and home icons, the title in `shell.slint`.
   The shell resolves the EXE by name, so moving the code changes nothing there.
-- **CI:** neoui's `syborg.yml` builds `libneofiles.a`, then taps through drives, `Z:\Sys\Bin`, `estart.txt`, makes and
-  deletes `C:\neo\` (lines 126–136, greps 181–201).
-- **Leftovers:** the shell mock `neoui/ui/screens/files.slint` (with `Data.drives`/`FileItem`) and
-  `snapshots/files*.png` only show on the host; the real app has no host snapshot.
+- **CI:** neoui's `syborg.yml` clones NeoSymbian/files, builds `libneofiles.a`, then taps through drives,
+  `Z:\Sys\Bin`, `estart.txt`, makes and deletes `C:\neo\` and makes `C:\дом\`. The files repo's own CI runs the
+  model's tests and snapshots today's five screens (`snapshots/files-*.png`).
 - **Speed:** the open animation averages 20.5 ms a frame, over the 16.7 ms budget ([smooth-ui.md](smooth-ui.md)).
 
 ## The repo
@@ -183,9 +183,10 @@ about 1 month, FA3–FA8 about 2–3 months, FA9–FA12 several months each, mos
 
 | Part | State |
 |---|---|
-| R8 (drives, folders, text, rename, delete) | built, in neoui |
+| R8 (drives, folders, text, rename, delete) | built |
 | The design (60 boards, prototype, spec) | done, on the canvas |
-| FA0–FA13 | proposed; next: FA0 |
+| FA0 move | built 2026-11-17: files `624fb01` (CI green), neoui PR #14 (the cutover; Syborg passes every Files step); Pixel RAM boot: `NEOFILES.EXE[e0006001]`, the R8 walk passes |
+| FA1–FA13 | proposed; next: FA1 |
 
 ## Not doing
 
