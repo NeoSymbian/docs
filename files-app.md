@@ -148,7 +148,7 @@ What Files needs that doesn't exist, who owns the fix, and the phase that needs 
 | Share E: over USB, Eject | FS6 researched, not started | E: removable (`a64_medblk.cpp`), a DWC3 PSL, mass storage in the ROM, USB power on cold boot, dismount in e32 | kernel, build, e32-rs | FA13 |
 | Send via Bluetooth | — | OBEX, hardware/bluetooth.md B5 | neohw | FA13 |
 | Send by MMS | SMS only | MMS, hardware/modem.md C10 | neohw, phone | FA13 |
-| Install .sis / .sisx | unpacked at build time (`legacy/tools/sis.py`) | SWI on the device, legacy.md L4 | legacy | FA13 |
+| Install .sis / .sisx / .npk | unpacked at build time (`legacy/tools/sis.py`) | NEOINST on the device, store.md ST6 + ST10 (was SWI, legacy.md L4) | store, legacy | FA13 |
 | Install .jar | no Java runtime | a runtime | — (not planned) | — |
 | Files over 4 GB | FAT32 | exFAT ([filesystem.md](filesystem.md), Later) | kernel | — |
 | Trusted certificates | not built | a certificate store (browser.md WB6) | browser, build | FA7 (view only) |
