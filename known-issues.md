@@ -5,6 +5,24 @@ For the broader legacy-kernel audit, source evidence, priorities and closure tes
 The register maps all seven sections below, retaining the resolved slot-retry history and the uncertainty of
 open reports. The 2026-11-09 source audit did not rerun these hardware/emulator observations.
 
+
+## Phone: Dev tools "Run checks" can freeze the phone (2026-11-18)
+
+**Status:** open, cause not confirmed.
+- Twice (neohw S4 image), a few minutes after Dev tools → Devices → **Run checks**, the debug console stopped
+  answering and the phone stayed frozen (no AUTOFASTBOOT); Power + Volume Down was needed. All 18 checks themselves
+  passed. The last lines were a background Wi-Fi scan with the screen off.
+- The same images idle for 10 minutes (screen off, Wi-Fi scans and a link drop) did not freeze.
+- Suspect: the `serial1` check opens ECOMM unit 1, the USB ACM that the debug console also runs on.
+- **Next:** run only the `serial1` check with the console captured; then the other checks one by one.
+
+## Phone: Wi-Fi drops after a few minutes, `reason 4` (2026-11-18)
+
+**Status:** open.
+- 2–5 minutes after joining, the AP disassociates us: `[wifi] link lost (status 0, reason 4)` (802.11 reason 4:
+  inactivity). Seen on every 2026-11-18 run (S2–S5 images). WIFID scans and rejoins the remembered network.
+- Likely: we answer no keep-alive / power-save frames the AP expects while idle.
+
 ## Phone: slot a runs out of retries (ABL switches to slot b); test images may die with a black screen
 
 **Status:** fixed 2026-11-08 by FS5b (kernel `5b0ba6b`): the kernel marks a slot successful (`slot ok now`, or
