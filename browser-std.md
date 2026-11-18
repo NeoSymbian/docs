@@ -15,7 +15,8 @@ NeoSymbian, which Servo, SpiderMonkey's Rust side, Tokio and rustls all need. To
 |---|---|---|
 | **WB2a** | ARMv7 + NEON user code with the soft-float calling convention: e32-rs `targets/armv7a-neosymbian-eabi.json`, `cargo arm7` | ✅ 2026-11-17 (e32-rs#4): neotest 10/10, NEOWB1 6/6 on QEMU and the Pixel |
 | **WB2b** | Rust EXEs import from P.I.P.S.'s DLLs (build `exes.txt` `libs=`); `PIPSPROB.EXE` measures P.I.P.S. | ✅ 2026-11-18 on QEMU and the Pixel (identical results) |
-| **WB2c** | Forks on branch `neosymbian`: `NeoSymbian/libc` (`src/unix/symbian`) and `NeoSymbian/rust` `library/` only (pinned nightly 19833af72): `target_os = "symbian"` in the unix family | next |
+| **WB2c-1** | P.I.P.S. fixed in our forks: `clock_gettime` nanoseconds, `CLOCK_MONOTONIC` (generic timer, kernel EL0VCTEN), new `poll`/`pread`/`pwrite` exports; libc built without GCC builtins | ✅ 2026-11-18 on QEMU and the Pixel: PIPSPROB 19 ok, 0 failed (kernel#21, ossrv#1, legacy#6) |
+| **WB2c-2** | Forks on branch `neosymbian`: `NeoSymbian/libc` (`src/unix/symbian`) and `NeoSymbian/rust` `library/` only (on `nightly-2026-10-20` = 07e526db9, the toolchain e32-rs pins): `target_os = "symbian"` in the unix family; e32's std mode | ✅ 2026-11-18 on QEMU and the Pixel: STDTEST 17 ok, 1 skipped (no IP stack); MIXTEST all ok (browser#4, e32-rs#5, build#33) |
 | **WB2d** | `NeoSymbian/mio` (the `poll` selector over our `poll`), Tokio `current_thread`; an HTTP fetch over NeoNet on the phone | — |
 
 ## Why forks
@@ -74,16 +75,16 @@ size, field offset and constant the Rust `libc` port needs. These tables come fr
 
 | Gap | Effect | WB2c answer |
 |---|---|---|
-| `pthread_cond_timedwait` returns ETIMEDOUT at once | timed waits (`Condvar::wait_timeout`, `park_timeout`, channels with timeouts) would spin | std's condvar for symbian: a timed wait on an EKA2 semaphore (`RSemaphore::Wait(timeout)`), or a fix in the ossrv fork; decided in WB2c |
-| `clock_gettime(CLOCK_MONOTONIC)` → EINVAL (the constant exists, = 4) | no `Instant` | `Instant` from the kernel's fast counter (`User::FastCounter`, `HAL EFastCounterFrequency`) in std's time for symbian |
+| `pthread_cond_timedwait` returns ETIMEDOUT at once | timed waits (`Condvar::wait_timeout`, `park_timeout`, channels with timeouts) would spin | **Fixed in the ossrv fork**: the cause was `clock_gettime(CLOCK_REALTIME)` putting the whole microsecond count since year 0 in `tv_nsec`, so every deadline was garbage |
+| `clock_gettime(CLOCK_MONOTONIC)` → EINVAL (the constant exists, = 4) | no `Instant` | **Added in the ossrv fork**: the ARM generic timer's 64-bit count (CNTVCT at CNTFRQ), which the kernel now lets EL0 read (CNTKCTL_EL1.EL0VCTEN). Only on the SMP (AArch64) kernel; Syborg's Cortex-A8 keeps EINVAL |
 | no `pthread_condattr_setclock` | — | condvar on CLOCK_REALTIME (as espidf/horizon) |
-| no `poll()` (`struct pollfd` only); `select()` exists, `FD_SETSIZE` 1024 | std's `init` and connect timeouts; mio | a `poll()` over `select()` in our libc shim; std skips its init `poll` (as vita/horizon) |
-| no `pread`/`pwrite` | `FileExt::read_at`/`write_at` | lseek + read/write (not atomic; documented) |
+| no `poll()` (`struct pollfd` only); `select()` exists, `FD_SETSIZE` 1024 | std's `init` and connect timeouts; mio | **Added to libc.dll** (ordinal 598): `poll()` over `select()`; std skips its init `poll` (as vita/horizon) |
+| no `pread`/`pwrite` | `FileExt::read_at`/`write_at` | **Added to libc.dll** (599, 600): lseek + read/write, not atomic against another user of the fd |
 | no `posix_memalign` | the allocator's large alignments | std's `System` aligns over `malloc` (over-allocate + offset) |
 | no `MAP_ANON`; file `mmap` → errno 24 | — | not used by std; SpiderMonkey's GC uses EKA2 chunks (WB1) |
 | no `O_CLOEXEC`, `SOCK_CLOEXEC`, `SOCK_NONBLOCK`, `F_DUPFD_CLOEXEC`, `O_DIRECTORY` | std's cloexec paths | flags 0 / the `fcntl` fallbacks (no exec on Symbian anyway) |
 | `pipe()` and `socket()` → ENOENT | — | the eshell ROM starts no IP stack: re-test in the UI ROM (NeoNet's ESOCK, WB2d) |
-| cwd is `Z:\Private\<SID>` (read-only) | relative paths | std's start-up `chdir`s to `C:\Private\<SID>` |
+| cwd is `Z:\Private\<SID>` (read-only) | relative paths | left as is: std keeps P.I.P.S.'s cwd, apps use absolute `C:/...` paths |
 
 ### Key facts for the `libc` port
 
@@ -435,3 +436,47 @@ size, field offset and constant the Rust `libc` port needs. These tables come fr
 | `DT_LNK` | 10 |
 | `DT_UNKNOWN` | 0 |
 | `STDIN_FILENO` | 0 |
+
+## What WB2c found and did (2026-11-18)
+
+**Results**, identical on QEMU virt and the Pixel 3a XL (WB1 kernel, eshell ROM):
+- PIPSPROB: 19 ok, 0 failed (was 14 ok, 2 failed).
+- STDTEST.EXE (browser `std/stdtest`): 17 ok, 0 failed, 1 skipped. Network is skipped because this ROM starts no IP
+  stack; it is re-tested in WB2d.
+- MIXTEST.EXE (`std/mixtest`): std threads call Symbian C++ (TRAP, `CArrayFixFlat`), which calls back into Rust;
+  e32 runs alongside; 225 libc sizes, offsets and constants match P.I.P.S.'s own headers.
+
+**Building:**
+- `tools/neosymbian-toolchain.sh RUST_CHECKOUT [LIBC_CHECKOUT]` makes the `neosymbian` toolchain: the pinned nightly
+  with the fork's `library/` as rust-src.
+- Then, in browser `std/`, `cargo sym`.
+- Cargo does not notice changes in build-std sources, so run `cargo clean` after changing the fork.
+- `exes.txt` lines for a std EXE need `libs=libc,libpthread,libm` and `heap=` (build's new column).
+
+**Findings:**
+- **P.I.P.S.'s `libc.dll` was miscompiled.** GCC turned `memset.c`'s loops into `memset` calls and `calloc.c`'s
+  malloc + bzero into a `calloc` call, so both recursed until the stack overflowed (KERN-EXEC 3). Every P.I.P.S.
+  program that zero-allocates was affected. libc is now built with `-fno-builtin -fno-tree-loop-distribute-patterns`
+  (legacy#6).
+- **P.I.P.S.'s `__crt0` blocks** when its IPC server is not running: it first asks whether `popen`/`posix_spawn`
+  started the process. std's start-up therefore does without it:
+  - the cleanup stack;
+  - `args` from `User::CommandLine` and `RProcess::FileName`;
+  - `environ` through `__environ()`.
+- **No unwinder.** Symbian EXEs are `panic=abort`, with no backtraces and no EH personality. libgcc's unwinder needs
+  a C++ runtime Symbian does not export, so std defines aborting stubs for the `_Unwind_*` names it still mentions.
+- **C enums are 32-bit** (the Symbian objects' EABI tag; `sizeof(enum)` = 4 in MIXTEST). The std target sets
+  `c-enum-min-bits` 32. The no_std targets still say 8; nothing passes a `repr(C)` enum to Symbian today.
+- **Paths:** use `C:/...`. std splits paths at `/` and P.I.P.S. accepts both separators; `/x` lands on the cwd's
+  drive (Z:, read-only). `canonicalize` (realpath) returns EINVAL for `/` paths.
+- **Sleep granularity** is the kernel tick: `sleep(0.5 ms)` takes ~15 ms.
+- **stdout and stderr** go to the kernel debug port a line at a time, so panic messages reach the serial log.
+- **The allocator** is P.I.P.S. `malloc` (RHeap, 8-aligned) on the EXE's own heap; larger alignments over-allocate.
+- **`IPPROTO_IP` is 0x100 on Symbian.** The shared unix value (0) silently shadowed ours, and MIXTEST caught it.
+
+**Not done:**
+- `posix_memalign` (std over-allocates instead);
+- `MAP_ANON` (WB3: SpiderMonkey uses chunks);
+- `chdir` to `C:` at start-up;
+- unwinding;
+- process spawning (`posix_spawn` exists for later).
