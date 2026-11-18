@@ -38,10 +38,10 @@ Also: [debug-access.md](debug-access.md) (USB console and monitor), [filesystem.
 | Battery, TSENS | `qcom_battery.cpp`, `qcom_tsens.cpp`, `qcom_spmi.cpp` | 0x4e1a | neoui (status bar, Settings, Dev tools) | read-only telemetry; no charger control | 2026-11-11 |
 | Haptics | `bv/a64_haptics.cpp` | 0x4e27 | MODEMD (ring, SMS), neoui | bounded pulses | yes |
 | USB debug | `qcom_dwc3.cpp`, `qcom_usbpower.cpp` | 0x4e04/05 | neoui (`usb_debug.rs`) | console on RAM boots; cold-boot power open | RAM boots |
-| Modem (MSS) | `qcom_mss.cpp`, `qcom_pas.cpp`, `qcom_glink.cpp`, `qcom_smp2p.cpp`, `qcom_ipa.cpp`, telhal | 0x4e0d–0x4e13, 0x4e24/25 | MODEMD; S3: HWHUB + MODEMD ([modem.md](hardware/modem.md)) | calls, SMS, call log, recovery | 2026-11-18 |
-| ADSP, audio | `qcom_adsp.cpp`, `bv/a64_audio.cpp` (CS35L36 ×2, RT5514), telhal AudioMem | 0x4e14–0x4e18, 0x4e26 | MODEMD's NeoAudio; S4: AUDIOD ([audio.md](hardware/audio.md)) | call audio, media, recording, routes, amp protection | 2026-11-18 |
-| 3.5 mm jack | `bv/a64_jack.cpp` (PM660L/SDM660 codec) | 0x4e18 ops 8–10 | MODEMD; S4: AUDIOD | driver idle-tested; headphones/headset mic untested with a plug | 2026-11-18 |
-| Wi-Fi | `qcom_wcn3990.cpp` (SNOC copy engines, HTC/WMI/HTT) | 0x4e1b–0x4e1f, 0x4e23 PRNG | MODEMD (firmware), neoui SYSSTART (supplicant), NEONET (IP); S5: WIFID + NEONET ([wifi.md](hardware/wifi.md)) | scan, WPA2, DHCP, TCP/UDP | 2026-11-18 |
+| Modem (MSS) | `qcom_mss.cpp`, `qcom_pas.cpp`, `qcom_glink.cpp`, `qcom_smp2p.cpp`, `qcom_ipa.cpp`, telhal | 0x4e0d–0x4e13, 0x4e24/25 | HWHUB (boot, QRTR, recovery) + MODEMD (cellular) ([modem.md](hardware/modem.md)) | calls, SMS, call log, recovery | 2026-11-18 |
+| ADSP, audio | `qcom_adsp.cpp`, `bv/a64_audio.cpp` (CS35L36 ×2, RT5514), telhal AudioMem | 0x4e14–0x4e18, 0x4e26 | AUDIOD: NeoAudio (MODEMD drives calls/ring over op::CONTROL) ([audio.md](hardware/audio.md)) | call audio, media, recording, routes, amp protection | 2026-11-18 |
+| 3.5 mm jack | `bv/a64_jack.cpp` (PM660L/SDM660 codec) | 0x4e18 ops 8–10 | AUDIOD | driver idle-tested; headphones/headset mic untested with a plug | 2026-11-18 |
+| Wi-Fi | `qcom_wcn3990.cpp` (SNOC copy engines, HTC/WMI/HTT) | 0x4e1b–0x4e1f, 0x4e23 PRNG | WIFID (firmware over NeoHub, joining, WPA2, remembered networks) + NEONET (IP) ([wifi.md](hardware/wifi.md)) | scan, WPA2, DHCP, TCP/UDP | 2026-11-18 |
 | Bluetooth | — (GENI UART + HCI LDD planned) | — | BTSRV planned ([bluetooth.md](hardware/bluetooth.md)) | design | — |
 | Sensors | — (ADSP sensor PD via FastRPC) | — | — | not started (D4) | — |
 | Cameras | — (IMX355 front, IMX363 rear; CCI/CAMSS) | — | — | not started (D5) | — |
@@ -81,22 +81,23 @@ The user side of the hardware is a set of daemons, one per driver area, built fr
   An MSS stop invalidates the Wi-Fi firmware; an ADSP stop clears AudioMem.
 - **PCM never crosses IPC:** it stays in AUDIOD (APR + AudioMem). MODEMD sends AUDIOD intents (call state, ring,
   DTMF, SMS chime) and mirrors AUDIOD's status into NeoModem.
-- **Boot:** SYSSTART starts HWHUB. HWHUB probes: no modem (Syborg) → AUDIOD only, on its clock sink. On the phone:
-  AUDIOD, ADSP boot, then MSS once IPA and the EFS are ready; MODEMD and WIFID start at once and wait on NeoHub.
+- **Boot:** SYSSTART starts MODEMD and WIFID. MODEMD starts HWHUB and AUDIOD; WIFID starts NEONET. HWHUB probes: no
+  modem (Syborg) → "no hardware", AUDIOD plays on its clock sink. On the phone HWHUB loads the ADSP, then boots the
+  MSS once IPA and the EFS are ready; MODEMD and WIFID connect to NeoHub and wait for their services.
 - **Contracts keep their names:** `modem-ipc`, `neoaudio`, `phone-rules`, `sms`, `net`, `wpa` are pinned by neoui
   and phone; their package names stay.
 
-**This is the target.** Until S3–S5 land, MODEMD.EXE does the work of HWHUB and AUDIOD and the Wi-Fi firmware start, and neoui's SYSSTART runs the supplicant. Stages:
+Stages (neohw PRs; S4/S5 with neoui #21):
 
 | Stage | Work | Status |
 |---|---|---|
 | S0 | `telephony` renamed `neohw`; these docs centralised | done 2026-11-18 |
-| S1 | `neolink` merged into neohw with its history; one host and one Symbian workspace | |
-| S2 | modem-proto split into `qrtr`, `hub`, `modem`, `apr` crates and `symbian/sys`; a `Bus` between router and cellular (still one MODEMD.EXE) | |
-| S3 | HWHUB.EXE and NeoHub; MODEMD a NeoHub client | |
-| S4 | AUDIOD.EXE | |
-| S5 | WIFID.EXE; the supplicant moves out of neoui's SYSSTART | |
-| S6 | ROM recipe, results here | |
+| S1 | `neolink` merged into neohw with its history; one host and one Symbian workspace | done 2026-11-18 (neohw#4) |
+| S2 | modem-proto split into `qrtr`, `hub`, `modem`, `apr` crates and `symbian/sys`; a `Bus` between router and cellular (still one MODEMD.EXE) | done 2026-11-18 (neohw#5), phone: registers, Wi-Fi |
+| S3 | HWHUB.EXE and NeoHub; MODEMD a NeoHub client | done 2026-11-18 (neohw#6), phone: boot, registration over NeoHub, Wi-Fi |
+| S4 | AUDIOD.EXE; MODEMD → AUDIOD over NeoAudio op::CONTROL | 2026-11-18 (neohw#7), phone: media on the DSP; a call's voice path not exercised yet |
+| S5 | WIFID.EXE; the supplicant moves out of neoui's SYSSTART (NeoWifi) | 2026-11-18 (neohw#8, neoui#21), phone: firmware, auto-join of the remembered network, DHCP, internet |
+| S6 | ROM recipe (`neohw/symbian/exes.txt`: MODEMD, HWHUB, AUDIOD, NEONET, WIFID), results here | 2026-11-18 |
 
 ## Program D0–D8 (accepted 2026-11-10)
 
