@@ -3,6 +3,13 @@
 On 2026-11-06, after the restructure into `kernel`, `build` and `docs`, these 91 repositories were deleted from the
 NeoSymbian organization: nothing builds from them any more. This page keeps what is needed to bring any of them back.
 
+## Merged, archived (not deleted)
+
+- **`neolink`** (Wi-Fi, created 2026-11-12): merged with its whole history into
+  [NeoSymbian/neohw](https://github.com/NeoSymbian/neohw) on 2026-11-18 (`crates/wlfw`, `crates/wpa`, `crates/net`,
+  `symbian/neonet`) and archived read-only on GitHub, with a README pointer.
+- **`telephony`**: renamed `neohw` on 2026-11-18 (GitHub redirects the old URLs; pins use the new one).
+
 ## Restoring one
 
 - **A fork with no commits of ours** (most of them): fork it again and, if a build needs it, pin the commit below.
