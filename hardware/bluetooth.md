@@ -1,7 +1,9 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Bluetooth on the Pixel 3a XL
 
-Written 2026-11-15. This is the Bluetooth part of [driver-support.md](driver-support.md) D6 (roadmap P4), next to
+Part of [hardware.md](../hardware.md), the hardware and drivers hub (status of every driver, the neohw processes). Neighbours: [modem](modem.md), [audio](audio.md), [wifi](wifi.md), [battery](battery.md).
+
+Written 2026-11-15. This is the Bluetooth part of [driver-support.md](../hardware.md) D6 (roadmap P4), next to
 [wifi.md](wifi.md): from a silent WCN3990 Bluetooth core to BLE devices, file transfer, headsets and old S60 apps that
 use Bluetooth. It is a design and an estimate; nothing here is built yet.
 
@@ -13,7 +15,7 @@ phone's DTB; mainline Linux `drivers/bluetooth/hci_qca.c` and `btqca.c`; a Codex
 
 - **All four uses:** BLE devices (GATT: keyboards, watches), OBEX file transfer, real Bluetooth APIs for old .sis
   apps, and headset audio (A2DP music, HFP calls).
-- **A new Rust host stack** in NeoSymbian/neolink, with a Symbian-compatible layer on top for old apps. The 2010 stack
+- **A new Rust host stack** in NeoSymbian/neohw, with a Symbian-compatible layer on top for old apps. The 2010 stack
   (`bt_v2.prt`, HCI v2, link manager, L2CAP, RFCOMM, security manager) is **not** ported; its client DLLs are.
 - **BLE first:** after the chip comes up (B0/B1), BLE/GATT through the TrouBLE crate (B2), then pairing, Classic,
   OBEX and old apps, A2DP, HFP.
@@ -82,7 +84,7 @@ From the phone's DTB (`private/bonito.dtb`, facts only) and our kernel:
   wrapper-0 AHB at GCC `+0x5200c` bits 6/7 and SE6 at bit 16; the serial engine's clock (RCG and divider for
   3.2 Mbaud) needs a facts spec.
 - **Firmware:** not checked yet. Look in `vendor_a` (where MODEMD already reads the Wi-Fi files) and the
-  `bluetooth_a` partition ([telephony.md](telephony.md) lists it; our backup copy is all zeros). The file names follow
+  `bluetooth_a` partition ([telephony.md](modem.md) lists it; our backup copy is all zeros). The file names follow
   the chip's ROM version (WCN3990: `crbtfw<ver>.tlv` + `crnv<ver>.bin`); read the version at B0, don't assume `21`.
 - **Call audio:** stock Android on bonito routes Bluetooth calls through SLIMbus (`SLIM_7_RX_Voice`,
   `SLIM_7_TX_MMode1`, 16 kHz) between the ADSP and the WCN3990. The missing DTB nodes don't mean the hardware is
@@ -120,7 +122,7 @@ from that spec, the same way as `qcom_wcn3990.cpp`.
         │ !BTManServer  !SdpServer           │       EIKSRV notifier plugins (select, PIN,
         │ (+ eirclient, hciserverclient)     │       auth, SSP) ──► BTSRV broker ──► neoui dialog
         ▼                                    ▼
-  ┌──────────────────────── BTSRV.EXE (Rust, neolink) ────────────────────────┐
+  ┌──────────────────────── BTSRV.EXE (Rust, neohw) ──────────────────────────┐
   │ bt-core: one HCI command scheduler, handles, ACL credits, reassembly        │
   │ bt-qca: power pulse, version, firmware download, baud, address             │
   │ bt-le: TrouBLE adapter (GATT, SMP)     bt-classic: L2CAP, RFCOMM, SDP, GAP  │
@@ -153,7 +155,7 @@ everything Bluetooth: the controller, connections, security, profiles and stored
 | Threads | One protocol-owner thread in BTSRV, bounded queues; codec and storage workers when needed | Compatibility servers delegate to the owner. e32 mutexes and semaphores; **no CAS**, no lock-free queues. |
 | Rails | One shared WCN3990 vote for Wi-Fi and Bluetooth | Bluetooth must not need a running modem and must not drop Wi-Fi's rails. |
 
-### Crates (neolink)
+### Crates (neohw)
 
 | Crate | Job |
 |---|---|
@@ -224,7 +226,7 @@ the 2010 `esock_bt_399.cmi` pattern, not `esock_bt.cmi` (which binds to the wron
 EIKSRV notifier plugins decode the original packages and forward to a BTSRV **interaction broker**, which asks neoui
 for a dialog. UIDs: device selection `0x100069D1`, PIN `0x100069C9`, SSP-aware PIN `0x10285D55`, authorisation
 `0x100069CF`, passkey display `0x10285AD4`, numeric comparison `0x10285AD5`. Native callers use the broker directly.
-The LEGACY supervisor ([legacy.md](legacy.md)) presents; it never owns bond state. Cancel, timeout or UI death means
+The LEGACY supervisor ([legacy.md](../legacy.md)) presents; it never owns bond state. Cancel, timeout or UI death means
 **reject**.
 
 ### OBEX
@@ -240,7 +242,7 @@ neoui and old apps.
 - **A2DP Source**, AVDTP signalling, SBC packetisation, AVRCP controls.
 - A **fixed-point Rust SBC encoder**, checked against test vectors and timed under ARMv5TE soft-float.
 - PCM comes from the mixer **before** ADSP playback, through a shared routing and focus interface. The ringtone path
-  ([telephony.md](telephony.md), 2026-11-14) proves playback only; a general PCM producer is new work.
+  ([telephony.md](modem.md), 2026-11-14) proves playback only; a general PCM producer is new work.
 - A call suspends music; focus policy restores it afterwards.
 
 ### HFP (calls)
@@ -302,7 +304,7 @@ by a host-socket controller simulator; it tests the guest stack and old clients,
 ## Corrections to older notes
 
 - ECOMM loading by name works since T7 (loader aliases in `build/toolchain/efile_exe/ldr_builtin_devices.cpp`,
-  [debug-access-roadmap.md](debug-access-roadmap.md) T7). The Bluetooth plan doesn't use ECOMM anyway.
+  [debug-access-roadmap.md](../debug-access-roadmap.md) T7). The Bluetooth plan doesn't use ECOMM anyway.
 - The ringtone result proves ADSP playback, not capture or duplex call PCM.
 
 ## Open items

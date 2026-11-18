@@ -53,7 +53,7 @@ then on the phone.
 
 ## Hardware inventory and expanded driver support
 
-The current [driver-support inventory and milestones D0–D8](driver-support.md)
+The current [driver-support inventory and milestones D0–D8](hardware.md)
 supersede the original 2026-11-05 inventory. Storage, touch, SPMI/RPMh, USB RAM-boot
 console, modem and ADSP/call-audio drivers now exist. Independent cold-boot USB,
 media PCM, sensors, cameras and the remaining connectivity drivers still need work.
@@ -192,8 +192,8 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
 | **H1 platform base** | RPMh (clocks, regulators, bus votes), SPMI PMIC arbiter, TLMM GPIO, GENI I2C/SPI, GPI DMA, SCM calls to TrustZone | Can talk to PM660 and to an I2C device |
 | **H2 storage** | SDHCI-msm eMMC media driver (CQHCI later), read the GPT, `C:` on `userdata`; then the file system plan ([filesystem.md](filesystem.md)): FS1 FAT32 plugin, FS2 HS200, FS3 `C:` + `E:`, FS4 `Z:` on ROFS, FS5 A/B updates, FS6 USB | Files written in Symbian survive a reboot and a power cut |
 | **H3 power** | PM660 charger + RRADC battery reading (Rust policy); suspend and resume (PSCI CPU_SUSPEND / system suspend); screen off | Phone idles a night on battery and wakes on the power key |
-| **H4 display + input** | Synaptics RMI4 touch (I2C; **done 2026-11-06** in kernel C++, polled; Rust behind `hwaccess` later); power and volume keys (**done**, SPMI); OLED panel brightness and DSI panel on/off (**done 2026-11-11**, D2 in [driver-support.md](driver-support.md): DCS commands through the command DMA ABL leaves running; screen timeout and the power key in neoui). Keep the bootloader's splash framebuffer as scan-out until a DPU driver is needed (vsync, double buffer, hardware planes: [smooth-ui.md](smooth-ui.md) S5). | Touch coordinates reach a user-side process; backlight dims |
-| **H5 audio** | ADSP and C6 call audio (CS35L36 amps, RT5514 mic); **2026-11-18:** NeoAudio ([audio.md](audio.md)): ASM/ADM playback and recording on the Pixel, old apps' DevSound, Settings → Sounds → Media, the jack driver | Play a tone through the earpiece |
+| **H4 display + input** | Synaptics RMI4 touch (I2C; **done 2026-11-06** in kernel C++, polled; Rust behind `hwaccess` later); power and volume keys (**done**, SPMI); OLED panel brightness and DSI panel on/off (**done 2026-11-11**, D2 in [driver-support.md](hardware.md): DCS commands through the command DMA ABL leaves running; screen timeout and the power key in neoui). Keep the bootloader's splash framebuffer as scan-out until a DPU driver is needed (vsync, double buffer, hardware planes: [smooth-ui.md](smooth-ui.md) S5). | Touch coordinates reach a user-side process; backlight dims |
+| **H5 audio** | ADSP and C6 call audio (CS35L36 amps, RT5514 mic); **2026-11-18:** NeoAudio ([audio.md](hardware/audio.md)): ASM/ADM playback and recording on the Pixel, old apps' DevSound, Settings → Sounds → Media, the jack driver | Play a tone through the earpiece |
 | **H6 haptics, LEDs, sensors** | TI DRV2624 haptics (driver drafted in C7, pending acceptance), verified flash controller and ADSP sensors (exact chips/protocol pending) | Vibrate on touch |
 
 ### Track U: Rust UI
@@ -248,7 +248,7 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
 - **Phone and Contacts (done 2026-11-14):**
   - first as NEOPHONE, one resident app behind both icons ([NeoSymbian/phone](https://github.com/NeoSymbian/phone));
   - dialer, Recents, speed dial, every call screen, contacts with per-script sections, settings and the blocklist;
-  - [telephony.md](telephony.md) C8;
+  - [telephony.md](hardware/modem.md) C8;
   - the keyboard got number and phone pads and a toolbar key to put it away.
 - **Phone, Contacts and Messages v2 (merged to main and installed into slot a, 2026-11-17):** [phone-apps.md](phone-apps.md).
   - a board-by-board audit found every `p2-*` board reached on the device. Its fixes:
@@ -297,15 +297,15 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
 
 ### Track P: phone
 
-The full runbook, with hardware facts, steps, exit tests and failure modes, is [telephony.md](telephony.md) (stages
+The full runbook, with hardware facts, steps, exit tests and failure modes, is [telephony.md](hardware/modem.md) (stages
 C0–C12). The stage names below are kept because the dependency graph uses them:
 
-| Stage | telephony.md | Exit |
+| Stage | hardware/modem.md | Exit |
 |---|---|---|
 | **P1 remote processors** (needs H1) | C0–C4: backups, Linux reference run, SCM/SMEM/SMP2P/GLINK, MSS boot, rmtfs/pd-mapper/tqftp | The modem is up and answers QMI |
 | **P2 QMI in Rust** | C5: `modemsrv` + dialer (no ETel at first) | Operator and bars in the status bar; calls ring and answer |
 | **P3 SMS and mobile data** | C9, C10 | SMS round-trip; a web page over LTE. **2026-11-16: C9 done**: SMS in MODEMD over QMI WMS, Messages as NEOPHONE's third app; sent, delivered and received on the phone. **2026-11-17:** Messages is its own app (NEOMSG, [phone-apps.md](phone-apps.md)) |
-| **P4 Wi-Fi + Bluetooth** | [wifi.md](wifi.md), [bluetooth.md](bluetooth.md) | Join a WPA2 network. WCN3990 Wi-Fi runs through the modem subsystem and QMI. **2026-11-12: W0–W3 done** (firmware start, copy engines, HTC/WMI, scanning; Settings → Wi-Fi lists networks on the phone). **W4 done the same day: the phone joins a WPA2-PSK network** from Settings (keys installed, decrypted traffic arriving, status bar icon, network details). **W5 done the same day: an IP address and the internet over Wi-Fi** (smoltcp first in NEONET.EXE: DHCP, DNS, TCP; the NeoNet socket API for apps; ESOCK/TCPIP6 stays the long-term option). **2026-11-13: W7 (copy-engine interrupts instead of polling, a handshake guard) and W5a: the 2010 socket server (ESOCK) runs over NeoNet**, with no TCPIP6 (`neonet.prt`, an always-up tier). 2010 programs fetch over Wi-Fi through `RSocket`; C++ programs can also use `NEONET.DLL`. **2026-11-15: the Bluetooth design** ([bluetooth.md](bluetooth.md)): a new Rust host stack in neolink, the 2010 client DLLs over a new ESOCK facade, milestones B0–B9 (BLE first) |
+| **P4 Wi-Fi + Bluetooth** | [wifi.md](hardware/wifi.md), [bluetooth.md](hardware/bluetooth.md) | Join a WPA2 network. WCN3990 Wi-Fi runs through the modem subsystem and QMI. **2026-11-12: W0–W3 done** (firmware start, copy engines, HTC/WMI, scanning; Settings → Wi-Fi lists networks on the phone). **W4 done the same day: the phone joins a WPA2-PSK network** from Settings (keys installed, decrypted traffic arriving, status bar icon, network details). **W5 done the same day: an IP address and the internet over Wi-Fi** (smoltcp first in NEONET.EXE: DHCP, DNS, TCP; the NeoNet socket API for apps; ESOCK/TCPIP6 stays the long-term option). **2026-11-13: W7 (copy-engine interrupts instead of polling, a handshake guard) and W5a: the 2010 socket server (ESOCK) runs over NeoNet**, with no TCPIP6 (`neonet.prt`, an always-up tier). 2010 programs fetch over Wi-Fi through `RSocket`; C++ programs can also use `NEONET.DLL`. **2026-11-15: the Bluetooth design** ([bluetooth.md](hardware/bluetooth.md)): a new Rust host stack in neolink, the 2010 client DLLs over a new ESOCK facade, milestones B0–B9 (BLE first) |
 | **P5 voice calls** | C6–C8, C11 | Two-way call audio. 2026-11-08: the owner's network still has 3G, so calls use CSFB first. VoLTE is the C11 stretch. **C6 done 2026-11-09**: two-way call audio on the earpiece and loudspeaker |
 
 ## Dependencies

@@ -16,7 +16,7 @@ These come from the port's fixed decisions ([roadmap.md](roadmap.md), [port-map.
 | **Mainline Linux support** | Mainline drivers and device trees are our register reference (read only, never copied) | The phone should be in Nura's `community` category, or in `testing` with a working device tree |
 | GICv3 interrupt controller | `nkernsmp/arm64` implements GICv3 only | GICv2 phones (Allwinner A64) need a new interrupt back end first |
 | Storage we can drive | `sdm670_assp` has SDHCI-msm (eMMC) | UFS phones need a new UFS host driver (UFSHC + its PHY) before `C:` and `Z:` work |
-| A modem we can talk to | `telephony` speaks QMI over QRTR/GLINK (Qualcomm) | Qualcomm phones reuse it; a Quectel EG25 phone needs an AT-command path instead |
+| A modem we can talk to | `neohw` speaks QMI over QRTR/GLINK (Qualcomm) | Qualcomm phones reuse it; a Quectel EG25 phone needs an AT-command path instead |
 
 ## Sources and how this was checked (2026-11-09)
 
@@ -41,7 +41,7 @@ These come from the port's fixed decisions ([roadmap.md](roadmap.md), [port-map.
 
 | Phone (codename) | SoC, cores | Nura | UT | Bootloader | Reuse | New work |
 |---|---|---|---|---|---|---|
-| **Google Pixel 3a (sargo)** | SDM670 (`qcom/sdm670-google-sargo`), Kryo 360 = A75 + A55 | community | 97.3% | Unlockable (`fastboot flashing unlock`), except Verizon | `sdm670_assp` entirely, the modem firmware layout and the whole `telephony` stack | **Ported 2026-11-16** (kernel #18): `sargo_variant` = its board file (1080 x 2220 framebuffer, I/O map) and the Samsung S6E3FA7 OLED panel; every other driver is bonito's (touch, keys, haptics with sargo's clamp 0x5d, audio, eMMC, USB, modem). Builds with `neo kernel sargo` and the phone's own DTB. Not yet run on a sargo by the main streams: what works there is unconfirmed |
+| **Google Pixel 3a (sargo)** | SDM670 (`qcom/sdm670-google-sargo`), Kryo 360 = A75 + A55 | community | 97.3% | Unlockable (`fastboot flashing unlock`), except Verizon | `sdm670_assp` entirely, the modem firmware layout and the whole `neohw` stack | **Ported 2026-11-16** (kernel #18): `sargo_variant` = its board file (1080 x 2220 framebuffer, I/O map) and the Samsung S6E3FA7 OLED panel; every other driver is bonito's (touch, keys, haptics with sargo's clamp 0x5d, audio, eMMC, USB, modem). Builds with `neo kernel sargo` and the phone's own DTB. Not yet run on a sargo by the main streams: what works there is unconfirmed |
 
 ### SDM845 family (2018–2020): our closest relatives
 
@@ -90,7 +90,7 @@ v3.5.1). All of these have **UFS** storage (unverified), so a UFS driver is the 
 1. **Pixel 3a (sargo):** a second board for almost no work. It proves that the board/SoC split in
    `kernel/baseport/arm64` holds and gives us a cheap spare test phone.
 2. **OnePlus 6 / 6T:** the second SoC (`sdm845_assp`). Build the **UFS driver** here; it then serves every later
-   Qualcomm phone. `telephony` carries over mostly unchanged.
+   Qualcomm phone. `neohw` carries over mostly unchanged.
 3. **Fairphone 5** (or SHIFTphone 8, same SoC): the long-term daily phone. It reuses the UFS driver and the QMI stack.
 4. **PinePhone Pro:** only if "open hardware, no bootloader lock" matters more than reuse. It means a new SoC and an
    AT-command modem path.

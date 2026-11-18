@@ -171,7 +171,7 @@ Each step is tested on QEMU (Syborg, watched over VNC with `neo live`), then on 
   - Frozen Bubble is played with the Gamepad (QEMU: its key setup, a game, held aiming, firing), in portrait and in
     the console; silent: there is no audio server yet.
   - Closing and reopening Old apps is stable.
-- Sound (2026-11-18, [audio.md](audio.md) A3): Frozen Bubble's DevSound reaches the ADSP through our
+- Sound (2026-11-18, [audio.md](hardware/audio.md) A3): Frozen Bubble's DevSound reaches the ADSP through our
   `mmfdevsoundadaptor.dll` and NeoAudio (16 kHz mono); the 2010 audio server runs with our launcher.
 - Next:
   - AknFep (multi-tap and T9 on the Number pad).

@@ -17,7 +17,7 @@ through the roadmap's T1–T11.
   `sdm670_assp/qcom_telmon.cpp`. They cover the log ring and the previous boot's log, registers, block I/O, slots,
   input, screenshots, threads, CPUs, USB, and the telephony subsystems.
 - **Mac side:** `kernel/baseport/arm64/tools/phone.py` (`run`, `cmd`, `dump`, `put`, `shot`, `console`).
-- **Speed:** a SHA-256-checked `blk dump` runs at 2.0 MB/s ([telephony C0](telephony.md#c0-recon-and-backups)).
+- **Speed:** a SHA-256-checked `blk dump` runs at 2.0 MB/s ([telephony C0](hardware/modem.md#c0-recon-and-backups)).
 - **Limits:**
   - input lines are 160 bytes, and longer ones are cut silently;
   - output lines are 256 bytes, and longer ones fault the kernel;

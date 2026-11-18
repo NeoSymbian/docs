@@ -1,9 +1,11 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Audio: NeoAudio, media on the ADSP, and the old apps' DevSound
 
+Part of [hardware.md](../hardware.md), the hardware and drivers hub (status of every driver, the neohw processes). Neighbours: [modem](modem.md), [wifi](wifi.md), [bluetooth](bluetooth.md), [battery](battery.md).
+
 Started 2026-11-17 (research: `private/audio/codex-audio-report-20261117.md`, a Codex review with line-level
-references into the 2010 sources). Continues [driver-support.md](driver-support.md) D3 and
-[legacy.md](legacy.md) L2.
+references into the 2010 sources). Continues [driver-support.md](../hardware.md) D3 and
+[legacy.md](../legacy.md) L2.
 
 ## What there was
 
@@ -20,9 +22,9 @@ Call audio (telephony C6/C7) and the ringtone work on the Pixel:
 | Amp protection | CS35L36 IRQs (TLMM 79/80) | ignored; faults logged at start |
 | Calibration | ACDB | none: the ADSP's built-in topologies |
 
-MODEMD's APR ([telephony.md](telephony.md) C6) ran three things: the call's voice path, the loopback test and a
+MODEMD's APR ([telephony.md](modem.md) C6) ran three things: the call's voice path, the loopback test and a
 2-second ringtone looped from one 256 KB DMA region. No app could play or record sound; the old apps' DevSound had
-no server (Frozen Bubble ran silent, [legacy.md](legacy.md)).
+no server (Frozen Bubble ran silent, [legacy.md](../legacy.md)).
 
 ## Design
 
@@ -42,7 +44,7 @@ flowchart LR
 ```
 
 - **NeoAudio lives in MODEMD** because MODEMD owns the ADSP's APR channel (one receive owner per kernel ring). The
-  logic is its own crate (`telephony/crates/neoaudio`), so a later AUDIOD (or the `neohw` split) takes it as is.
+  logic is its own crate (`neohw/crates/neoaudio`), so a later AUDIOD (or the `neohw` split) takes it as is.
 - **One session = one stream.** Any rate 8–96 kHz, mono or stereo, S16LE. Each stream has a 250 ms queue; WRITE
   waits while it is full (flow control); an underrun is counted once per dry spell (DevSound reports the end of
   data that way).

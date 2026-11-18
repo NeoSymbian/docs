@@ -1,5 +1,7 @@
 # Telephony: cellular calls, SMS and data on the Pixel 3a XL
 
+Part of [hardware.md](../hardware.md), the hardware and drivers hub (status of every driver, the neohw processes). Neighbours: [audio](audio.md), [wifi](wifi.md), [bluetooth](bluetooth.md), [battery](battery.md).
+
 Written 2026-11-08. This file is the end-to-end runbook for roadmap Track P: from a silent modem to a phone that
 places and takes calls, sends SMS and uses mobile data. It replaces the outline in `roadmap.md` Track P.
 
@@ -171,7 +173,7 @@ us the exact sequences to reproduce.
 - **Go/no-go:** if Linux can't place a call with this SIM, find the cause first (network, firmware, provisioning).
   Don't write C2+ against an unknown.
 
-**Result 2026-11-08: GO.** The recipe is in [telephony/c1-linux](https://github.com/NeoSymbian/telephony/tree/main/c1-linux)
+**Result 2026-11-08: GO.** The recipe is in [telephony/c1-linux](https://github.com/NeoSymbian/neohw/tree/main/c1-linux)
 (`build.sh`); the logs are in `private/c1/captures-*`.
 - **Image:** pmOS `linux-postmarketos-qcom-sdm670` 7.2.3 + `firmware-google-sargo` 220505.008 (the same firmware as
   `modem_a`: no phone dump needed), Alpine userland, 105 MB boot.img, RAM disk only. Boot to an ssh shell takes about
@@ -279,9 +281,9 @@ Failure modes seen on the way:
 ### C4: modem services (Rust, user side) (done 2026-11-08)
 
 One process, `MODEMD.EXE` (uid `0xE0003001`), from the Rust workspace
-[NeoSymbian/telephony](https://github.com/NeoSymbian/telephony). The protocol code is the `no_std` crate `modem-proto`, tested on the Mac
+[NeoSymbian/neohw](https://github.com/NeoSymbian/neohw). The protocol code is the `no_std` crate `modem-proto`, tested on the Mac
 with vectors from the C1 captures. The `symbian/modemd` glue talks to the kernel through `EHalGroupVariant`
-functions 0x4e0d–0x4e12 (`qcom_telhal.cpp`; table in [rust-integration.md](rust-integration.md)). It doesn't use LDDs.
+functions 0x4e0d–0x4e12 (`qcom_telhal.cpp`; table in [rust-integration.md](../rust-integration.md)). It doesn't use LDDs.
 Started by hand for now: Terminal, `modemd`. Auto-start is decided in C5.
 
 | Part | Work |
@@ -519,7 +521,7 @@ No worktrees, duplicate source trees, or replacement build/phone scripts.
   - one original built-in PCM ringtone through ASM → ADM → AFE to the loudspeaker,
     with ring volume, silent and vibration controls;
   - reuse C6's CS35L36 speaker path and its single APR/audio owner;
-  - vibration through **TI DRV2624**, I2C10 at 0x5a, reset GPIO24 (roadmap H6, [driver support D3](driver-support.md));
+  - vibration through **TI DRV2624**, I2C10 at 0x5a, reset GPIO24 (roadmap H6, [driver support D3](../hardware.md));
   - a missed-call notification.
 - **In-call:**
   - preserve C6's working mute, DTMF, volume and speaker controls;
@@ -574,7 +576,7 @@ physical screen-off/wake and LTE return. Code completion alone is not this exit.
 | Repository | Commit | Main implementation |
 |---|---|---|
 | kernel | `8dbcc89f` | [Recovery HAL](https://github.com/NeoSymbian/kernel/blob/8dbcc89f1ddd83871140f818d880e1cdc9731f01/baseport/arm64/sdm670_assp/qcom_telhal.cpp#L439), [OLED](https://github.com/NeoSymbian/kernel/blob/8dbcc89f1ddd83871140f818d880e1cdc9731f01/baseport/arm64/bonito_variant/specific/a64_panel.cpp#L105), [haptics](https://github.com/NeoSymbian/kernel/blob/8dbcc89f1ddd83871140f818d880e1cdc9731f01/baseport/arm64/bonito_variant/specific/a64_haptics.cpp#L92) |
-| telephony | `63a2b1f9` | [IPC v2](https://github.com/NeoSymbian/telephony/blob/63a2b1f900bf9b45af42613f5e316ffacd557646/crates/modem-ipc/src/lib.rs#L17), [MODEMD recovery](https://github.com/NeoSymbian/telephony/blob/63a2b1f900bf9b45af42613f5e316ffacd557646/symbian/modemd/src/lib.rs#L230), [APR](https://github.com/NeoSymbian/telephony/blob/63a2b1f900bf9b45af42613f5e316ffacd557646/crates/modem-proto/src/apr.rs#L414) |
+| telephony | `63a2b1f9` | [IPC v2](https://github.com/NeoSymbian/neohw/blob/63a2b1f900bf9b45af42613f5e316ffacd557646/crates/modem-ipc/src/lib.rs#L17), [MODEMD recovery](https://github.com/NeoSymbian/neohw/blob/63a2b1f900bf9b45af42613f5e316ffacd557646/symbian/modemd/src/lib.rs#L230), [APR](https://github.com/NeoSymbian/neohw/blob/63a2b1f900bf9b45af42613f5e316ffacd557646/crates/modem-proto/src/apr.rs#L414) |
 | neoui | `bf930514` | [Async modem client](https://github.com/NeoSymbian/neoui/blob/bf9305140eaf004ee041604a0188175aee0004bc/symbian/src/phone.rs#L27); Phone, Settings, shade and Dev tools updated together |
 | build | `b52e502a` | Kernel pin and default-off diagnostic option; existing `build.sh`, `neo` and `phone.py` remain the build/run path |
 
@@ -627,7 +629,7 @@ were merged with main (driver support's ADSP-first MODEMD, Wi-Fi W0–W4, displa
 | Checkout | Commands | Result |
 |---|---|---|
 | telephony | `cargo fmt --all --check`; `cargo clippy --offline -- -D warnings`; `cargo test --offline` | 79 tests: 4 ext4ro, 3 IPC, 72 modem-proto |
-| telephony/symbian | `cargo fmt --all --check`; `cargo arm --workspace --offline` | `libmodemd.a` built |
+| neohw/symbian | `cargo fmt --all --check`; `cargo arm --workspace --offline` | `libmodemd.a` built |
 | neoui | `cargo fmt --check`; `cargo clippy --all-targets --offline -- -D warnings`; `cargo test --offline` | 126 tests |
 | neoui/symbian | `cargo fmt --all --check`; `cargo arm --workspace --offline` | All apps built; final build uses the pushed IPC revision, without a local patch |
 
@@ -666,7 +668,7 @@ the unrelated dirty `kernel`/`build` checkouts are preserved. Remote logs are un
   showed the launcher and LTE, and marked slot a successful. Slot b was preserved.
   A normal reboot was then sent successfully; its final visible boot was not independently
   observed because normal-boot USB debug access remains limited. This is installation
-  evidence, not call/recovery acceptance. See [FS5](filesystem.md#fs5-updates-and-integrity).
+  evidence, not call/recovery acceptance. See [FS5](../filesystem.md#fs5-updates-and-integrity).
 
 ### C8: call log and contacts
 
@@ -677,7 +679,7 @@ the unrelated dirty `kernel`/`build` checkouts are preserved. Remote logs are un
 
 Exit: an incoming call from a saved number shows the contact's name.
 
-Reference: [symbian-phone-sources.md](symbian-phone-sources.md), the facts C8 takes from the 2010 Symbian phone and contacts
+Reference: [symbian-phone-sources.md](../symbian-phone-sources.md), the facts C8 takes from the 2010 Symbian phone and contacts
 sources (dial-string rules and test vectors, SS codes, caller-name matching, smart dialling, Logs and Speed dial
 behaviour, vCard mapping).
 
@@ -874,7 +876,7 @@ Exit: ping and an HTTP fetch over LTE, and over 3G with LTE disabled.
 | `kernel/baseport/arm64/sdm670_assp/` | `qcom_scm`, `qcom_smem`, `qcom_ipc`, `qcom_smp2p`, `qcom_qmp`, `qcom_glink`, `qcom_mss`, `qcom_pas`, IPA (C10), the LDDs `glink`, `rproc`, raw read-only partition op |
 | `kernel/.../a64_medblk.cpp` | Read-only drives for `modem_a`/`dsp_a`; G4 write path for `modemst1/2` (C12) |
 | `kernel/.../pixel_bonito.cpp` | MMU entries for SMEM, rmtfs, QMP, APCS, codec; RAM bank carve-out check |
-| [`telephony`](https://github.com/NeoSymbian/telephony) (Rust) | `qrtr`, `qmi`, `rmtfs`, `pdmapper`, `tqftp`, `rprocd`, `apr`, `modemsrv` |
+| [`neohw`](https://github.com/NeoSymbian/neohw) (Rust) | `qrtr`, `qmi`, `rmtfs`, `pdmapper`, `tqftp`, `rprocd`, `apr`, `modemsrv` |
 | `neoui` | status bar, dialer, in-call, Recents, Contacts, Messages |
 
 ## Testing

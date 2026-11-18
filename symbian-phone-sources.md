@@ -1,6 +1,6 @@
 # Symbian phone and contacts sources: what C8 can reuse
 
-Research for [telephony.md C8](telephony.md#c8-call-log-and-contacts) (Phone, Recents, Contacts, speed dial, call
+Research for [telephony.md C8](hardware/modem.md#c8-call-log-and-contacts) (Phone, Recents, Contacts, speed dial, call
 settings), done 2026-11-13. It reads the Symbian^3 code of the three 2010 packages that held the phone and contacts
 apps. **This file holds facts only:** constants, tables, algorithms in our own words, and short English UI phrases as
 wording reference. No code and no `.loc`/`.rss` files are copied; they are Nokia EPL-1.0 and must not enter our

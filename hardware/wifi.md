@@ -1,7 +1,9 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Wi-Fi on the Pixel 3a XL
 
-Written 2026-11-12. This is the Wi-Fi part of [driver-support.md](driver-support.md) D6 (roadmap P4): from a silent
+Part of [hardware.md](../hardware.md), the hardware and drivers hub (status of every driver, the neohw processes). Neighbours: [modem](modem.md), [audio](audio.md), [bluetooth](bluetooth.md), [battery](battery.md).
+
+Written 2026-11-12. This is the Wi-Fi part of [driver-support.md](../hardware.md) D6 (roadmap P4): from a silent
 WCN3990 to a WPA2 network with IP traffic, then a Settings page.
 
 ## Decision (owner, 2026-11-12)
@@ -18,7 +20,7 @@ Use **Symbian's 2010 WLAN stack on top** and **a chip driver ported from Linux a
 - **New:**
   - a WHA chip driver (PDD) for the WCN3990, in kernel C++;
   - the firmware control (QMI WLFW) in MODEMD, in Rust.
-- **It also decides C10:** mobile data uses ESOCK/TCPIP6 too ([telephony.md](telephony.md) C10 asked the owner).
+- **It also decides C10:** mobile data uses ESOCK/TCPIP6 too ([telephony.md](modem.md) C10 asked the owner).
 
 The seam is `wlan_plat/wlan_hal_api/inc/wlanpddiface.h`: the PDD's `MWlanPddIface::Extract()` returns a `WHA::Wha`
 (`wha.h`).
@@ -34,7 +36,7 @@ Ported files keep the ISC copyright and permission notice, with a NeoSymbian lin
 
 | Linux file (ISC) | Becomes |
 |---|---|
-| `qmi_wlfw_v01.c`, `qmi.c` | `telephony/crates/modem-proto/src/wlfw.rs`: the messages and the start-up order |
+| `qmi_wlfw_v01.c`, `qmi.c` | `neohw/crates/modem-proto/src/wlfw.rs`: the messages and the start-up order |
 | `snoc.c` | the PDD's register, interrupt and pipe setup; the CE pipe and service tables sent in WLAN cfg |
 | `ce.c` | the PDD's copy-engine rings |
 | `htc.c`, `wmi-tlv.*`, `wmi.h`, `htt*` | the PDD's HTC, WMI and HTT messages |
@@ -51,7 +53,7 @@ GPL-licensed code is read for facts only, never copied: `mac80211`/`cfg80211`, `
 | Supplies | PM660 (RPMh `a`) LDO5 0.8 V (cx-mx), LDO9 1.8 V (xo), LDO6 1.3 V (rfa), LDO19 3.3 V (ch0) | DTB |
 | Clock | `cxo_ref_clk_pin` = RPMh clock 8 (RF_CLK2) | DTB, Linux `clk-rpmh` |
 | Quirk | `qcom,snoc-host-cap-8bit-quirk` (the host-cap message uses 8-bit fields) | DTB, ath10k |
-| MSA memory | carve-out `wlan-msa` at `0x94d00000` | [telephony.md](telephony.md) |
+| MSA memory | carve-out `wlan-msa` at `0x94d00000` | [telephony.md](modem.md) |
 | Firmware | the WLAN protection domain `msm/modem/wlan_pd` runs inside the modem; its image is `wlanmdsp.mbn` (in pmOS's `qcom/sdm670/sargo/`) | C1 image listing |
 | Board data | `bdwlan.bin` (vendor) or linux-firmware `ath10k/WCN3990/hw1.0/board-2.bin`; read at runtime, never stored | ath10k |
 | MAC address | none stored (ztOS FIXES #10): derive a stable one | ztOS |
@@ -68,7 +70,7 @@ Sizes are a **GUESS**.
 | **W5a** (deferred: W5 went smoltcp first) | ESOCK/TCPIP6 + CommsDat (default database), the C32/ESOCK configs and ECom comms plugins, through `build/emitter/components.py`; Syborg first | A loopback TCP test EXE passes on Syborg CI |
 | **W3** (1–2 wk) | The UMAC LDD built into ekern (as `locmedia` is); WHA Initialize/Configure → WMI vdev create; Scan → WMI start scan; beacons from WMI management RX → `ReceivePacket`; wlanengine + management client in the ROM | A test EXE lists nearby networks |
 | **W4** (1–2 wk) | Join/SetBssParameters → vdev start, peer create/assoc, vdev up; management TX over WMI, data and EAPOL over HTT (802.11 headers rebuilt on RX); AddKey → WMI install key; accesssec EAPOL in the ROM | Joins an open network, then WPA2-PSK |
-| **W5** (1–2 wk) | **smoltcp first (owner, 2026-11-12):** NEONET.EXE (neolink) with DHCP, DNS and TCP over the kernel's Ethernet frame queue, and the NeoNet socket API for apps. `wlannwif`/ESOCK stays the long-term option | Ping and an HTTP fetch over Wi-Fi, through the app API |
+| **W5** (1–2 wk) | **smoltcp first (owner, 2026-11-12):** NEONET.EXE (neolink, now neohw) with DHCP, DNS and TCP over the kernel's Ethernet frame queue, and the NeoNet socket API for apps. `wlannwif`/ESOCK stays the long-term option | Ping and an HTTP fetch over Wi-Fi, through the app API |
 | **W6** (1 wk) | neoui Settings → Wi-Fi: networks, password by keyboard, connect, status icon (C++ glue like `neocli.cpp`) | On the phone, by touch |
 
 ### Design gates
@@ -302,7 +304,7 @@ user-side Rust, so there is no crypto in kernel C++.
 | Keys: VDEV_INSTALL_KEY CCMP (acked by HTT SEC_IND), PEER_SET_PARAM AUTHORIZE | kernel (W4c) | as above |
 | HAL `WlanLink` `0x4e1f` and the monitor's `wifi` / `wifi join N` / `wifi leave` | kernel | as above |
 | HAL `Prng` `0x4e23`: the SoC PRNG for the SNonce | kernel `qcom_telhal.cpp` | as above |
-| WPA2-PSK supplicant: PBKDF2 PMK, PTK, MIC, GTK unwrap, 4-way + group rekey, sans-I/O | neolink `crates/wpa` (W4b) | **done**, host-tested (IEEE Annex J and RFC 3394 vectors, a full 4-way against a test AP, wrong password, replays, RSN downgrade) |
+| WPA2-PSK supplicant: PBKDF2 PMK, PTK, MIC, GTK unwrap, 4-way + group rekey, sans-I/O | neohw `crates/wpa` (was neolink) (W4b) | **done**, host-tested (IEEE Annex J and RFC 3394 vectors, a full 4-way against a test AP, wrong password, replays, RSN downgrade) |
 | Connect on the network sheet: a supplicant thread in SYSSTART drives the HAL; the sheet shows Connecting… / Connected / Wrong password; a connected network is remembered (SSID + PMK in `C:\private\e0002001\wifi.dat`, never the password) and rejoined when seen | neoui `symbian/src/wifi.rs` (W4d) | built, host-tested (`Link`, `Saved`) |
 
 Facts: `private/wifi/w4-join-spec.md` (ath10k, ISC; mac80211 facts only).
@@ -380,7 +382,7 @@ kernel  DataIn --(Ethernet II)--> rx queue --WlanLink op 8--> NEONET.EXE (smoltc
   Neither waits on the driver thread.
 - **Monitor:** `wifi` prints a second line with the queue counters.
 
-**neolink:**
+**neolink (now in neohw):**
 - **Crate `net`:** the `Stack` (sans-I/O, host-tested on smoltcp's loopback device), the IPC protocol `proto`, and
   the `client` (feature `client`).
 - **`symbian/neonet`, NEONET.EXE** (uid `0xE0004001`):
@@ -511,7 +513,7 @@ will tell.
 - **After `mss fault`,** the driver let go as designed (`Wi-Fi waits for WlanStart`). The modem restarted (QRTR up
   after 6.4 s), but MODEMD then found the ADSP reporting fatal (its state word `[4, 0, 7, 3]`, bit 0) and restarted
   the modem again, three times, until the modem itself went FATAL. So WlanStart never came, and **the re-init is
-  not proven yet.** Cause and fix: [telephony.md](telephony.md), "Modem restart and the ADSP".
+  not proven yet.** Cause and fix: [telephony.md](modem.md), "Modem restart and the ADSP".
 - The 15 s handshake guard was not triggered (the supplicant's 10 s timeout acts first).
 
 **NeoNet API 1.1 (UDP and listening sockets).** NEONET and the `net` crate share one socket id space, 24 sockets

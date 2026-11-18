@@ -142,12 +142,12 @@ What Files needs that doesn't exist, who owns the fix, and the phase that needs 
 | Fonts at run time (the font viewer) | fonts compiled in as SDF | a rasteriser for a loaded font | files (`neo-format-inspect`) | FA7 |
 | Open with, file types | OPEN by key, ARG ≤ 256 bytes; a fixed `APPS` table | a handler table (type → app), a file picker, file handles (`EFsFileAdopt`) for long paths | neoui (protocol 1.10), e32-rs | FA8 |
 | Copy and paste files | CLIP: text, ≤ 2048 bytes | a file clip (paths) | neoui | FA8 |
-| Audio out | MODEMD's ringtone PCM only (ASM→ADM→AFE); MMF has no server | an audio service (driver-support.md D3, roadmap H5) | telephony + kernel | FA9 |
+| Audio out | MODEMD's ringtone PCM only (ASM→ADM→AFE); MMF has no server | an audio service (hardware.md D3, roadmap H5) | neohw + kernel | FA9 |
 | FP/NEON for apps | the kernel part done (WB1, 2026-11-17: Q0–Q15 saved per thread) | an ARMv7/NEON build of the Rust user side (smooth-ui S4) | e32-rs, neoui, build | FA9–FA12 |
 | Video | nothing | a decoder on the NEON build | files | FA12 |
 | Share E: over USB, Eject | FS6 researched, not started | E: removable (`a64_medblk.cpp`), a DWC3 PSL, mass storage in the ROM, USB power on cold boot, dismount in e32 | kernel, build, e32-rs | FA13 |
-| Send via Bluetooth | — | OBEX, bluetooth.md B5 | neolink | FA13 |
-| Send by MMS | SMS only | MMS, telephony.md C10 | telephony, phone | FA13 |
+| Send via Bluetooth | — | OBEX, hardware/bluetooth.md B5 | neohw | FA13 |
+| Send by MMS | SMS only | MMS, hardware/modem.md C10 | neohw, phone | FA13 |
 | Install .sis / .sisx | unpacked at build time (`legacy/tools/sis.py`) | SWI on the device, legacy.md L4 | legacy | FA13 |
 | Install .jar | no Java runtime | a runtime | — (not planned) | — |
 | Files over 4 GB | FAT32 | exFAT ([filesystem.md](filesystem.md), Later) | kernel | — |
@@ -172,7 +172,7 @@ Each phase ends with a gate: host tests and board snapshots in the files repo, t
 | **FA10** documents I | EPUB (zip + XHTML, reflow, chapters, position), docx / odt / rtf reflowed, xlsx as a read-only grid (`xmlparser`) | files | a 300-page EPUB pages smoothly; the docx with Armenian text from the board renders | [`view-epub`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-a7f9e4db02c8), [`view-docx`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-eb23122f75d9), [`view-xlsx`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-636480de5643) |
 | **FA11** documents II | PDF: parse (`hayro-syntax`), our renderer (paths, text with embedded fonts, images), pages, thumbnails | files | the boarding pass from the board renders; a 100-page PDF scrolls | [`view-pdf`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-7c18c7fd6f77) |
 | **FA12** video | the ARMv7/NEON build (smooth-ui S4; the kernel part is done) first; then a decoder for MP4/3GP (H.264 baseline) and WebM (VP8), with the audio service | kernel, files | a 720p clip plays on the Pixel | [`view-video`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-0a854b5f4d99) |
-| **FA13** outside Files | Share E: over USB and Eject (FS6); Send via Bluetooth (B5); MMS (C10); install .sis on the device (L4); heic, mkv, 7z, rar, pptx | kernel, build, neolink, telephony, legacy | each in its own repo's stages; Files only wires the buttons | [`share`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-3db79c4164d1), [`view-app`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-093a96e8c80a), [`spec-types`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-addb580badcb) |
+| **FA13** outside Files | Share E: over USB and Eject (FS6); Send via Bluetooth (B5); MMS (C10); install .sis on the device (L4); heic, mkv, 7z, rar, pptx | kernel, build, neohw, legacy | each in its own repo's stages; Files only wires the buttons | [`share`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-3db79c4164d1), [`view-app`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-093a96e8c80a), [`spec-types`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-addb580badcb) |
 
 The replacement map (old boards → new) is [`spec-replace`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-79a68f1005f5).
 

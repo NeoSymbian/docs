@@ -67,7 +67,7 @@ No new crates; this follows the existing split.
 | App helper | `neoui/symbian/neoapp/src/lib.rs` | `setting()`, `set_setting()`, `notify()`, `cancel()`, `widget()` over the app's session |
 | e32 | `e32-rs/crates/e32/src/server.rs` | `Message::client_sid()` (step 0) |
 
-Processes outside neoui (Apache-2.0, for example in `telephony`) must not link the GPL `neoapp`. They encode with
+Processes outside neoui (Apache-2.0, for example in `neohw`) must not link the GPL `neoapp`. They encode with
 `neoui-proto` and call through `e32::ipc::Session` themselves.
 
 ## Step 0: know who is calling

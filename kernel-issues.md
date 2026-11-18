@@ -478,7 +478,7 @@ and QEMU, exact received bytes and no silent truncation. Development tooling sti
 
 ### KRN-029: Connected call stays on 3G
 
-[Known issues](known-issues.md) and [telephony C7](telephony.md#c7-complete-calls) record LTE return after ringing
+[Known issues](known-issues.md) and [telephony C7](hardware/modem.md#c7-complete-calls) record LTE return after ringing
 but not after a connected call, despite a separately reported Linux return. CDSP/PDR/ADSP teardown are investigation
 directions, not established causes. **Fix/close:** compare resource/session lifecycle and implement the causal fix.
 **Acceptance:** repeated incoming/outgoing connected/declined/cancelled calls return to the expected network,

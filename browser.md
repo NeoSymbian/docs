@@ -31,7 +31,7 @@ measurements.
 
 | Need | Today | Where |
 |---|---|---|
-| Sockets | NeoNet (smoltcp: DHCP, DNS, TCP, UDP; IPv4) and the 2010 `RSocket` API over it (W5a) | [wifi.md](wifi.md) W5, W5a |
+| Sockets | NeoNet (smoltcp: DHCP, DNS, TCP, UDP; IPv4) and the 2010 `RSocket` API over it (W5a) | [wifi.md](hardware/wifi.md) W5, W5a |
 | TLS, HTTP client | **none** (only hand-written `GET /generate_204`) | `neoui/symbian/src/wifi.rs:439` |
 | Hardware FP/NEON at EL0 | **off**: the per-thread FP save/restore hooks are empty | [kernel-issues.md](kernel-issues.md) KRN-019, [smooth-ui.md](smooth-ui.md) S4 |
 | Atomics | **none**: user code is ARMv5TE, which has no CAS, so Rust has no `Arc` | `e32-rs/crates/e32/src/cs.rs` |
