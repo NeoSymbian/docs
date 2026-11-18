@@ -33,7 +33,7 @@ do not prove hardware absence. Keep full DTBs and firmware under `private/`.
 | Display/input | Bootloader OLED framebuffer, Synaptics RMI4 touch, PMIC keys; panel brightness and on/off, touch sleep, screen timeout and power key (2026-11-11, below) | Independent panel initialization, IRQ/wake from suspend |
 | PMIC/power | SPMI, RPMh, RTC and reboot code | Fuel gauge (`qcom,pmi8998-fg`), PM660 RRADC, charger, TSENS, policy |
 | USB | DWC3 debug console on RAM boots | Cold/installed-boot power remains open; see known-issues |
-| Audio | ADSP, dual CS35L36 amps, RT5514 mic; C6 two-way calls recorded | Independent audio lifecycle, amplifier protection, ASM/ADM PCM, native jack |
+| Audio | ADSP, dual CS35L36 amps, RT5514 mic; C6 two-way calls; NeoAudio (2026-11-18, [audio.md](audio.md)): ASM/ADM PCM playback and recording, routes, amp protection polling, the 3.5 mm jack driver | ACDB calibration, headset-mic recording path, audible QEMU |
 | Haptics | DTB TI DRV2624, I2C10 `0x5a`, reset GPIO24 | Driver, verified supplies/actuator configuration, bounded pulse; PM660 haptics disabled |
 | Sensors | ADSP FastRPC transport described; sensor GPIO ownership reserved | Discover exact chips, firmware sensor protocol and calibration requirements |
 | Front camera | DTB Sony IMX355, CCI1 `0x1a`, MCLK2 19.2 MHz, reset GPIO9 | CCI/CAMSS/DMA and software image processing |
