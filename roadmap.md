@@ -277,7 +277,7 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   UI0–UI6, built first on a stand-in engine in parallel with WB2–WB4.
   **WB2 (Rust `std`) in progress** ([browser-std.md](browser-std.md)): WB2a (ARMv7 + NEON target) and WB2b (P.I.P.S.
   measured, on the Pixel) done 2026-11-18; WB2c (Rust std for `target_os = "symbian"`: STDTEST/MIXTEST pass on QEMU
-  and the Pixel, P.I.P.S. fixes) done 2026-11-18 on branches, PRs open; WB2d in progress (Tokio runs on the phone, DNS over Wi-Fi; TCP through P.I.P.S. is open).
+  and the Pixel, P.I.P.S. fixes) done and merged 2026-11-18; WB2d in progress (Tokio runs on the phone, DNS over Wi-Fi; TCP through P.I.P.S. is open).
   **Later: upstream sync.** `std` needs forks of rust (`library/` only), libc and mio on branch `neosymbian`
   ([why](browser-std.md#why-forks)). Keep them synced on every nightly bump, offer libc and mio upstream once stable,
   then propose a tier 3 `symbian` Rust target (as NuttX, Vita and the 3DS did) so the forks go away.
