@@ -627,7 +627,7 @@ This section checks the code against the doc (kernel `dc4a7b34`, neohw `815e25b`
 
 | Bug | Fix | Where |
 |---|---|---|
-| **The "reason 4" drops after 2–5 minutes** ([known-issues](../known-issues.md)). The 2026-11-18 logs show no deauthentication or disassociation from the AP. The firmware's beacon-miss ROAM event (reason 2) ended the link at once, and the driver logged it as reason 4 | The driver probes the AP (a unicast probe request, 3 tries of 1 s) and leaves only if the AP never answers, as mac80211 does. The log says `beacon miss: the AP answered` / `no answer` | kernel `wifi/bmiss` |
+| **The "reason 4" drops after 2–5 minutes** ([known-issues](../known-issues.md)). Not the AP: the firmware's beacon-miss event (reason 2) ended the link at once, logged as reason 4 | The driver now probes the AP before leaving, and logs the receive counters at a miss. **This does not fix the drop:** on the phone, HTT receive itself stops about 2 minutes into the modem's uptime and never comes back, so the probe gets no answer. The cause is open | kernel `wifi/bmiss` |
 | A PTK rekey (a second 4-way on the same association) installed nothing, so data stopped after an AP's rekey | Its msg3 installs the new PTK. A resent msg3, or a group message 1 carrying the key already installed, still installs nothing (KRACK). Host tests for both | neohw `wpa` |
 | The Wi-Fi switch off only stopped rejoining; the link and IP stayed up | Off leaves the network (the radio itself stays powered) | WIFID |
 | Disconnect was forgotten on a reboot | The left SSID is kept in `C:\private\e0004002\left.dat` | WIFID |

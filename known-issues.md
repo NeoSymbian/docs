@@ -18,14 +18,29 @@ open reports. The 2026-11-09 source audit did not rerun these hardware/emulator 
 
 ## Phone: Wi-Fi drops after a few minutes, `reason 4` (2026-11-18)
 
-**Status:** cause found and fixed in code (kernel `wifi/bmiss`); not yet confirmed on the phone.
+**Status:** open; narrowed down 2026-11-18 (two phone runs, logs in `private/wifi/w8/`).
 - 2–5 minutes after joining: `[wifi] link lost (status 0, reason 4)`. Seen on every 2026-11-18 run (S2–S5 images).
-  WIFID scans and rejoins the remembered network.
-- **Cause: not the AP.** No `[wifi] mgmt c0/a0 from the AP` line comes before any of the drops. The firmware raised a
-  beacon-miss ROAM event (reason 2), and `qcom_wcn3990.cpp` ended the link on the first one, logging it as reason 4.
-- **Fix:** probe the AP first and leave only if it never answers ([wifi.md](hardware/wifi.md#audit-2026-11-18)).
-- **Next:** an idle run of 15 minutes or more on the phone; `beacon miss: the AP answered` lines and no `link lost`
-  close this entry.
+- **Not the AP:** no `[wifi] mgmt c0/a0 from the AP` line comes before any drop. The firmware raises a beacon-miss
+  ROAM event (reason 2), which the driver logs as reason 4.
+- **What dies is HTT receive.** The beacon-miss line (kernel `wifi/bmiss`) shows the last HTT rx indication about 8 s
+  before the miss. Before it, data arrived at about one frame a second. After it, no HTT frame arrives again and the
+  copy-engine interrupts almost stop (1445 → 1450 in 3 minutes).
+- **Effects:**
+  - the driver's probe of the AP gets no answer;
+  - a rejoin authenticates and associates (management frames come over WMI) but never sees an EAPOL frame;
+  - WIFID leaves after 10 s, and the firmware then asserts `wlan_ps_sta_health_monitor_timeout`: a modem FATAL,
+    with HWHUB's restarts looping on the same assert.
+- **Always about 2 minutes into the modem's uptime,** right after the modem's first EFS write through rmtfs
+  (`rmtfs: write /boot/modem_fs2 sector 0+4096`, t≈111 s, then the miss at about 120–130 s). That holds in both runs
+  and in the S5 logs. The 2026-11-13 W7 runs show no such write, and their link held.
+- **Ruled out:**
+  - HWHUB's rmtfs handling: in memory, answered at once, through its own mapping;
+  - the WCN3990 supply and RF_CLK2 votes: held for the modem's life;
+  - power save: setting it off again after VDEV_UP changed nothing.
+- **Next:**
+  - what the modem does at about 2 minutes (compare a Linux C1 capture: its rmtfs log and ath10k over the same window);
+  - whether HTT dies without the EFS write (refuse that one write in a test image);
+  - what changed in the modem's handling between the W7 images (2026-11-13) and S2.
 
 ## Phone: slot a runs out of retries (ABL switches to slot b); test images may die with a black screen
 
