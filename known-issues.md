@@ -18,10 +18,14 @@ open reports. The 2026-11-09 source audit did not rerun these hardware/emulator 
 
 ## Phone: Wi-Fi drops after a few minutes, `reason 4` (2026-11-18)
 
-**Status:** open.
-- 2–5 minutes after joining, the AP disassociates us: `[wifi] link lost (status 0, reason 4)` (802.11 reason 4:
-  inactivity). Seen on every 2026-11-18 run (S2–S5 images). WIFID scans and rejoins the remembered network.
-- Likely: we answer no keep-alive / power-save frames the AP expects while idle.
+**Status:** cause found and fixed in code (kernel `wifi/bmiss`); not yet confirmed on the phone.
+- 2–5 minutes after joining: `[wifi] link lost (status 0, reason 4)`. Seen on every 2026-11-18 run (S2–S5 images).
+  WIFID scans and rejoins the remembered network.
+- **Cause: not the AP.** No `[wifi] mgmt c0/a0 from the AP` line comes before any of the drops. The firmware raised a
+  beacon-miss ROAM event (reason 2), and `qcom_wcn3990.cpp` ended the link on the first one, logging it as reason 4.
+- **Fix:** probe the AP first and leave only if it never answers ([wifi.md](hardware/wifi.md#audit-2026-11-18)).
+- **Next:** an idle run of 15 minutes or more on the phone; `beacon miss: the AP answered` lines and no `link lost`
+  close this entry.
 
 ## Phone: slot a runs out of retries (ABL switches to slot b); test images may die with a black screen
 
