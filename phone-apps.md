@@ -1,7 +1,7 @@
 # Phone, Contacts and Messages: three apps (NEOPHONE v2)
 
 NeoSymbian/phone builds three apps on the neoui kit (`neoui-kit.md`), from the design canvas's NEOPHONE v2 pages (`p2-*`
-boards: Phone, Contacts, Messages). They used to be one process behind three icons (C8/C9, `telephony.md`).
+boards: Phone, Contacts, Messages). They used to be one process behind three icons (C8/C9, `hardware/modem.md`).
 
 **The owner's decisions (2026-11-17):**
 - **Three separate EXEs.** Each has its own card in Open apps; they open each other. This replaces the canvas's P01 ("one app with three tabs").
@@ -51,7 +51,7 @@ root returns to the app that opened it (the shell's origin), else home.
 - `symbian/common`: MODEMD's client, the files, the prefs reader, blocking, opening the other apps.
 - `symbian/{phone,contacts,messages}`: each app's event loop and areas.
 
-**MODEMD.** The apps use these modem-ipc additions (`telephony.md`):
+**MODEMD.** The apps use these modem-ipc additions (`hardware/modem.md`):
 - **2.4:** Messages' Archive (`EDIT_ARCHIVE_THREAD` 8, `EDIT_UNARCHIVE_THREAD` 9). A new message brings the thread back.
 - **2.5:** Unblock sender, Delete all, and the reason a message failed.
 - **2.6:** a call's conference flag and connect time, the IMEI, and `SILENCE`.

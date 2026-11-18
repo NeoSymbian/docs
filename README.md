@@ -13,8 +13,7 @@ NeoSymbian brings the open-source 2010 Symbian (EKA2, the Symbian^3 release) bac
 | Document | What |
 |---|---|
 | [roadmap.md](roadmap.md) | Plan and status: kernel (K), hardware (H), UI (U) and phone (P) tracks |
-| [driver-support.md](driver-support.md) | Pixel hardware inventory, kernel integration and daily-phone driver milestones D0–D8 |
-| [battery-telemetry.md](battery-telemetry.md) | PM660 read-only battery measurements, live UI and persisted 24-hour history |
+| [hardware.md](hardware.md) | **Hardware and drivers hub:** every driver's status (kernel + neohw), the neohw processes and their IPC, milestones D0–D8. Details in `hardware/`: [modem](hardware/modem.md) (C0–C12), [audio](hardware/audio.md) (A0–A8), [wifi](hardware/wifi.md) (W0–W7), [bluetooth](hardware/bluetooth.md) (B0–), [battery](hardware/battery.md) |
 | [kernel-assessment.md](kernel-assessment.md) | Source audit: legacy architecture, existing defenses, reviewed baseline, coverage and limits |
 | [kernel-issues.md](kernel-issues.md) | Evidence-based kernel/reliability/security register, with all existing known issues mapped |
 | [kernel-modernization.md](kernel-modernization.md) | Phases KM0–KM6: fixes, owners, dependencies, tests and supported-release gates |
@@ -29,7 +28,6 @@ NeoSymbian brings the open-source 2010 Symbian (EKA2, the Symbian^3 release) bac
 | [port-map.md](port-map.md) | How EKA2 maps onto AArch64: what was reused, adapted and written new |
 | [ekern-backend.md](ekern-backend.md) | The full kernel's AArch64 backend |
 | [filesystem.md](filesystem.md) | File system plan: drives, flash layout, stages FS1–FS6 |
-| [telephony.md](telephony.md) | Cellular calls, SMS and data: the end-to-end runbook, stages C0–C12 |
 | [symbian-phone-sources.md](symbian-phone-sources.md) | What the 2010 phone, contacts and phonesrv sources give C8: dialer, smart dialling, call log, speed dial, SS codes, vCard (facts only) |
 | [devices.md](devices.md) | Which phones could be next: requirements, a shortlist from the mobile Linux lists, what each reuses |
 | [known-issues.md](known-issues.md) | Open problems and their workarounds |
@@ -47,7 +45,7 @@ original projects.
 | [build](https://github.com/NeoSymbian/build) | The build system: `neo`, the build image (`ghcr.io/neosymbian/toolchain`), the pinned sources, the 2010 ROM |
 | [e32-rs](https://github.com/NeoSymbian/e32-rs) | Rust crates for the Symbian user side |
 | [neoui](https://github.com/NeoSymbian/neoui) | The Rust UI server and apps |
-| [telephony](https://github.com/NeoSymbian/telephony) | The cellular modem's user side in Rust: QRTR, QMI, rmtfs, call audio, the modem server ([telephony.md](telephony.md)) |
+| [neohw](https://github.com/NeoSymbian/neohw) | The user side of the hardware in Rust (was `telephony`, with `neolink` merged in): the modem, audio, Wi-Fi and IP daemons and their crates ([hardware.md](hardware.md)) |
 | [symbian-qemu](https://github.com/NeoSymbian/symbian-qemu) | The Syborg board package (the adapt.Qemu fork): the baseport, QEMU 11.1 with the Syborg board in C, `run-syborg` (`ghcr.io/neosymbian/symbian-qemu`) |
 | `oss.*` | The SymbianSource packages the build pins (`build/sources.lock`), forked as they are |
 

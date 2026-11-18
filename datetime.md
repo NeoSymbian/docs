@@ -170,7 +170,7 @@ widget text now comes from `NEXT`. The shell drops the alarm check (`due()`, `Ap
 | Alarm sounds | a beep | the audio service of files FA9 (MP3/AAC), or built-in tones first | telephony, files |
 | OPEN a page with arguments from a server | OPEN is app-to-app (1.9) | allow a non-UI client (DTSRV) to OPEN and NOTIFY | neoui |
 | .ics in Messages | SMS only | MMS (telephony C10) | telephony |
-| Share by Bluetooth | none | bluetooth.md B5 | neolink |
+| Share by Bluetooth | none | hardware/bluetooth.md B5 | neohw |
 
 ## Phases
 
