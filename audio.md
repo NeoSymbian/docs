@@ -118,5 +118,13 @@ and clippy pass. Results on the Pixel (RAM boots, nothing flashed) and on QEMU:
   - Media on headphones: INT0 MI2S RX, the codec's MCLK, the kernel's op 9.
   - Recording from a headset: INT3 MI2S TX, the kernel's op 10.
 
+**Open:**
+- One kernel fault on the Pixel (2026-11-18, kernel `9d4011e6`): a data abort in `exc_common` (ExcCode 1, system
+  exception).
+  - It came about 2 s after media stopped, while you scrolled Dev tools; no action had reached Dev tools.
+  - It was not seen again with the same tests.
+  - Kernel `6d9fb78a` now prints every kernel-mode abort's pc, far, esr, lr, sp and thread, so the next one names its
+    cause: read it with `phone.py cmd lastlog`.
+
 **Fixed on the way:** "Action failed (-2)" on Settings → Sounds. It was MODEMD's stale result from the modem
 refusing "online" (QMI 52, invalid transition) about 20 s into every boot; it no longer counts as a failed action.
