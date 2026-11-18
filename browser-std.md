@@ -17,7 +17,7 @@ NeoSymbian, which Servo, SpiderMonkey's Rust side, Tokio and rustls all need. To
 | **WB2b** | Rust EXEs import from P.I.P.S.'s DLLs (build `exes.txt` `libs=`); `PIPSPROB.EXE` measures P.I.P.S. | ✅ 2026-11-18 on QEMU and the Pixel (identical results) |
 | **WB2c-1** | P.I.P.S. fixed in our forks: `clock_gettime` nanoseconds, `CLOCK_MONOTONIC` (generic timer, kernel EL0VCTEN), new `poll`/`pread`/`pwrite` exports; libc built without GCC builtins | ✅ 2026-11-18 on QEMU and the Pixel: PIPSPROB 19 ok, 0 failed (kernel#21, ossrv#1, legacy#6) |
 | **WB2c-2** | Forks on branch `neosymbian`: `NeoSymbian/libc` (`src/unix/symbian`) and `NeoSymbian/rust` `library/` only (on `nightly-2026-10-20` = 07e526db9, the toolchain e32-rs pins): `target_os = "symbian"` in the unix family; e32's std mode | ✅ 2026-11-18 on QEMU and the Pixel: STDTEST 17 ok, 1 skipped (no IP stack); MIXTEST all ok (browser#4, e32-rs#5, build#33) |
-| **WB2d** | `NeoSymbian/mio` (the `poll` selector over our `poll`), Tokio `current_thread`; an HTTP fetch over NeoNet on the phone | — |
+| **WB2d** | `NeoSymbian/mio` (the `poll` selector over our `poll`), Tokio `current_thread`; an HTTP fetch over NeoNet on the phone | in progress: Tokio runs, DNS works over Wi-Fi; TCP through P.I.P.S. stalls (browser#5 draft, kernel#23, build#34) |
 
 ## Why forks
 
@@ -32,7 +32,8 @@ moves under us.
 | `NeoSymbian/libc` | P.I.P.S.'s exact sizes and constants (PIPSPROB: `AF_INET6` = 2054, 32-bit `time_t`, 96-byte `stat`, ...) | Rust calls C through these; a wrong value corrupts memory |
 | `NeoSymbian/mio` | `symbian` on mio's `poll()` backend list | Tokio sits on mio, which does not compile for an unknown OS |
 
-Each change is small: cfg lines, plus one new module in libc and one OS folder in std. Skipping `std` is not an option,
+Each change is small: cfg lines, plus one new module in libc and one OS folder in std. WB2d added **socket2** and
+**tokio** forks for the same reason: each lists the OSes it knows (Symbian follows vita in both). Skipping `std` is not an option,
 since Servo and its ~500 dependencies all assume it.
 
 **Later: back to upstream** (on the [roadmap](roadmap.md)). The forks are the start, not the end state:
@@ -480,3 +481,29 @@ size, field offset and constant the Rust `libc` port needs. These tables come fr
 - `chdir` to `C:` at start-up;
 - unwinding;
 - process spawning (`posix_spawn` exists for later).
+
+## WB2d so far (2026-11-18)
+
+**Done:**
+- **Pipes.** The kernel links Symbian's pipe LDD in (kernel#23, with `umemget`), and build's loader answers
+  `LoadLogicalDevice("PIPELIB")` (build#34). PIPSPROB's `pipe_select` now passes: 20 ok, 0 failed.
+- **Forks on branch `neosymbian`, as vita:**
+  - `NeoSymbian/mio`: the `poll` selector and a `pipe()` waker;
+  - `NeoSymbian/socket2`: as vita, but `fcntl(O_NONBLOCK)`;
+  - `NeoSymbian/tokio`: no peer credentials.
+  - libc gained the socket constants they use.
+- **NETTEST.EXE** (browser `std/nettest`, browser#5 draft):
+  - **Tokio's `current_thread` runtime works** on QEMU and the Pixel: timers, tasks, mpsc, timeouts, and
+    `spawn_blocking` waking the runtime through the pipe waker.
+  - **DNS works over Wi-Fi** through P.I.P.S. (`getaddrinfo`).
+
+**Open: TCP through P.I.P.S.**
+- On the phone (UI ROM, NeoNet up), a blocking `connect()` never completes.
+- Tokio's non-blocking connect and `bind` fail with ENOSYS.
+- NEOSOCK (the 2010 `RSocket` API) passed TCP on the phone in W5a, so the difference lies in P.I.P.S.'s socket path.
+  Candidates:
+  - its default connection and lazy `maybe_reopen_socket`;
+  - `getsockopt(SO_ERROR)` (`KSOSelectLastError`) reaching NEONET.PRT's `GetOption`, which returns
+    KErrNotSupported (P.I.P.S. maps that to ENOSYS);
+  - `bind` on a TCP socket.
+- NETTEST's `socket_diag` prints each raw step with its errno, for that investigation.
