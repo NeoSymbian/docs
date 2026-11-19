@@ -284,8 +284,12 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
 - **Files (proposed 2026-11-17):** [files-app.md](files-app.md). The canvas's 60 `files2-*` boards in a new
   `NeoSymbian/files` repo (UID 0xE0006001): browsing, copy/move with a per-drive Recycle bin, search, archives,
   viewers for 55 file types and editors for 24, in phases FA0–FA13. **FA0 done 2026-11-17:** NEOFILES moved out of
-  neoui into [NeoSymbian/files](https://github.com/NeoSymbian/files), unchanged (Syborg CI and the Pixel). Audio and
-  video need an audio service first; next is FA1, the v2 browsing screens.
+  neoui into [NeoSymbian/files](https://github.com/NeoSymbian/files), unchanged (Syborg CI and the Pixel).
+  **FA1–FA4 built 2026-11-18** (Syborg CI and the Pixel): the v2 browsing screens, copy/move on a worker with the
+  shade's progress bar (protocol 1.11), a per-drive Recycle bin that survives power cuts and reboots, Recent,
+  Favourites, Types and search over a file index, Free up space, Details, and the text viewer and editors (code
+  with colours, find and replace, Markdown Preview, CSV tables; saves byte-exact, a 5 MB log opens). Next is FA5,
+  images.
 - **Clock + Calendar (proposed 2026-11-17):** [datetime.md](datetime.md). A new `NeoSymbian/datetime` repo
   (UIDs 0xE0008001–3): NEOCLOCK moves out of neoui and gets a v2 UI (3 tabs); NEOCAL is new (Month, Week, Day,
   To-do, .ics); a resident DTSRV owns alarms, timers, events and to-dos and rings them, replacing clockwork's alarm

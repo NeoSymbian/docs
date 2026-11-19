@@ -3,7 +3,8 @@
 
 Written 2026-11-17. This is the implementation proposal for the Files app: a new `NeoSymbian/files` repo, every screen
 of the design canvas's Files page, the platform work it needs, and the phases FA0–FA13. Today's app (R8) is built and,
-since FA0, lives in [NeoSymbian/files](https://github.com/NeoSymbian/files); FA1–FA13 are not built yet.
+since FA0, lives in [NeoSymbian/files](https://github.com/NeoSymbian/files). FA1–FA4 are built (2026-11-18, see
+[Status](#status-2026-11-18)); FA5–FA13 are not.
 
 **The design:** the canvas's Files page, https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#page-766d8f9d8c3a
 (60 `files2-*` boards, decisions F01–F11, published 2026-11-17). Each phase below links to its boards. The prototype is
@@ -180,14 +181,40 @@ The replacement map (old boards → new) is [`spec-replace`](https://claude.ai/a
 protocol, so it goes with a neoui release). FA9–FA12 depend on platform work and run beside it. *Estimate:* FA0–FA2
 about 1 month, FA3–FA8 about 2–3 months, FA9–FA12 several months each, mostly platform work.
 
-## Status (2026-11-17)
+## Status (2026-11-18)
 
 | Part | State |
 |---|---|
-| R8 (drives, folders, text, rename, delete) | built |
+| R8 (drives, folders, text, rename, delete) | built; replaced by FA1–FA4 |
 | The design (60 boards, prototype, spec) | done, on the canvas |
 | FA0 move | built 2026-11-17: files `624fb01` (CI green), neoui PR #14 (the cutover; Syborg passes every Files step); Pixel RAM boot: `NEOFILES.EXE[e0006001]`, the R8 walk passes |
-| FA1–FA13 | proposed; next: FA1 |
+| FA1 + FA2 | built 2026-11-18: files `4ed71d4`, e32-rs `0489694` (drive info, `set_entry`, volume label, a `NotifyChange` future), neoui `2047404` (protocol 1.11: the shade's progress bar). Syborg passes the v2 taps (browse, copy through the paste bar, trash) |
+| FA3 | built 2026-11-18: files `559c508` + `f00af5f` (Pixel fixes), neoui `e0cfe28` (taps: Recent, Restore, search). Pixel: the bin survives a reboot, search, Types, Favourites, Details, Empty bin (2 GB) |
+| FA4 | built 2026-11-18: files `e42811c`, neoui `ae720c6` (taps: New file → editor → type → save, 2 bytes exact). Pixel: a 5 MB log opens in about a second and scrolls; saves are byte-exact |
+| FA5–FA13 | proposed; next: FA5 (images) |
+
+**Decided while building FA1–FA4:**
+- **Settings** `files.*` (sort, ascending, folders first, grid, hidden, wrap) are unregistered keys in the app's own
+  namespace, not registry rows; rows can come with Settings › Apps › Files.
+- **Progress** of a copy goes into the shade through protocol 1.11 (`Notification.progress`, an optional trailing
+  byte, so 1.9 and 1.10 apps still decode); the toast is Files' own.
+- **Jobs** (copy, move, delete for good) run on a worker thread with its own file-server session; the UI polls a
+  shared slot every 250 ms. Only the UI thread writes the bin's journal.
+- **The index** (Types, search, Free up space) is walked by a second worker at start and after Files' own jobs,
+  saved in `C:\private\e0006001\index.dat`; it skips `\private\`, `\sys\`, `\resource\` and the bins. Z: is
+  indexed for search only. No change notifications drive it.
+- **Favourites** come from the selection ⋮ ("Add to Favourites", one folder) and are edited on their own page.
+- **Details** has no Created date: the 2010 `TEntry` keeps only the modified time.
+- **Images and videos** on the Types tab use the list layout until FA5 brings thumbnails.
+- **The editor** reads keys raw from the event loop (as Terminal does); the code-key row adds what the system
+  keyboard lacks (`{ } [ ] | !` …, arrows), the keyboard's edit bar gives Select all / Copy / Paste (Ctrl chords,
+  the clipboard holds 2 KB). Selection is a long press on a word, then two handles.
+- **Text** is kept byte-exact: encoding (UTF-8, BOM, UTF-16LE/BE) and each line's end are kept; text that isn't
+  valid opens read-only. Files up to 16 MB open; the surface draws only the rows on screen.
+- **Markdown Preview** wraps by an estimated glyph width: Slint's `StyledText` needs its `std` feature, which the
+  device build lacks.
+- **Pixel test images** are built with `--features test-files` (a 5 MB `C:\Data\big.log`); the shipped app has no
+  such hook.
 
 ## Not doing
 
