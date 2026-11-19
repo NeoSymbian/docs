@@ -3,7 +3,7 @@
 NeoSymbian brings the open-source 2010 Symbian (EKA2, the Symbian^3 release) back to modern hardware:
 
 - **First target:** the Google Pixel 3a XL (bonito, Qualcomm SDM670).
-- **Second device:** the Pixel 3a (sargo, the same SoC), a community port since 2026-11-16 ([devices.md](devices.md)).
+- **Second device:** the Pixel 3a (sargo, the same SoC), a community port since 2026-11-16 ([hardware.md, devices](hardware.md#devices-where-neosymbian-can-go-next)).
 - **Kernel:** ported to AArch64 with 32-bit pointers (ILP32).
 - **User side:** the 2010 Symbian user side runs unchanged in 32-bit mode at AArch32 EL0.
 - **UI:** a new touch UI written in Rust.
@@ -13,7 +13,7 @@ NeoSymbian brings the open-source 2010 Symbian (EKA2, the Symbian^3 release) bac
 | Document | What |
 |---|---|
 | [roadmap.md](roadmap.md) | Plan and status: kernel (K), hardware (H), UI (U) and phone (P) tracks |
-| [hardware.md](hardware.md) | **Hardware and drivers hub:** every driver's status (kernel + neohw), the neohw processes and their IPC, milestones D0–D8. Details in `hardware/`: [modem](hardware/modem.md) (C0–C12), [audio](hardware/audio.md) (A0–A8), [wifi](hardware/wifi.md) (W0–W7), [bluetooth](hardware/bluetooth.md) (B0–), [battery](hardware/battery.md) |
+| [hardware.md](hardware.md) | **Hardware and drivers hub:** every driver's status (kernel + neohw), the neohw processes and their IPC, milestones D0–D8, and which phones could be next (the device shortlist). Details in `hardware/`: [modem](hardware/modem.md) (C0–C12), [audio](hardware/audio.md) (A0–A8), [wifi](hardware/wifi.md) (W0–W7), [bluetooth](hardware/bluetooth.md) (B0–), [battery](hardware/battery.md) |
 | [kernel-assessment.md](kernel-assessment.md) | Source audit: legacy architecture, existing defenses, reviewed baseline, coverage and limits |
 | [kernel-issues.md](kernel-issues.md) | Evidence-based kernel/reliability/security register, with all existing known issues mapped |
 | [kernel-modernization.md](kernel-modernization.md) | Phases KM0–KM6: fixes, owners, dependencies, tests and supported-release gates |
@@ -29,7 +29,6 @@ NeoSymbian brings the open-source 2010 Symbian (EKA2, the Symbian^3 release) bac
 | [ekern-backend.md](ekern-backend.md) | The full kernel's AArch64 backend |
 | [filesystem.md](filesystem.md) | File system plan: drives, flash layout, stages FS1–FS6 |
 | [symbian-phone-sources.md](symbian-phone-sources.md) | What the 2010 phone, contacts and phonesrv sources give C8: dialer, smart dialling, call log, speed dial, SS codes, vCard (facts only) |
-| [devices.md](devices.md) | Which phones could be next: requirements, a shortlist from the mobile Linux lists, what each reuses |
 | [known-issues.md](known-issues.md) | Open problems and their workarounds |
 | [sources.md](sources.md) | Survey of the source repositories and licences |
 | [retired-repos.md](retired-repos.md) | The 91 repositories deleted on 2026-11-06, and how to bring one back |
