@@ -193,7 +193,7 @@ about 1 month, FA3–FA8 about 2–3 months, FA9–FA12 several months each, mos
 | FA3 | built 2026-11-18: files `559c508` + `f00af5f` (Pixel fixes), neoui `e0cfe28` (taps: Recent, Restore, search). Pixel: the bin survives a reboot, search, Types, Favourites, Details, Empty bin (2 GB) |
 | FA4 | built 2026-11-18: files `e42811c`, neoui `ae720c6` (taps: New file → editor → type → save, 2 bytes exact). Pixel: a 5 MB log opens in about a second and scrolls; saves are byte-exact |
 | FA5 | built 2026-11-19: files#6 (with NeoSymbian/image-webp `neosymbian`, the decoder made no_std). Pixel: a 12 MP JPEG decodes in 310 ms and shows in about a second; thumbnails come from a worker and a cache; swipe; rotate / crop / resize and Save as copy, on a 12 MP photo too. Syborg passes every Files step (its C: has no images) |
-| FA6 | built 2026-11-19: files#7. Pixel: a 1 GB zip (made on the phone by our writer in 36 s) extracts in 70 s with the sheet closed, as fast as a plain copy of it (68 s) (with the sheet open it took 396 s; progress now changes once a second, not re-measured yet); browse a zip with Armenian and Cyrillic names, open a member read-only, list a tar.gz on the worker, compress to tar.gz on E: through the folder picker. Syborg passes every Files step (no archive taps: its C: has none) |
+| FA6 | built 2026-11-19: files#7. Pixel: a 1 GB zip (made on the phone by our writer in 36 s) extracts in 70 s, as fast as a plain copy of it (68 s), with the extract sheet open or closed (before progress changed once a second, the open sheet made it 396 s); browse a zip with Armenian and Cyrillic names, open a member read-only, list a tar.gz on the worker, compress to tar.gz on E: through the folder picker. Syborg passes every Files step (no archive taps: its C: has none) |
 | FA7–FA13 | proposed; next: FA7 (cards and inspectors) |
 
 **Decided while building FA1–FA6:**
@@ -241,7 +241,7 @@ about 1 month, FA3–FA8 about 2–3 months, FA9–FA12 several months each, mos
   archive is unpacked into `C:\private\e0006001\open\` and shown read-only. Already-compressed files (audio, video,
   photos, archives) are stored, not deflated. Extracted files get today's date (neo-fs has no set-modified).
 - **Progress** of an archive job changes once a second: redrawn every 250 ms poll, the open extract sheet slowed a
-  1 GB extract from 70 s to 396 s on the Pixel (the fix is not re-measured yet).
+  1 GB extract from 70 s to 396 s on the Pixel; once a second, it takes 71 s.
 - **Pixel test images** are built with `--features test-files` (a 5 MB `C:\Data\big.log`, `C:\Data\photos\`, and
   `C:\Data\zips\` with a 1 GB zip); the shipped app has no such hook.
 
