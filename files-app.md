@@ -3,8 +3,8 @@
 
 Written 2026-11-17. This is the implementation proposal for the Files app: a new `NeoSymbian/files` repo, every screen
 of the design canvas's Files page, the platform work it needs, and the phases FA0–FA13. Today's app (R8) is built and,
-since FA0, lives in [NeoSymbian/files](https://github.com/NeoSymbian/files). FA1–FA5 are built (2026-11-18/19, see
-[Status](#status-2026-11-19)); FA6–FA13 are not.
+since FA0, lives in [NeoSymbian/files](https://github.com/NeoSymbian/files). FA1–FA6 are built (2026-11-18/19, see
+[Status](#status-2026-11-19)); FA7–FA13 are not.
 
 **The design:** the canvas's Files page, https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#page-766d8f9d8c3a
 (60 `files2-*` boards, decisions F01–F11, published 2026-11-17). Each phase below links to its boards. The prototype is
@@ -193,9 +193,10 @@ about 1 month, FA3–FA8 about 2–3 months, FA9–FA12 several months each, mos
 | FA3 | built 2026-11-18: files `559c508` + `f00af5f` (Pixel fixes), neoui `e0cfe28` (taps: Recent, Restore, search). Pixel: the bin survives a reboot, search, Types, Favourites, Details, Empty bin (2 GB) |
 | FA4 | built 2026-11-18: files `e42811c`, neoui `ae720c6` (taps: New file → editor → type → save, 2 bytes exact). Pixel: a 5 MB log opens in about a second and scrolls; saves are byte-exact |
 | FA5 | built 2026-11-19: files#6 (with NeoSymbian/image-webp `neosymbian`, the decoder made no_std). Pixel: a 12 MP JPEG decodes in 310 ms and shows in about a second; thumbnails come from a worker and a cache; swipe; rotate / crop / resize and Save as copy, on a 12 MP photo too. Syborg passes every Files step (its C: has no images) |
-| FA6–FA13 | proposed; next: FA6 (archives; FA10 needs its zip reader) |
+| FA6 | built 2026-11-19: files#7. Pixel: a 1 GB zip (made on the phone by our writer in 36 s) extracts in 70 s with the sheet closed, as fast as a plain copy of it (68 s) (with the sheet open it took 396 s; progress now changes once a second, not re-measured yet); browse a zip with Armenian and Cyrillic names, open a member read-only, list a tar.gz on the worker, compress to tar.gz on E: through the folder picker. Syborg passes every Files step (no archive taps: its C: has none) |
+| FA7–FA13 | proposed; next: FA7 (cards and inspectors) |
 
-**Decided while building FA1–FA5:**
+**Decided while building FA1–FA6:**
 - **Settings** `files.*` (sort, ascending, folders first, grid, hidden, wrap) are unregistered keys in the app's own
   namespace, not registry rows; rows can come with Settings › Apps › Files.
 - **Progress** of a copy goes into the shade through protocol 1.11 (`Notification.progress`, an optional trailing
@@ -226,8 +227,23 @@ about 1 month, FA3–FA8 about 2–3 months, FA9–FA12 several months each, mos
   valid opens read-only. Files up to 16 MB open; the surface draws only the rows on screen.
 - **Markdown Preview** wraps by an estimated glyph width: Slint's `StyledText` needs its `std` feature, which the
   device build lacks.
-- **Pixel test images** are built with `--features test-files` (a 5 MB `C:\Data\big.log`); the shipped app has no
-  such hook.
+- **Archives** (`neo-format-archive`): zip, gzip and tar readers and writers of our own (the crates.io ones need std)
+  over `miniz_oxide` and `crc32fast`, streamed (a 1 GB archive is never in memory). Zip reads Zip64, CP437 and UTF-8
+  names (flag, 0x7075, or plain UTF-8), stored and deflated members; it writes UTF-8 names and no Zip64 (over 4 GB or
+  65,535 entries it says to use tar.gz). 7z and rar are recognised only; encrypted members are listed, not opened.
+- **Safety:** one function (`name::safe`) decides a member's name: `..`, absolute paths, drives and control
+  characters are refused, FAT's forbidden characters become `_`; every target is checked again to stay inside the
+  destination. A member never gives more than it declares (and its CRC is checked); the declared total must fit the
+  free space first; a gzip or tar.gz stops at the free space; nested archives are never opened; at most 200,000
+  members are listed.
+- **Extract here** makes `<folder>\<name>\` (a new name when that is taken); **Extract to…** and Compress's **Save
+  in** use a folder-picker page. A tar.gz is listed on the job worker (it has no index); a member opened from an
+  archive is unpacked into `C:\private\e0006001\open\` and shown read-only. Already-compressed files (audio, video,
+  photos, archives) are stored, not deflated. Extracted files get today's date (neo-fs has no set-modified).
+- **Progress** of an archive job changes once a second: redrawn every 250 ms poll, the open extract sheet slowed a
+  1 GB extract from 70 s to 396 s on the Pixel (the fix is not re-measured yet).
+- **Pixel test images** are built with `--features test-files` (a 5 MB `C:\Data\big.log`, `C:\Data\photos\`, and
+  `C:\Data\zips\` with a 1 GB zip); the shipped app has no such hook.
 
 ## Not doing
 
