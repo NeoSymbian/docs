@@ -17,7 +17,7 @@ NeoSymbian, which Servo, SpiderMonkey's Rust side, Tokio and rustls all need. To
 | **WB2b** | Rust EXEs import from P.I.P.S.'s DLLs (build `exes.txt` `libs=`); `PIPSPROB.EXE` measures P.I.P.S. | ✅ 2026-11-18 on QEMU and the Pixel (identical results) |
 | **WB2c-1** | P.I.P.S. fixed in our forks: `clock_gettime` nanoseconds, `CLOCK_MONOTONIC` (generic timer, kernel EL0VCTEN), new `poll`/`pread`/`pwrite` exports; libc built without GCC builtins | ✅ 2026-11-18 on QEMU and the Pixel: PIPSPROB 19 ok, 0 failed (kernel#21, ossrv#1, legacy#6) |
 | **WB2c-2** | Forks on branch `neosymbian`: `NeoSymbian/libc` (`src/unix/symbian`) and `NeoSymbian/rust` `library/` only (on `nightly-2026-10-20` = 07e526db9, the toolchain e32-rs pins): `target_os = "symbian"` in the unix family; e32's std mode | ✅ 2026-11-18 on QEMU and the Pixel: STDTEST 17 ok, 1 skipped (no IP stack); MIXTEST all ok (browser#4, e32-rs#5, build#33) |
-| **WB2d** | `NeoSymbian/mio` (the `poll` selector over our `poll`), Tokio `current_thread`; an HTTP fetch over NeoNet on the phone | in progress: Tokio runs, DNS works over Wi-Fi; TCP through P.I.P.S. stalls (browser#5, kernel#24, build#34, merged) |
+| **WB2d** | `NeoSymbian/mio` (the `poll` selector over our `poll`), Tokio `current_thread`; an HTTP fetch over NeoNet on the phone | ✅ 2026-11-19 on the Pixel over Wi-Fi: Tokio and std HTTP 200, NETTEST 4 ok, 1 skipped; NEOSOCK PASS (browser#5, kernel#24, build#34; build#37, ossrv#2, browser#6) |
 
 ## Why forks
 
@@ -84,7 +84,7 @@ size, field offset and constant the Rust `libc` port needs. These tables come fr
 | no `posix_memalign` | the allocator's large alignments | std's `System` aligns over `malloc` (over-allocate + offset) |
 | no `MAP_ANON`; file `mmap` → errno 24 | — | not used by std; SpiderMonkey's GC uses EKA2 chunks (WB1) |
 | no `O_CLOEXEC`, `SOCK_CLOEXEC`, `SOCK_NONBLOCK`, `F_DUPFD_CLOEXEC`, `O_DIRECTORY` | std's cloexec paths | flags 0 / the `fcntl` fallbacks (no exec on Symbian anyway) |
-| `pipe()` and `socket()` → ENOENT | — | the eshell ROM starts no IP stack: re-test in the UI ROM (NeoNet's ESOCK, WB2d) |
+| `pipe()` and `socket()` → ENOENT | — | the eshell ROM starts no IP stack and no pipe driver; both work since WB2d ([below](#wb2d-tcp-over-neonet-2026-11-19)) |
 | cwd is `Z:\Private\<SID>` (read-only) | relative paths | left as is: std keeps P.I.P.S.'s cwd, apps use absolute `C:/...` paths |
 
 ### Key facts for the `libc` port
@@ -482,28 +482,47 @@ size, field offset and constant the Rust `libc` port needs. These tables come fr
 - unwinding;
 - process spawning (`posix_spawn` exists for later).
 
-## WB2d so far (2026-11-18)
+## WB2d: TCP over NeoNet (2026-11-19)
 
-**Done:**
+**Done; the WB2 gate passes on the Pixel over Wi-Fi** (kernel main fb16afe, build main + build#37, ossrv#2, every
+Rust app from its main):
+```
+net tokio_http ... ok: "HTTP/1.1 200 OK", 891 bytes in 31 ms
+net std_http ... ok: "HTTP/1.1 200 OK", 891 bytes, DNS 4 ms -> 172.66.147.243:80, total 34 ms (no SO_RCVTIMEO)
+nettest: 4 ok, 0 failed, 1 skipped
+```
+NEOSOCK passes too, with its new "pips" pass: TCP the way P.I.P.S. drives it, against a real host.
+
+**Built in WB2d:**
 - **Pipes.** The kernel links Symbian's pipe LDD in (kernel#24, with `umemget`), and build's loader answers
-  `LoadLogicalDevice("PIPELIB")` (build#34). PIPSPROB's `pipe_select` now passes: 20 ok, 0 failed.
+  `LoadLogicalDevice("PIPELIB")` (build#34). PIPSPROB's `pipe_select` passes: 20 ok, 0 failed.
 - **Forks on branch `neosymbian`, as vita:**
   - `NeoSymbian/mio`: the `poll` selector and a `pipe()` waker;
   - `NeoSymbian/socket2`: as vita, but `fcntl(O_NONBLOCK)`;
   - `NeoSymbian/tokio`: no peer credentials.
   - libc gained the socket constants they use.
-- **NETTEST.EXE** (browser `std/nettest`, browser#5):
-  - **Tokio's `current_thread` runtime works** on QEMU and the Pixel: timers, tasks, mpsc, timeouts, and
-    `spawn_blocking` waking the runtime through the pipe waker.
-  - **DNS works over Wi-Fi** through P.I.P.S. (`getaddrinfo`).
+- **NETTEST.EXE** (browser `std/nettest`): Tokio's `current_thread` runtime (timers, tasks, mpsc, timeouts,
+  `spawn_blocking` waking the runtime through the pipe waker), DNS, raw socket steps, a TCP echo, and HTTP with std and
+  with Tokio.
 
-**Open: TCP through P.I.P.S.**
-- On the phone (UI ROM, NeoNet up), a blocking `connect()` never completes.
-- Tokio's non-blocking connect and `bind` fail with ENOSYS.
-- NEOSOCK (the 2010 `RSocket` API) passed TCP on the phone in W5a, so the difference lies in P.I.P.S.'s socket path.
-  Candidates:
-  - its default connection and lazy `maybe_reopen_socket`;
-  - `getsockopt(SO_ERROR)` (`KSOSelectLastError`) reaching NEONET.PRT's `GetOption`, which returns
-    KErrNotSupported (P.I.P.S. maps that to ENOSYS);
-  - `bind` on a TCP socket.
-- NETTEST's `socket_diag` prints each raw step with its errno, for that investigation.
+**What stood between P.I.P.S. and TCP**, found one layer at a time (QEMU first, with NEONET's loopback):
+
+| Problem | Effect | Fix |
+|---|---|---|
+| P.I.P.S. opens every socket on the default `RConnection`; for such an explicit socket ESOCK's flow shim asks for a bearer at Bind/Connect and waits for a flow below it. Our ESOCK stack had nothing below the shim | `bind`/`connect` hung (blocking) | **NEOTIER link layer** (build#37): a link tier and access point (NEOCDB: tier 0x0E00400D, AP 10001 under 10000) whose flow `CNeoLinkFlow` binds under the shim and answers `KSoConnectionInfo`. Sockets opened without an RConnection never asked, which is why NEOSOCK passed in W5a |
+| An accepted connection's SAP got its notifier while still on the listener's queue; NEONET.PRT announced an early EOF to it | ESock_DIP faulted (KERN-EXEC 3) | NEONET.PRT's up-calls wait for ESOCK's `Start()` (build#37) |
+| `listen` on a socket bound to port 0 (std, Tokio) | EINVAL (NeoNet listens on a real port only) | NEONET.PRT picks an ephemeral port, 32768–49151, below NeoNet's 49152+ (build#37) |
+| `fcntl(F_SETFD, FD_CLOEXEC)` on a socket (mio, every socket) | ENOSYS: every Tokio `bind`/`connect` failed | sockets keep the flag, as pipes do (ossrv#2) |
+| `ioctl(FIONBIO)` on a socket (std's `set_nonblocking`, `connect_timeout`) | KErrNotSupported | as `fcntl(F_SETFL, O_NONBLOCK)` (ossrv#2) |
+| IPv4 socket names came back with length 8, shorter than `struct sockaddr_in` (28) | std's length assert (accept, `local_addr`) panicked | the struct's length, padding zeroed (ossrv#2); `getaddrinfo` also passed a pointer's size as its buffer's length |
+
+**Still open (none blocks WB3):**
+- **No `SO_RCVTIMEO`/`SO_SNDTIMEO`** (ENOPROTOOPT): std's `set_read_timeout`/`set_write_timeout` fail. It needs a timer
+  and cancel in P.I.P.S.'s socket read/write; Servo's networking runs on Tokio's timeouts instead.
+- **A second `listen()` on a socket panics the client** in ESOCK (`ESock_client 11`, EAlreadyListening); POSIX allows
+  it. std and Tokio call it once.
+- **No 127.0.0.1 on the phone:** NeoNet has a loopback interface only on boards without Wi-Fi (QEMU). NETTEST skips the
+  loopback connect there.
+- **CommsDat on C: is one-way:** once an image with the link layer boots, older images fail ESOCK's bearer selection
+  (their NEOTIER lacks the link tier manager). Delete `C:\private\10202be9\persists\cccccc00.cre`; the next image's
+  NEOCDB writes its own records.
