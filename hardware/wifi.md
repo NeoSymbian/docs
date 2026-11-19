@@ -522,7 +522,9 @@ will tell.
   network was rejoined at boot on its own. Ping from the Mac: 10/10, 15 ms average. NEONET logs `link events on`
   and no longer polls.
 - On a weak AP (-75 dBm on 5 GHz) the link dropped on a beacon miss (the firmware's roam event, reason 2) in both
-  interrupt and polled mode (`wifi polled` A/B), so not an interrupt problem. On the strong AP it held.
+  interrupt and polled mode (`wifi polled` A/B), so not an interrupt problem. On the strong AP it held (correction
+  2026-11-19: the saved logs end ~40 s into the modem's uptime; every link died after ~150 receive records until
+  the HTT buffer fix, see the audit below).
 - **After `mss fault`,** the driver let go as designed (`Wi-Fi waits for WlanStart`). The modem restarted (QRTR up
   after 6.4 s), but MODEMD then found the ADSP reporting fatal (its state word `[4, 0, 7, 3]`, bit 0) and restarted
   the modem again, three times, until the modem itself went FATAL. So WlanStart never came, and **the re-init is
@@ -627,7 +629,9 @@ This section checks the code against the doc (kernel `dc4a7b34`, neohw `815e25b`
 
 | Bug | Fix | Where |
 |---|---|---|
-| **The "reason 4" drops after 2–5 minutes** ([known-issues](../known-issues.md)). Not the AP: the firmware's beacon-miss event (reason 2) ended the link at once, logged as reason 4 | The driver now probes the AP before leaving, and logs the receive counters at a miss. **This does not fix the drop:** on the phone, HTT receive itself stops about 2 minutes into the modem's uptime and never comes back, so the probe gets no answer. The cause is open | kernel `wifi/bmiss` |
+| **The "reason 4" drops after 2–5 minutes** ([known-issues](../known-issues.md)). Not the AP: after ~150 receive records the firmware stopped receiving for good, then reported a beacon miss, logged as reason 4 | **1024 HTT receive buffers instead of 128** (ath10k keeps 2047). The beacon miss also probes the AP first, and its log line carries the receive counters | kernel `wifi/bmiss` |
+| A handshake with no EAPOL at all (a dead data path) was retried until the firmware asserted and crashed the modem | `fail::NO_DATA`: no automatic rejoins until the modem restarts or the user connects | WIFID |
+| A restarted modem looked running at once: its SMP2P item still held the old READY\|HANDOVER\|FATAL | SMP2P reports a stopped remote's old bits as 0 until its next boot writes them; MSS boot fails on FATAL | kernel `mss/fatal-stale` |
 | A PTK rekey (a second 4-way on the same association) installed nothing, so data stopped after an AP's rekey | Its msg3 installs the new PTK. A resent msg3, or a group message 1 carrying the key already installed, still installs nothing (KRACK). Host tests for both | neohw `wpa` |
 | The Wi-Fi switch off only stopped rejoining; the link and IP stayed up | Off leaves the network (the radio itself stays powered) | WIFID |
 | Disconnect was forgotten on a reboot | The left SSID is kept in `C:\private\e0004002\left.dat` | WIFID |

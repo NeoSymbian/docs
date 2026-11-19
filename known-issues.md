@@ -18,29 +18,57 @@ open reports. The 2026-11-09 source audit did not rerun these hardware/emulator 
 
 ## Phone: Wi-Fi drops after a few minutes, `reason 4` (2026-11-18)
 
-**Status:** open; narrowed down 2026-11-18 (two phone runs, logs in `private/wifi/w8/`).
-- 2–5 minutes after joining: `[wifi] link lost (status 0, reason 4)`. Seen on every 2026-11-18 run (S2–S5 images).
-- **Not the AP:** no `[wifi] mgmt c0/a0 from the AP` line comes before any drop. The firmware raises a beacon-miss
-  ROAM event (reason 2), which the driver logs as reason 4.
-- **What dies is HTT receive.** The beacon-miss line (kernel `wifi/bmiss`) shows the last HTT rx indication about 8 s
-  before the miss. Before it, data arrived at about one frame a second. After it, no HTT frame arrives again and the
-  copy-engine interrupts almost stop (1445 → 1450 in 3 minutes).
-- **Effects:**
-  - the driver's probe of the AP gets no answer;
-  - a rejoin authenticates and associates (management frames come over WMI) but never sees an EAPOL frame;
-  - WIFID leaves after 10 s, and the firmware then asserts `wlan_ps_sta_health_monitor_timeout`: a modem FATAL,
-    with HWHUB's restarts looping on the same assert.
-- **Always about 2 minutes into the modem's uptime,** right after the modem's first EFS write through rmtfs
-  (`rmtfs: write /boot/modem_fs2 sector 0+4096`, t≈111 s, then the miss at about 120–130 s). That holds in both runs
-  and in the S5 logs. The 2026-11-13 W7 runs show no such write, and their link held.
-- **Ruled out:**
-  - HWHUB's rmtfs handling: in memory, answered at once, through its own mapping;
-  - the WCN3990 supply and RF_CLK2 votes: held for the modem's life;
-  - power save: setting it off again after VDEV_UP changed nothing.
-- **Next:**
-  - what the modem does at about 2 minutes (compare a Linux C1 capture: its rmtfs log and ath10k over the same window);
-  - whether HTT dies without the EFS write (refuse that one write in a test image);
-  - what changed in the modem's handling between the W7 images (2026-11-13) and S2.
+**Status:** fixed 2026-11-19 (kernel `wifi/bmiss` `7e6fd1ac`, PR kernel#25). Phone runs E1–E8 (logs in `private/wifi/w8/`).
+- 2–5 minutes after joining: `[wifi] link lost (status 0, reason 4)`. The AP never sent us away: the firmware raised a
+  beacon-miss ROAM event, which the driver logged as reason 4.
+- **Cause: too few HTT receive buffers.** The driver posted 128 buffers to the firmware's HTT receive ring (ath10k keeps
+  2047 there). The firmware then delivered about 150 receive records and nothing more, for good.
+  - The count is the same idle or flooded: ~150 records after ~90 s idle, or within seconds of a ping flood.
+  - Joining early or late makes no difference.
+  - The host side was clean at every stall: every copy engine reaped (hardware index = ours), every buffer reposted,
+    and HTT control still answering a version request.
+  - After a stall, a rejoin associated over WMI but never saw EAPOL. WIFID left after 10 s, the firmware asserted
+    `wlan_ps_sta_health_monitor_timeout`, and the modem crashed.
+- **Fix:** 1024 buffers and a 4 MB DMA pool. On the same AP and channel the phone then took 3600+ records, a
+  1500-ping unicast flood (1490 back), a 2000-ping broadcast flood, and an idle hold with pings answered.
+- **Red herrings on the way:**
+  - The modem's EFS write through rmtfs at ~111 s came at about the same time only because the early runs joined at
+    ~30 s.
+  - The EFS images match the C0 backup the Linux reference used.
+  - Neither refusing the `mcfg.tmp` TFTP write nor skipping the rmtfs copy changed anything.
+  - Re-sending power save off and recreating the vdev changed nothing.
+- **Also fixed on the way:**
+  - The beacon miss now probes the AP before leaving.
+  - WIFID stops automatic rejoins after a handshake with no EAPOL at all (`fail::NO_DATA`), so a dead data path no
+    longer crashes the modem again and again.
+  - SMP2P no longer reports a stopped modem's stale READY|HANDOVER|FATAL bits as the restarted modem's (kernel
+    `mss/fatal-stale`).
+
+## Phone: a modem restarted after a WLAN firmware assert crashes again (2026-11-19)
+
+**Status:** open.
+- **The restart now behaves:** with the SMP2P fix, a restart after `wlan_ps_sta_health_monitor_timeout` waits for the new
+  modem's own READY (`slave-kernel 00000002`) instead of the old 0x7, and QRTR comes up.
+- **But the new modem raises FATAL again before handover** (`00000003`), and HWHUB restarts it again. The re-init after
+  a modem stop (wifi.md W7) is still unproven.
+- Not reproduced since the HTT buffer fix removed the assert's trigger.
+
+## Phone: TFTP `/readwrite/` writes are kept but not readable (2026-11-19)
+
+**Status:** open, low priority.
+- HWHUB keeps a written `/readwrite/` file in RAM but refuses to read it back. Linux's tqftpserv maps `/readwrite/` both
+  ways.
+- The modem writes `/readwrite/mcfg.tmp` (1 byte) at ~30 s and finds it unreadable. Refusing the write instead makes
+  the modem retry endlessly.
+- Neither variant affects Wi-Fi (E3). Serving the bytes back might change what the modem's carrier-config code does;
+  test it before changing.
+
+## Phone: the 2.4 GHz BSSID of the home AP doesn't answer unicast pings from the LAN (2026-11-19)
+
+**Status:** open, not investigated.
+- Joined to `…:66` (2.4 GHz, channel 1), the phone's own traffic works: DHCP, DNS, TCP, the internet check.
+- But unicast pings from a wired Mac on the same subnet get no reply, though they arrive (rx counters rise).
+- On the 5 GHz BSSID `…:6a` they are answered. Possibly the AP's isolation between bands; check with another client.
 
 ## Phone: slot a runs out of retries (ABL switches to slot b); test images may die with a black screen
 
