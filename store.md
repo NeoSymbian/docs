@@ -33,8 +33,9 @@ pre-sized raw icons (`icon.565`), ETag + gzip on the index, and the category voc
 From the console (owner, 2026-11-18):
 
 - **NS01 A new backend.** The N8 NeoStore stays separate and untouched.
-- **NS02 Postgres 17 + MinIO** on the Prod Infra (the `prod-infra` skill), with the app's own credentials. Dev uses
-  the shared zdev Postgres; tests use testcontainers.
+- **NS02 Postgres 17 + MinIO** on the home server atlas's Prod Infra (the `atlas-prod-infra` skill), with the
+  app's own credentials. Dev uses the shared atlas dev Postgres (`atlas-dev-infra`, through `atlas tunnel`); it has
+  no S3 yet, so dev blobs use a local MinIO until `dev-s3` exists. Tests use testcontainers.
 - **NS03 Ratings: an anonymous device key.**
   - The phone makes an Ed25519 key on first run.
   - One signed rating per app per phone: 1–5 stars plus optional text. Posting again replaces it.
@@ -345,9 +346,15 @@ on every form. The pages:
 Approve countersigns the package (`META/STORE` for `.npk`; a detached record for SIS) and republishes the signed
 index. Listing changes go through the same queue.
 
-**Deploy:** a ZimaOS app per the `zimaos` skill. It uses its own Postgres database and role and its own MinIO bucket
-and key on Prod Infra. The tunnel serves `store.neosymbian.org`. ST1 first checks that the `neosymbian.org` zone is
-on Cloudflare; the website `neosite` is on Vercel.
+**Deploy:** a k3s app on atlas (the `atlas-k3s` skill). It is named `nsstore`: namespace `prod-nsstore`, data in
+`/DATA/prod/nsstore`. `neostore` is already taken by the N8 store (`prod-neostore`).
+- The image is built in an `atlas-build` workspace and imported with `k3s ctr images import`; there is no registry
+  yet.
+- `atlas prod app nsstore --postgres --s3` gives it its own Postgres database and role and its own MinIO bucket
+  and key on `prod-infra`. Add the database to `prod-backup`'s list.
+- It listens on a free loopback hostPort. `atlas publish add store.neosymbian.org <port>` routes the tunnel to it.
+  ST1 first checks that the `neosymbian.org` zone is on Cloudflare (the tunnel's hosts are in `notallow.cc` today;
+  the website `neosite` is on Vercel). As for the N8 store, "Always Use HTTPS" stays off for `/v1` and `/dl`.
 
 ### The phone
 
@@ -461,7 +468,7 @@ Each phase ends with host tests, and for the phone, the Syborg CI and the Pixel.
 | Phase | Work | Repos | Gate | Boards |
 |---|---|---|---|---|
 | **ST0** spikes | PlatSec on `C:\sys\bin` and capabilities at load (a test EXE); an HTTP GET over NEONET from a Rust app; the SIS enums, option bits and reg-rsc fields checked against mw.appinstall and AppArc; `neosymbian.org` zone check | kernel, build, store, docs | the answers are written into this doc | — |
-| **ST1** the server | Repo, schema and migrations, MinIO blobs, `/v1/index` (signed), `/v1/apps`, `/dl`, `/img`, `neostore admin import` (adds an app from a `.sis` with its texts and images); deploy on ZimaOS at `store.neosymbian.org` | store | `go test` green against testcontainers; the index of 3 imported classic apps verifies with the store key | [`spec-api`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-b65de07881be) |
+| **ST1** the server | Repo, schema and migrations, MinIO blobs, `/v1/index` (signed), `/v1/apps`, `/dl`, `/img`, `neostore admin import` (adds an app from a `.sis` with its texts and images); deploy on atlas k3s (`prod-nsstore`) at `store.neosymbian.org` | store | `go test` green against testcontainers; the index of 3 imported classic apps verifies with the store key | [`spec-api`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-b65de07881be) |
 | **ST2** the console | GitHub OAuth, developers, listing editor, release upload with manifest/SIS extraction, review queue, approve and countersign, hide reviews, audit log | store | a developer uploads, the admin approves, the index changes; CSRF and role tests | [`web-signin`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-fa9c40f7be3a), [`web-dev-apps`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-d86869e10001), [`web-dev-listing`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-95477f374bcd), [`web-dev-release`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-c1db1c79ae63), [`web-admin-queue`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-e577a9a701a0), [`web-admin-review`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-e483852bb49a) |
 | **ST3** `.npk` | `crates/npk` (manifest, zip, signatures) + fuzzing; `npk-pack`; `caps=`/`vid=`/`npk=` in build | store, build | NEOKIT packed as `.npk` round-trips; a tampered file or manifest is refused | [`spec-npk`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-9abf29cffae0) |
 | **ST4** the app registry | Protocol 1.12 `REGISTER`/`UNREGISTER`; the registry file; the built-in apps moved into it; the grid as a model; OPEN and `connect` for registered keys | neoui | a registered test EXE on C: shows on the grid, opens a page and connects; the ROM apps are unchanged | — |
