@@ -238,12 +238,21 @@ The app can live in another repo, as NEOPHONE does (NeoSymbian/phone). It pins n
 | A2, A3, NV10 | Clock, Files, Dev tools, Terminal, NEOKIT, the shell's screens on the kit; NEOPHONE ported (the p2 redesign is its own session) | built |
 | copy/paste | the keyboard's edit bar (apps' fields) | built |
 | 1.9 | OPEN / ARG / DONE, notification actions, two residents, Keypad / Fab / Bubble / Composer | built (neoui `apps-split`) |
+| 1.11 | `Notification.progress` (0–100, an optional trailing byte): the shade draws a bar (Files' copies) | built 2026-11-18 (neoui `2047404`) |
 | NV11, NV12 | this doc, `gestures.md`, the roadmap; Gestures is the default | docs written; install pending |
 
 **Not done yet:**
-- A Pixel install, and the Syborg CI from the Terminal on: the Navigation and Files steps pass again (neoui PR #14),
-  but the v2 Terminal app draws nothing until ESHELL writes, and ESHELL is silent on Syborg.
+- A Pixel install. The Syborg CI passes the Navigation, Terminal and Files steps: the Terminal had never drawn
+  because it didn't pass `Visible` to `App::handle` (fixed in neoui #16; ESHELL was fine). The job now stops in the
+  Old apps step, which waits for the legacy key pads work.
 - An editor for home and a wallpaper picker: the long-press menu opens their Settings pages.
 - Flipping a long-press menu near the bottom.
 - The edit bar for the shell's own fields.
 - G2–G6, from v1's plan.
+
+**Renderer limits found while building Files (Slint 1.18, software renderer):**
+- A filled rectangle (a background) taller or wider than about 32,767 physical pixels panics: the renderer keeps
+  physical sizes in `i16` (`euclid` cast in `process_rectangle_impl`). Tall content without a fill is fine; give a
+  long list's ground the viewport's size, not the content's (files `tests/limits.rs`).
+- A `Text` drops a span's leading and trailing spaces: lay spans out by column (monospace) or give them explicit gaps.
+- `StyledText` / `@markdown` need Slint's `std` feature and come out empty on the device.
