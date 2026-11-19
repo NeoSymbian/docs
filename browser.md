@@ -292,7 +292,7 @@ Estimates are in person-months (PM), *estimates*. A stage starts only when its g
 | **WB0p** speed gate | The WB0 harness on a physical ARM board (AArch32 userland). Deferred: no board yet (owner, 2026-11-16) | Cached render < 5 s, scrolling ≥ 15 fps | — |
 | **WB1** kernel ✅ 2026-11-17 | smooth-ui S4 (kernel part), M4.3, stack limits, VM primitives, entropy. Result below | FP patterns survive preemption and migration; 8 MiB threads; GC-style reserve/decommit tests | 3–5 |
 | **WB2** OS personality ✅ 2026-11-19 ([browser-std.md](browser-std.md): WB2a–WB2d; a Tokio and a std HTTP fetch over Wi-Fi on the Pixel) | rust + libc forks, the std unix PAL over P.I.P.S., the mio bridge. The EXE runtime for `std`: today `e32::main!` brings its own panic handler, a 64 MiB Rust heap (`e32/src/heap.rs`) and a 1 MiB native heap (`build/emitter/build_rust_exe.py`); a `std` EXE needs std-aware start-up, allocator budgets, panic/unwind, and C/C++ linkage | Rust's std tests on Syborg and the phone; **one EXE mixing `std`, e32 and C++** runs; a Tokio TCP fetch over NeoNet | 6–12 |
-| **WB3** mozjs shell | SpiderMonkey interpreter-only, as an EXE | JS test scripts, GC stress, threads, a clean OOM on the phone | 3–6 |
+| **WB3** mozjs shell ✅ 2026-11-19 ([browser-js.md](browser-js.md): `jssuite: 9 ok, 0 failed` on QEMU and the Pixel) | SpiderMonkey interpreter-only, as an EXE | JS test scripts, GC stress, threads, a clean OOM on the phone | 3–6 |
 | **WB4** Servo → neoui | servo/surfman forks, SWGL, fonts, presentation. **The rustls crypto provider and entropy come here, not in WB6:** `Servo::new` always calls `prewarm_tls` | Local HTML/CSS/JS pages and images draw in `NEOWEB.EXE`; the memory is measured again | 6–12 |
 | **WB5** input and chrome | Touch, scrolling, focus, direct Unicode input (a versioned composition/preedit protocol in neoui + its keyboard comes later), selection, forms, keyboard resize, Back, the Slint chrome (already built on FakeEngine by UI0–UI4, [browser-ui.md](browser-ui.md)) | Typing into forms and navigating with Back on the phone | 2–4 |
 | **WB6** browser services | certificate handling and errors, cookies/storage on C:, redirects, logins; wifi.rs opens portals in NEOWEB | Signing in to a site; a captive portal over Wi-Fi | 2–4 |
@@ -363,7 +363,7 @@ Kernel PR [kernel#19](https://github.com/NeoSymbian/kernel/pull/19), tests [e32-
 - **Shortcuts, to revisit only if measured:**
   - FP is saved on every reschedule (no trap on first use);
   - stacks are committed in full;
-  - there is no user protect call: no-JIT SpiderMonkey may not need one, and WB3 tells.
+  - there is no user protect call: no-JIT SpiderMonkey does not need one (WB3, [browser-js.md](browser-js.md)).
 - **Still open from S4:** the Rust ARMv7/NEON softfp target and LDREX atomics, which come with WB2.
 
 ### WB0 plan (2026-11-16)
