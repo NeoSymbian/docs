@@ -159,7 +159,7 @@ pad states, console, settings; the spec sheets "Pad keys", "Touch & hold", "Pad 
 | **L1** | A stable runtime and desktop: guest handshake, persistent supervisor, AknCapServer CONE 9 found from evidence, the Avkon service closure. | A minimal Avkon app starts again and again; notes and menus work; a guest failure leaves neoui usable. |
 | **L2** | Two usable apps: Frozen Bubble's `mediaclientaudiostream`, X-plore's dynamic loads, typed providers, controls, basic text. | **X-plore:** lists, copies and renames files, and keeps its settings. **Frozen Bubble:** a full game with held controls. Whether audio works is recorded either way. |
 | **L3** | Shell integration: damage instead of the 10 Hz full copy, frame ownership, a task protocol, several apps at once. | Two apps keep running while switching; no idle full-frame copies. |
-| **L4** | Runtime SIS install: the SWI engine from mw.appinstall and a neoui install screen. | Install from C: without a ROM build; the launcher updates; uninstall and upgrade work. |
+| **L4** | Runtime SIS install. Now NeoStore ST6 ([store.md](store.md), 2026-11-18): a Rust SIS installer in NEOINST instead of the SWI engine from mw.appinstall, plus the store's install screens. | Install from C: without a ROM build; the launcher updates; uninstall and upgrade work. |
 | **L5** | Breadth: screen modes and rotation, a FEP bridge to the neoui keyboard, media, a corpus of apps. | Per-app feature results published. |
 
 Each step is tested on QEMU (Syborg, watched over VNC with `neo live`), then on the Pixel.

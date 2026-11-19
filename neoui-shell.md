@@ -562,7 +562,8 @@ as a POSIX `TZ` string from IANA tzdata, e.g. Berlin `CET-1CEST,M3.5.0,M10.5.0/3
 - Lock-screen notifications.
 - Waking an app on a schedule to refresh its widget.
 - Apps that describe their own settings pages to the Settings app.
-- An installed-apps registry. `APPS` and the catalogue stay fixed tables until app installation exists.
+- An installed-apps registry. `APPS` and the catalogue stay fixed tables until app installation exists; the registry
+  is NeoStore ST4 ([store.md](store.md), protocol 1.12 `REGISTER`).
 
 ## Gates for every part
 - `neoui`: `cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test`, plus
