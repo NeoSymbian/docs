@@ -6,6 +6,17 @@ Part of [hardware.md](../hardware.md), the hardware and drivers hub (status of e
 Written 2026-11-12. This is the Wi-Fi part of [driver-support.md](../hardware.md) D6 (roadmap P4): from a silent
 WCN3990 to a WPA2 network with IP traffic, then a Settings page.
 
+**Who does what now (neohw S5, 2026-11-18).** The stage sections below keep the history: MODEMD ran the firmware
+start and SYSSTART the supplicant until S5.
+- **`WIFID.EXE`** (neohw `symbian/wifid`, 0xE0004002) owns the user side:
+  - WLFW over NeoHub (crates `wlfw`, `wifi`);
+  - the MSA and the board data;
+  - scans, joins and the WPA2 supplicant (crate `wpa`);
+  - the remembered networks (`C:\private\e0004002\wifi.dat`).
+- **`NEONET.EXE`** is the IP stack, and WIFID starts it.
+- **neoui's SYSSTART** starts WIFID and is a NeoWifi client.
+- **The kernel side** is `qcom_wcn3990.cpp`. The [audit](#audit-2026-11-18) lists what is built.
+
 ## Decision (owner, 2026-11-12)
 
 Use **Symbian's 2010 WLAN stack on top** and **a chip driver ported from Linux ath10k beneath it**.
@@ -19,7 +30,7 @@ Use **Symbian's 2010 WLAN stack on top** and **a chip driver ported from Linux a
   - `oss.FCL.sf.os.commsfw` + `oss.FCL.sf.os.networkingsrv`: ESOCK, TCPIP6, DHCP, DNS.
 - **New:**
   - a WHA chip driver (PDD) for the WCN3990, in kernel C++;
-  - the firmware control (QMI WLFW) in MODEMD, in Rust.
+  - the firmware control (QMI WLFW) in Rust: MODEMD until S5, now WIFID.
 - **It also decides C10:** mobile data uses ESOCK/TCPIP6 too ([telephony.md](modem.md) C10 asked the owner).
 
 The seam is `wlan_plat/wlan_hal_api/inc/wlanpddiface.h`: the PDD's `MWlanPddIface::Extract()` returns a `WHA::Wha`
@@ -36,7 +47,7 @@ Ported files keep the ISC copyright and permission notice, with a NeoSymbian lin
 
 | Linux file (ISC) | Becomes |
 |---|---|
-| `qmi_wlfw_v01.c`, `qmi.c` | `neohw/crates/modem-proto/src/wlfw.rs`: the messages and the start-up order |
+| `qmi_wlfw_v01.c`, `qmi.c` | `neohw/crates/wlfw` (was `modem-proto/src/wlfw.rs`): the messages and the start-up order |
 | `snoc.c` | the PDD's register, interrupt and pipe setup; the CE pipe and service tables sent in WLAN cfg |
 | `ce.c` | the PDD's copy-engine rings |
 | `htc.c`, `wmi-tlv.*`, `wmi.h`, `htt*` | the PDD's HTC, WMI and HTT messages |
@@ -67,7 +78,7 @@ Sizes are a **GUESS**.
 | **W0** (½ d) | Does the firmware's WLFW service (QMI 69) appear? | Yes, or we know what `wlan_pd` waits for |
 | **W1** (1 wk) | `wlfw.rs` + MODEMD in `ath10k/qmi.c`'s order: indication register, host cap, MSA info/ready, cap, BDF download, cal report, mode ON, WLAN cfg. A HAL call tells the kernel the firmware is ready | The firmware reports ready; host tests against ath10k's message tables |
 | **W2** (1–2 wk) | Kernel `sdm670_assp/qcom_wcn3990*.cpp`: CE rings, SNOC setup, interrupts, SMMU stream `0x40` mask 1 (`Smmu_IdentityMap`); HTC connect (WMI control, HTT data); WMI init/ready | Monitor `wifi` prints the firmware version and MAC |
-| **W5a** (deferred: W5 went smoltcp first) | ESOCK/TCPIP6 + CommsDat (default database), the C32/ESOCK configs and ECom comms plugins, through `build/emitter/components.py`; Syborg first | A loopback TCP test EXE passes on Syborg CI |
+| **W5a** (deferred: W5 went smoltcp first) | ESOCK/TCPIP6 + CommsDat (default database), the C32/ESOCK configs and ECom comms plugins, through `build/emitter/comms_components.py`; Syborg first | A loopback TCP test EXE passes on Syborg (a manual run; no CI runs it yet) |
 | **W3** (1–2 wk) | The UMAC LDD built into ekern (as `locmedia` is); WHA Initialize/Configure → WMI vdev create; Scan → WMI start scan; beacons from WMI management RX → `ReceivePacket`; wlanengine + management client in the ROM | A test EXE lists nearby networks |
 | **W4** (1–2 wk) | Join/SetBssParameters → vdev start, peer create/assoc, vdev up; management TX over WMI, data and EAPOL over HTT (802.11 headers rebuilt on RX); AddKey → WMI install key; accesssec EAPOL in the ROM | Joins an open network, then WPA2-PSK |
 | **W5** (1–2 wk) | **smoltcp first (owner, 2026-11-12):** NEONET.EXE (neolink, now neohw) with DHCP, DNS and TCP over the kernel's Ethernet frame queue, and the NeoNet socket API for apps. `wlannwif`/ESOCK stays the long-term option | Ping and an HTTP fetch over Wi-Fi, through the app API |
@@ -84,16 +95,17 @@ Each is written here before its code.
 
 ## Where the code goes
 
-- **kernel:**
-  - the PDD in `baseport/arm64/sdm670_assp/qcom_wcn3990*`, plus `variant.conf` `ekc` lines;
-  - `build-ekern.sh` builds the UMAC sources from the wlan fork.
-- **telephony:** `wlfw.rs` + MODEMD (it owns the modem's QRTR link).
+As built (the plan had UMAC in ekern; W4's direct path dropped it):
+- **kernel:** the driver `baseport/arm64/sdm670_assp/qcom_wcn3990.cpp`, plus the `variant.conf` `ekc` lines.
+- **neohw:**
+  - the crates `wlfw`, `wifi` (+ `wifi::ipc`, NeoWifi), `wpa` and `net` (NeoNet);
+  - `symbian/wifid` and `symbian/neonet`.
 - **build:**
-  - `sources.lock` pins the new forks;
-  - `components.py` gets the user-side components;
-  - `fetch.sh` fetches them.
-- **New NeoSymbian forks:** `oss.FCL.sf.os.wlan`, `oss.FCL.sf.mw.accesssec`. Upstream stays untouched; our work is
-  on `main`.
+  - ESOCK and the comms components in `emitter/comms_components.py` (commsfw and networkingsrv pinned in `sources.lock`);
+  - `apps/esock` (NEOTIER, NEONET.PRT, NEOCDB, NEOSOCK);
+  - `apps/neonet` (NEONET.DLL, NEONETT).
+- **No wlan/accesssec forks:** nothing builds from `oss.FCL.sf.os.wlan` or `oss.FCL.sf.mw.accesssec` since W4. They come
+  back only with the UMAC/WHA option.
 - **neoui:** the Settings page (W6).
 
 ## W0: the firmware service
@@ -305,7 +317,7 @@ user-side Rust, so there is no crypto in kernel C++.
 | HAL `WlanLink` `0x4e1f` and the monitor's `wifi` / `wifi join N` / `wifi leave` | kernel | as above |
 | HAL `Prng` `0x4e23`: the SoC PRNG for the SNonce | kernel `qcom_telhal.cpp` | as above |
 | WPA2-PSK supplicant: PBKDF2 PMK, PTK, MIC, GTK unwrap, 4-way + group rekey, sans-I/O | neohw `crates/wpa` (was neolink) (W4b) | **done**, host-tested (IEEE Annex J and RFC 3394 vectors, a full 4-way against a test AP, wrong password, replays, RSN downgrade) |
-| Connect on the network sheet: a supplicant thread in SYSSTART drives the HAL; the sheet shows Connecting… / Connected / Wrong password; a connected network is remembered (SSID + PMK in `C:\private\e0002001\wifi.dat`, never the password) and rejoined when seen | neoui `symbian/src/wifi.rs` (W4d) | built, host-tested (`Link`, `Saved`) |
+| Connect on the network sheet: a supplicant thread in SYSSTART (WIFID since S5) drives the HAL; the sheet shows Connecting… / Connected / Wrong password; a connected network is remembered (SSID + PMK in `C:\private\e0002001\wifi.dat`, never the password) and rejoined when seen | neoui `symbian/src/wifi.rs` (W4d) | built, host-tested (`Link`, `Saved`) |
 
 Facts: `private/wifi/w4-join-spec.md` (ath10k, ISC; mac80211 facts only).
 
@@ -316,7 +328,8 @@ Facts: `private/wifi/w4-join-spec.md` (ath10k, ISC; mac80211 facts only).
 - the supplicant is a thread of SYSSTART until W5's network interface needs a daemon;
 - non-UTF-8 SSIDs hash wrongly;
 - after a modem stop (C7 recovery) Wi-Fi stays off until a reboot: the WLAN firmware runs inside the modem, and a
-  second bring-up would reuse DMA memory still carved for the old rings (`Wcn3990_ModemDown`).
+  second bring-up would reuse DMA memory still carved for the old rings (`Wcn3990_ModemDown`). W7 replaced this
+  with a restart path (not proven on the phone yet).
 
 ### Result: connected (phone RAM boot, 2026-11-12)
 
@@ -416,7 +429,7 @@ kernel  DataIn --(Ethernet II)--> rx queue --WlanLink op 8--> NEONET.EXE (smoltc
 - IPv4 only;
 - no UDP or listening sockets in the API;
 - frames polled every 2 ms while linked (no interrupts yet);
-- one TCP buffer size (8 KB each way, 16 sockets);
+- one TCP buffer size (8 KB each way; 16 sockets, 24 with UDP since API 1.1);
 - a captive portal shows as "No access";
 - the supplicant stays a SYSSTART thread.
 
@@ -471,7 +484,7 @@ kernel  DataIn --(Ethernet II)--> rx queue --WlanLink op 8--> NEONET.EXE (smoltc
 **Interrupts instead of polling (battery).** Today the driver thread polls the copy engines every 2 ms while
 connected, and NEONET polls HAL op 8 every 2 ms.
 - **GIC:** `A64_BindSpi` takes every INTID up to 1019, not only those under 256. The CE lines are SPI 414–425 (INTID
-  446–457), level-triggered. New `A64_MaskSpi`/`A64_UnmaskSpi`.
+  446–457), level-triggered. New `A64_MaskSpi(id, mask)`; unmasking is `A64_MaskSpi(id, EFalse)`.
 - **Driver (`qcom_wcn3990.cpp`):**
   - Binds the destination copy engines that carry traffic: CE1, CE2, CE5, CE9, CE10, CE11. Their `HOST_IE`
     copy-complete bit is set.
@@ -491,7 +504,7 @@ connected, and NEONET polls HAL op 8 every 2 ms.
   2 ms. If op 10 is refused (an older kernel), it falls back to the 2 ms poll.
 
 **Handshake guard.** If the link stays in the handshake for more than 15 s (the supplicant gives up at 10 s), the
-driver tears the join down itself: link error, `KErrTimedOut`.
+driver tears the join down itself: link error, 802.11 reason 15 (4-way handshake timeout).
 
 **A modem restart.** `Wcn3990_ModemDown` only sets a flag. `Serve()` then:
 - masks the CE interrupts;
@@ -509,7 +522,9 @@ will tell.
   network was rejoined at boot on its own. Ping from the Mac: 10/10, 15 ms average. NEONET logs `link events on`
   and no longer polls.
 - On a weak AP (-75 dBm on 5 GHz) the link dropped on a beacon miss (the firmware's roam event, reason 2) in both
-  interrupt and polled mode (`wifi polled` A/B), so not an interrupt problem. On the strong AP it held.
+  interrupt and polled mode (`wifi polled` A/B), so not an interrupt problem. On the strong AP it held (correction
+  2026-11-19: the saved logs end ~40 s into the modem's uptime; every link died after ~150 receive records until
+  the HTT buffer fix, see the audit below).
 - **After `mss fault`,** the driver let go as designed (`Wi-Fi waits for WlanStart`). The modem restarted (QRTR up
   after 6.4 s), but MODEMD then found the ADSP reporting fatal (its state word `[4, 0, 7, 3]`, bit 0) and restarted
   the modem again, three times, until the modem itself went FATAL. So WlanStart never came, and **the re-init is
@@ -588,3 +603,41 @@ the records at run time through CommsDat avoids both a host build of `ced` and a
 - no reverse lookups;
 - the UPS prompt stubs (upsclient) are never reached, because the vanilla access point carries no UPS extension;
 - no IAP records yet, so apps that list IAPs see none.
+
+## Audit 2026-11-18
+
+This section checks the code against the doc (kernel `dc4a7b34`, neohw `815e25b`, neoui `e06e8f4`, build `2cf5454`).
+
+**Built as the doc describes:**
+- W0–W2, W3a–c, W4, W5, W7 and W5a;
+- every HAL (0x4e1b–0x4e1f, 0x4e23);
+- WlanLink ops 1–11, the CE interrupts with the polled fallback, the 15 s handshake guard and the modem-restart path;
+- WLFW in ath10k's order, the WPA2 supplicant, NeoNet 1.1 and ESOCK over NeoNet.
+
+**Not built, by decision or still open:**
+- the UMAC/WHA PDD (W4 took the direct path);
+- HT/VHT and WMM (legacy rates only);
+- PMF;
+- the regional board data (`bdwlan-bonito.bin` for every country);
+- IPv6;
+- a check of the CCMP packet numbers on receive. ath10k leaves replay detection to the host; we do none yet, so the
+  install-key RSC is 0, as ath10k's.
+- a phone test of the re-init after a modem restart;
+- a CI run of NEOSOCK on Syborg.
+
+**Fixed in this audit:**
+
+| Bug | Fix | Where |
+|---|---|---|
+| **The "reason 4" drops after 2–5 minutes** ([known-issues](../known-issues.md)). Not the AP: after ~150 receive records the firmware stopped receiving for good, then reported a beacon miss, logged as reason 4 | **1024 HTT receive buffers instead of 128** (ath10k keeps 2047). The beacon miss also probes the AP first, and its log line carries the receive counters | kernel `wifi/bmiss` |
+| A handshake with no EAPOL at all (a dead data path) was retried until the firmware asserted and crashed the modem | `fail::NO_DATA`: no automatic rejoins until the modem restarts or the user connects | WIFID |
+| A restarted modem looked running at once: its SMP2P item still held the old READY\|HANDOVER\|FATAL | SMP2P reports a stopped remote's old bits as 0 until its next boot writes them; MSS boot fails on FATAL | kernel `mss/fatal-stale` |
+| A PTK rekey (a second 4-way on the same association) installed nothing, so data stopped after an AP's rekey | Its msg3 installs the new PTK. A resent msg3, or a group message 1 carrying the key already installed, still installs nothing (KRACK). Host tests for both | neohw `wpa` |
+| The Wi-Fi switch off only stopped rejoining; the link and IP stayed up | Off leaves the network (the radio itself stays powered) | WIFID |
+| Disconnect was forgotten on a reboot | The left SSID is kept in `C:\private\e0004002\left.dat` | WIFID |
+| A join the kernel kept in Joining could block WIFID's leave and its reset answer | The supplicant gives up after 30 s | WIFID |
+| WIFID asked for a 128 KB stack, over the 2010 kernel's 80 KB on Syborg, so neither WIFID nor NEONET could start there | `stack=0x10000` | neohw `exes.txt` |
+| After a modem stop, link requests waited 3 s for a driver thread that had let go | They fail at once (`KErrNotReady`) | kernel |
+| NEONET.DLL had WIFID's UID3 0xE0004002 | 0xE000400A | build |
+| The device registry showed READY's zero MAC | It shows the station MAC | kernel |
+

@@ -18,10 +18,57 @@ open reports. The 2026-11-09 source audit did not rerun these hardware/emulator 
 
 ## Phone: Wi-Fi drops after a few minutes, `reason 4` (2026-11-18)
 
+**Status:** fixed 2026-11-19 (kernel `wifi/bmiss` `7e6fd1ac`, PR kernel#25). Phone runs E1–E8 (logs in `private/wifi/w8/`).
+- 2–5 minutes after joining: `[wifi] link lost (status 0, reason 4)`. The AP never sent us away: the firmware raised a
+  beacon-miss ROAM event, which the driver logged as reason 4.
+- **Cause: too few HTT receive buffers.** The driver posted 128 buffers to the firmware's HTT receive ring (ath10k keeps
+  2047 there). The firmware then delivered about 150 receive records and nothing more, for good.
+  - The count is the same idle or flooded: ~150 records after ~90 s idle, or within seconds of a ping flood.
+  - Joining early or late makes no difference.
+  - The host side was clean at every stall: every copy engine reaped (hardware index = ours), every buffer reposted,
+    and HTT control still answering a version request.
+  - After a stall, a rejoin associated over WMI but never saw EAPOL. WIFID left after 10 s, the firmware asserted
+    `wlan_ps_sta_health_monitor_timeout`, and the modem crashed.
+- **Fix:** 1024 buffers and a 4 MB DMA pool. On the same AP and channel the phone then took 3600+ records, a
+  1500-ping unicast flood (1490 back), a 2000-ping broadcast flood, and an idle hold with pings answered.
+- **Red herrings on the way:**
+  - The modem's EFS write through rmtfs at ~111 s came at about the same time only because the early runs joined at
+    ~30 s.
+  - The EFS images match the C0 backup the Linux reference used.
+  - Neither refusing the `mcfg.tmp` TFTP write nor skipping the rmtfs copy changed anything.
+  - Re-sending power save off and recreating the vdev changed nothing.
+- **Also fixed on the way:**
+  - The beacon miss now probes the AP before leaving.
+  - WIFID stops automatic rejoins after a handshake with no EAPOL at all (`fail::NO_DATA`), so a dead data path no
+    longer crashes the modem again and again.
+  - SMP2P no longer reports a stopped modem's stale READY|HANDOVER|FATAL bits as the restarted modem's (kernel
+    `mss/fatal-stale`).
+
+## Phone: a modem restarted after a WLAN firmware assert crashes again (2026-11-19)
+
 **Status:** open.
-- 2–5 minutes after joining, the AP disassociates us: `[wifi] link lost (status 0, reason 4)` (802.11 reason 4:
-  inactivity). Seen on every 2026-11-18 run (S2–S5 images). WIFID scans and rejoins the remembered network.
-- Likely: we answer no keep-alive / power-save frames the AP expects while idle.
+- **The restart now behaves:** with the SMP2P fix, a restart after `wlan_ps_sta_health_monitor_timeout` waits for the new
+  modem's own READY (`slave-kernel 00000002`) instead of the old 0x7, and QRTR comes up.
+- **But the new modem raises FATAL again before handover** (`00000003`), and HWHUB restarts it again. The re-init after
+  a modem stop (wifi.md W7) is still unproven.
+- Not reproduced since the HTT buffer fix removed the assert's trigger.
+
+## Phone: TFTP `/readwrite/` writes are kept but not readable (2026-11-19)
+
+**Status:** open, low priority.
+- HWHUB keeps a written `/readwrite/` file in RAM but refuses to read it back. Linux's tqftpserv maps `/readwrite/` both
+  ways.
+- The modem writes `/readwrite/mcfg.tmp` (1 byte) at ~30 s and finds it unreadable. Refusing the write instead makes
+  the modem retry endlessly.
+- Neither variant affects Wi-Fi (E3). Serving the bytes back might change what the modem's carrier-config code does;
+  test it before changing.
+
+## Phone: the 2.4 GHz BSSID of the home AP doesn't answer unicast pings from the LAN (2026-11-19)
+
+**Status:** open, not investigated.
+- Joined to `…:66` (2.4 GHz, channel 1), the phone's own traffic works: DHCP, DNS, TCP, the internet check.
+- But unicast pings from a wired Mac on the same subnet get no reply, though they arrive (rx counters rise).
+- On the 5 GHz BSSID `…:6a` they are answered. Possibly the AP's isolation between bands; check with another client.
 
 ## Phone: slot a runs out of retries (ABL switches to slot b); test images may die with a black screen
 
