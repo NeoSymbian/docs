@@ -102,9 +102,11 @@ status, 0 = success).
 - The source query at start brought no XTRA URLs; the modem's own request does. A first build let that empty attempt
   hold off the download for 10 minutes (fixed in neohw `e224825`).
 - Dev tools' Location row: "Off · idle (LOC service up)", then "Starting · searching, 0 satellites seen".
-- Two boots ended in a kernel fault while Dev tools was open: an SError from AArch32 EL0 whose entry (`exc_common`)
-  faults because SP_EL1 is 0x90 above the thread's stack top. Same fault as [audio.md](audio.md) "Open"
-  (2026-11-18, before GNSS). Being diagnosed; logs in `private/gnss/`.
+- Two boots ended in a kernel fault while Dev tools was open: a synchronous exception in kernel mode (entry kind 4)
+  whose frame save in `exc_common` faults one page below the thread's R0 (`904c3000` → far `904c2000`). Most likely a
+  supervisor-stack overflow into its guard page (Codex's reading; not yet confirmed). Same fault as
+  [audio.md](audio.md) "Open" (2026-11-18, before GNSS). Logs in `private/gnss/`; next: a kernel build that prints the
+  stack base and size on kernel aborts, then reproduce.
 
 ## Not in scope
 
