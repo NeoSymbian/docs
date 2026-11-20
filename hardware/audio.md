@@ -122,7 +122,8 @@ and clippy pass. Results on the Pixel (RAM boots, nothing flashed) and on QEMU:
 
 **Open:**
 - One kernel fault on the Pixel (2026-11-18, kernel `9d4011e6`): a data abort in `exc_common` (ExcCode 1, system
-  exception).
+  exception). **Found 2026-11-20 (kernel#30):** every kernel stack was 4 KB, not 16 KB (`Init1Common` reset the
+  port's value), and drawing the on-screen kernel console from Dev tools overflowed it into the guard page.
   - It came about 2 s after media stopped, while you scrolled Dev tools; no action had reached Dev tools.
   - It was not seen again with the same tests.
   - Kernel `6d9fb78a` now prints every kernel-mode abort's pc, far, esr, lr, sp and thread, so the next one names its

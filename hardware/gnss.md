@@ -102,11 +102,15 @@ status, 0 = success).
 - The source query at start brought no XTRA URLs; the modem's own request does. A first build let that empty attempt
   hold off the download for 10 minutes (fixed in neohw `e224825`).
 - Dev tools' Location row: "Off · idle (LOC service up)", then "Starting · searching, 0 satellites seen".
-- Two boots ended in a kernel fault while Dev tools was open: a synchronous exception in kernel mode (entry kind 4)
-  whose frame save in `exc_common` faults one page below the thread's R0 (`904c3000` → far `904c2000`). Most likely a
-  supervisor-stack overflow into its guard page (Codex's reading; not yet confirmed). Same fault as
-  [audio.md](audio.md) "Open" (2026-11-18, before GNSS). Logs in `private/gnss/`; next: a kernel build that prints the
-  stack base and size on kernel aborts, then reproduce.
+- Three boots ended in a kernel fault while Dev tools was open: a kernel-stack overflow into its guard page, since
+  every kernel stack was 4 KB instead of 16 KB (`Init1Common` reset it). Fixed in kernel#30; a 10-minute soak with
+  Dev tools and a fix running had no fault.
+- **No signal at all:** with the fixed kernel, the modem lists satellites but every one has SNR 0 (0 heard, best
+  0 dB-Hz) minutes into a fix, near a window. Weak indoor signal would still show 10–30 dB-Hz, so the RF path is
+  probably unpowered or unconfigured (an LNA rail or GPIO, modem RF or EFS config). Research into the Android and
+  Linux stacks is running; results in `private/gnss/research-rf-path.md`.
+- The modem names its XTRA servers as `https://`; GNSSD now fetches the same paths over HTTP (neohw `208b878`), not
+  yet tried on the phone (the modem didn't ask for XTRA on that boot).
 
 ## Not in scope
 
