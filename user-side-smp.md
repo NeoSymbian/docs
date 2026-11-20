@@ -1,7 +1,8 @@
-# The user side on modern cores: SMP-safe, ARMv7/ARMv8-AArch32 (proposal US0–US5)
+# The user side on modern cores: SMP-safe, one ARMv8-A AArch32 flavour (US0–US6)
 
 Written 2026-11-20 (browser WB4c session). It extends [smooth-ui.md](smooth-ui.md) S4 (the Rust ARMv7 target) to
-the whole user side, and puts one urgent fix in front.
+the whole user side, and puts one urgent fix in front. Revised 2026-11-21 after US1: the owner chose one user-side
+flavour, 32-bit ARMv8-A; the stages below follow a Codex (`gpt-6.2-astra`) research pass, checked against the code.
 
 ## Why
 
@@ -40,31 +41,69 @@ the whole user side, and puts one urgent fix in front.
   A55/A75 are ARMv8.2-A. In AArch32 that adds to ARMv7: acquire/release loads and stores (`LDA`/`STL`, cheaper locks
   than LDREX + DMB), CRC32, AES/SHA (TLS, zip), and the ARMv8 NEON/VFP additions. Flags: `-march=armv8-a+crc+crypto`
   (C/C++), an ARMv8 AArch32 Rust target.
-  - **QEMU Syborg is not a blocker.** It emulates a Cortex-A8 (ARMv7), so ARMv8 binaries don't run there. Updating
-    it is its own stage (US6). Until then, Syborg keeps building the ARMv7 flavour, and the phone images move ahead.
+  - **One flavour, no ARMv5/v6/v7 builds** (owner, 2026-11-21). QEMU Syborg emulates a Cortex-A8 (ARMv7), so the
+    CI moves to QEMU `virt` under our AArch64 kernel, which boots the same user payload as the phone (US6a/US6b).
+  - **32-bit, not 64-bit:** the kernel is AArch64; the user side stays AArch32. A 64-bit user side is
+    [parked](#parked-a-64-bit-user-side).
 - **Calling convention: soft-float stays.**
   - New code may use VFP/NEON inside a function, but floats still pass in core registers.
   - Never `eabihf`: it breaks every call into the 2010 libraries.
 - **Locks and atomics:** LDREX/STREX with DMB (SMP semantics), with no SWP and no kernel-assisted atomics.
   - The kernel's SWP emulation (`a64e_a32fix.cpp`) stays for old binaries.
 - **Code:** Thumb-2 where it's smaller, NEON for the hot loops.
-- **Old S60 apps still run.** They are ARMv5 code, ARMv8-AArch32 executes it, and their SWP keeps trapping to the
-  emulation.
+- **Old S60 apps still run.** They are frozen ARMv5/v6 binaries; ARMv8 AArch32 executes them as they are. The kernel
+  keeps 32-bit EL0, the SWP emulation and the CP15 barriers (`CP15BEN`), and the rebuilt libraries keep the E32
+  `ECpuArmV5` header value, the frozen `.def` ordinals and `EKernelConfigSMPUnsafeCompat`.
 
 ## Stages
 
 | Stage | What | Where | Exit |
 |---|---|---|---|
 | **US0** | euser `.cia` built with `-D__CPU_CORTEX_A9__ -D__SMP__` (A8N + `__SMP__` is a `cpudefs.h` `#error`): 133 DMBs, none before | build `emitter/build_euser_device.py` (`_extra_flags_tu`), **build#41** | **Pixel 2026-11-20:** 3.5 min of browsing with no crash, against 3/3 crashes within 2 min before; a 15-min soak is pending. The UI ROM boots on Syborg |
-| **US1** | The user side's other synchronisation, audited for single-core assumptions; [list below](#us1-the-audit). Fixes: `RReadWriteLock` order and the SWP emulation's barrier (kernel), 11 P.I.P.S. races (ossrv), a barrier after a polled `TRequestStatus` (e32-rs) | kernel, ossrv, e32-rs (branches `user-side-smp-us1`) | Every site fixed or marked safe; STDTEST's `smp` checks fail before and pass after on the Pixel |
-| **US2** | All of euser (C++ too) as ARMv8-A AArch32 softfp (`-march=armv8-a+crc+crypto -mfloat-abi=softfp`), with `__SMP__`; the same for efsrv and hal | build emitter | Pixel boots; neotest, R0–R3; size and boot time recorded |
-| **US3** | The rest of the 2010 ROM (P.I.P.S., ESOCK, the window server stack, …) as ARMv8-A AArch32: one `-march` switch in `build_mmp.py`/`symcc` | build | The full UI ROM boots on the Pixel; SWP-trap counter (smooth-ui S4 open question) near 0 |
-| **US4** | no_std Rust on an ARMv8 AArch32 target (smooth-ui S4): real `core::sync::atomic`, `Arc`, NEON in neoui-render; the browser's `armv7a-symbian-eabi` moves up too | e32-rs, neoui, phone, files, neohw, browser | neotest on the Pixel; neoui ns/px before/after (S4 exit) |
-| **US5** | Clean-up: drop the ARMv5TE build paths from the emitter; docs (rust-integration, port-map, CLAUDE.md ABI rules) | build, docs | One user-side ABI left: ARMv8-A AArch32 softfp |
-| **US6** | QEMU catches up: an ARMv8 CPU for the Syborg board (`symbian-qemu`), or the tests move to QEMU virt under our AArch64 kernel (`neo kernel qemu`). Until then Syborg builds the ARMv7 flavour | symbian-qemu, build, CI | The CI boots the same ARMv8 user side the phone runs |
+| **US1** | The user side's other synchronisation, audited for single-core assumptions; [list below](#us1-the-audit). Fixes: `RReadWriteLock` order and the SWP emulation's barrier (kernel), 11 P.I.P.S. races (ossrv), a barrier after a polled `TRequestStatus` (e32-rs) | kernel#32, ossrv#4, e32-rs#8 (merged 2026-11-21) | Every site fixed or marked safe; STDTEST's `smp` checks fail before and pass after on the Pixel |
+| **US6a** | CI baseline on QEMU `virt` (our kernel, 4 × Cortex-A55): C: fixture, R0–R3, the seven named `smp` checks, PASS markers. Record the US1 baseline: E32 hashes, sizes, 5 Pixel boot medians, AArch32 CRC/AES/SHA known-answer tests on both clusters. A time-boxed Syborg `-cpu max,has_el2=off` spike | build `.github/workflows/build.yml`, kernel `tools/test-fshell-qemu.py` | The US1 payload is green on `virt`; baseline numbers below |
+| **US2** | euser, efsrv, hal as ARMv8-A AArch32 (`-march=armv8-a+crc+crypto -mfloat-abi=softfp`, A9 + `__SMP__` profile), through one target setting; [three blockers first](#us2-what-to-fix-first) | build `toolchain/symcc`, `emitter/*.py`; kernel euser | Pixel RAM boot and `virt`; export/ordinal/stub/layout diff clean; TLS and nested-TRAP FP tests; R0–R3, `smp` 3/3; X-plore and Frozen Bubble; size and boot time against the baseline |
+| **US6b** | UI CI parity: neoui's Syborg tap, gesture, app-switch and old-app assertions ported to `virt` (pointer input, 539×1079) | neoui `syborg.yml`, `symbian/taps.sh`, kernel `qemu_variant` | Same assertions and screenshots on `virt`; then the Syborg user-side jobs retire |
+| **US3** | The rest of the 2010 ROM (P.I.P.S., ESOCK, graphics, middleware, old-app providers) through the same setting; rebuild the reachable GNU runtime members | build | Fresh full build: no rejected relocations, lost ordinals or new stubs; full UI, old apps, 15-min browser soak, R0–R3, `smp`, CI |
+| **US4** | Rust and the browser on one `armv8a-symbian-eabi.json` (`llvm-target armv8a-none-eabi`, `llvm-floatabi soft`, `max-atomic-width 64`, `+v8,+thumb2,+neon,+crc,…`, `c-enum-min-bits 32`, ARM state): real atomics, `Arc`, NEON. `e32` picks its runtime by feature, not `target_os`; `e32-sys` uses `fence(Acquire)`; NEOWB1's FP test fixed first | e32-rs, neoui, phone, files, neohw, browser | Both build-std modes; R0–R3, NEOWB1 6/6, MIXTEST 225, 64-bit atomic stress, `smp` 3/3, browser soak; neoui ns/px before/after (smooth-ui S4 exit) |
+| **US5** | Clean-up: drop the ARMv5TE paths and aliases; docs (rust-integration, port-map, CLAUDE.md ABI rules) | build, docs | One user-side ABI; phone and CI run identical user E32 hashes |
 
-US0 is urgent and small. US1 decides how much of US2–US3 is correctness work and how much is speed. US4 can run in
-parallel once US0 is in. US6 never blocks US2–US5.
+US0 and US1 are done (merged 2026-11-21, installed as `2026-11-20-finchmane`). The order is US6a → US2 → US6b → US3 →
+US4 → US5; about 18–32 working days. Each stage builds one user payload and boots it with `neo kernel qemu` and
+`neo kernel bonito` from the same volume (`SIS=xplore,frozenbubble`, `ROFS_CORE='\.dll$'`); budgets against the US1
+baseline: size +5 %, boot median +10 %. Later, only with a measured gain: an ARMv8 CPU profile in `cpudefs.h`
+(`LDA`/`STL` in `atomic_32_v6.h`/`uc_utl.cia`, `CRC32` in `Mem::Crc32`).
+
+The seven checks, run three times, must each print `7 ok, 0 failed` (`stdtest smp` alone selects nothing):
+
+```text
+stdtest smp_printf_g smp_condvar_timeout smp_static_init smp_once smp_stdio smp_shared_fd smp_sem_timeout
+```
+
+## US2: what to fix first
+
+1. **Runtime library relocations.** The v8 multilib (`thumb/v8-a+simd/softfp`) has `libgcc.a`/`libsupc++.a`, but
+   their members carry `R_ARM_THM_MOVW_ABS_NC`/`MOVT_ABS` relocations (10 + 10 and 170 + 170), which the E32 writer
+   rejects (`build/emitter/elf.py:269`); some stay reachable from `__cxa_throw`. Rebuild the reachable members with
+   `-mword-relocations -mno-unaligned-access` (as the browser SDK, `browser/tools/symbian-sdk.sh`); the root
+   (ARMv5) members only as a bridge. Check `Tag_ABI_VFP_args`, enum and `wchar_t` attributes on what is linked.
+2. **TLS.** The A9 profile turns on `TLocalThreadData` (`u32std.h:763`) and moves heap, active scheduler, trap handler
+   and DLL TLS to it. The emitter's euser source list lacks `euser/epoc/arm/uc_data.cpp` (`DllTls`, `DllSetTls`,
+   `DllFreeTls`): add it and reject any new panic stub.
+3. **FP registers across a leave.** With softfp, GCC keeps live values in `d8`–`d15` (callee-saved). `Trap`
+   (`uc_trp.cia:44/90`) and P.I.P.S. `setjmp`/`longjmp` (`jmp_marm.cia`) save only core registers, so a leave can return
+   with clobbered FP registers. Preserve them without growing the frozen `TTrap`/`jmp_buf`, with nested sentinel tests
+   through TRAP, `longjmp` and the RVCT/EHABI leave path.
+
+Also, measured: no exported struct changes with `__SMP__` (`RFastLock` 8, `RReadWriteLock` 40, `CActive` 28,
+`RHybridHeap` 744 bytes under v5, v8 UP and v8 SMP). The MMP parser keeps its `MARM_ARMV5`/`EABI` macros
+(`emitter/mmp.py:41`): they select sources and `.def` files, not the CPU. The 16 `-march=armv5te` sites in
+`emitter/*.py` and the `.cia` override in `build_euser_device.py` become one `USER_TARGET_FLAGS` in `toolchain/symcc`.
+
+**Old apps, still to test** (kernel side is set: `CP15BEN=1`, `A`/`ITD`/`SED` clear, FP on, `a64boot.cpp:612`):
+SWP byte/word/contention on the phone (QEMU executes SWP itself, so only the Pixel tests the trap path); VFP short
+vectors (`FPSCR.LEN`/`STRIDE`) are gone in ARMv8 and not emulated; the alignment fix-ups ignore `SETEND`. Act on these
+only with a failing app or fixture.
 
 ## US1: the audit
 
@@ -129,10 +168,29 @@ components (as the 2010 build); the SWP emulation checks access and then accesse
 4. Check that nothing else broke: neotest and the neoui Syborg CI.
 5. Merge, re-pin `build`, and install it on slot a (the owner's call). Every multithreaded process benefits.
 
+## Parked: a 64-bit user side
+
+Investigated 2026-11-21 (owner's question): AArch64 user code next to the old AArch32 apps.
+
+- **Possible.** The CPUs pick AArch32 or AArch64 per thread on each return to EL0, so one process is one ISA. With
+  32-bit pointers (ILP32, like the kernel), every struct, descriptor, IPC message and exec call keeps its layout, and
+  both kinds of process talk to the same servers.
+- **Found:** the kernel's vectors already save the same frame for AArch64 EL0, but `a64e_exc.cpp:369` rejects it
+  ("there is no AArch64 user code"); exec calls come only from AArch32 SVC (ESR EC 0x11); the E32 CPU field
+  (`f32image.h:37`) knows ARMv4/5/6 only. A Rust no_std ILP32 build works with a custom target spec
+  (`llvm-target aarch64-unknown-linux-gnu_ilp32`, `ldaddal` atomics). GCC 14 `-mabi=ilp32` compiles, but the toolchain
+  image has no ILP32 `libgcc`/`libsupc++`, GCC has no large code model with ILP32, and GCC 15 deprecated ILP32.
+- **Why parked:** every library an old app uses stays AArch32 while 64-bit processes need their own copies; code
+  reaches its data with PC-relative `ADRP`, but Symbian loads code and data apart (new E32 relocation types or a GOT
+  in the code segment); euser's assembly needs rewriting. On the Pixel the gain over 32-bit ARMv8 is small.
+- **When to revisit:** a target phone whose cores lack AArch32 EL0 (recent big cores). Old apps would then need a
+  translator anyway. Stages if so: A0 kernel + loader proof with one Rust test EXE, A1 toolchain and relocations,
+  A2 euser/efsrv/hal and Rust apps, A3 P.I.P.S., browser and servers.
+
 ## Risks
 
-- **Kernel and user side out of step:** `__SMP__` must stay off the C++ files until US2. Some euser C++ structs
-  (`TLocalThreadData` …) may differ between the SMP and UP builds.
+- **Kernel and user side out of step:** `__SMP__` on euser's C++ arrives with US2. Measured: no exported struct
+  changes; `TLocalThreadData` comes with the A9 CPU profile, and the kernel already sets it up (`a64e_exec.cpp:162`).
 - **Code size** grows a little with Thumb-2 + NEON and barriers. The ROFS limit is 256 MB (kernel `wb4-rofs`).
 - **Old binaries:** apps built for ARMv5 keep their own inline SWP. They stay correct only while the kernel emulation
   is atomic (it is: an LDXR/STXR loop plus DMB).
