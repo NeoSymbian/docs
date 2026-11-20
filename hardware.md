@@ -17,6 +17,7 @@ The hub for everything that drives the phone's hardware. Target: **Pixel 3a XL (
 | [hardware/modem.md](hardware/modem.md) | The cellular modem: QRTR, QMI, rmtfs, calls, SMS, data | C0–C12 |
 | [hardware/audio.md](hardware/audio.md) | NeoAudio, media/recording on the ADSP, the jack, the old apps' DevSound | A0–A8 |
 | [hardware/wifi.md](hardware/wifi.md) | WCN3990 Wi-Fi: firmware, copy engines, WPA2, NEONET (IP) | W0–W7 |
+| [hardware/gnss.md](hardware/gnss.md) | GNSS: GNSSD.EXE, QMI LOC, XTRA over Wi-Fi | GN0–GN5 |
 | [hardware/bluetooth.md](hardware/bluetooth.md) | Bluetooth: the Rust host stack and the 2010 facade (design) | B0– |
 | [hardware/battery.md](hardware/battery.md) | PM660 battery and thermal telemetry | D2 |
 | [hardware/verification/](hardware/verification/) | Run records: [driver support](hardware/verification/driver-support-2026-11-10.md), [TSENS](hardware/verification/tsens-2026-11-10.md), [battery](hardware/verification/battery-2026-11-11.md), [charger watchdog](hardware/verification/charger-2026-11-20.md) | |
@@ -45,7 +46,7 @@ Also: [debug-access.md](debug-access.md) (USB console and monitor), [filesystem.
 | Bluetooth | — (GENI UART + HCI LDD planned) | — | BTSRV planned ([bluetooth.md](hardware/bluetooth.md)) | design | — |
 | Sensors | — (ADSP sensor PD via FastRPC) | — | — | not started (D4) | — |
 | Cameras | — (IMX355 front, IMX363 rear; CCI/CAMSS) | — | — | not started (D5) | — |
-| GNSS | — (QMI LOC on the modem) | — | MODEMD later | not started (D6) | — |
+| GNSS | — (QMI LOC on the modem) | — | GNSSD planned ([gnss.md](hardware/gnss.md)) | design (D6, GN0) | — |
 | NFC, fingerprint | — (NXP NCI I2C 0x28; FPC) | — | — | not started (D7) | — |
 
 ## neohw: the processes and their IPC
@@ -59,6 +60,7 @@ The user side of the hardware is a set of daemons, one per driver area, built fr
 | `MODEMD.EXE` | 0xE0003001 | the cellular QMI clients: calls, SMS, call log, blocklist; haptic alerts | NeoModem (`modem-ipc`) |
 | `AUDIOD.EXE` | 0xE0003003 | APR (ADSP ring 2), AudioMem, the mixer, routes, amps, the jack, the call voice path | NeoAudio (`neoaudio`) |
 | `WIFID.EXE` | 0xE0004002 | the Wi-Fi firmware (WLFW over NeoHub), MSA, board data, scan, join, the WPA2 supplicant, saved networks | NeoWifi (`wifi-ipc`) |
+| `GNSSD.EXE` (planned) | 0xE0003004 | the LOC client (NeoHub), fix sessions, XTRA download and inject | NeoLocation (`loc`) |
 | `NEONET.EXE` | 0xE0004001 | the IP stack (smoltcp) on the Wi-Fi link | NeoNet (`net`) |
 
 ```
