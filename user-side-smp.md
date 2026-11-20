@@ -85,10 +85,21 @@ hand-written locks, `__e32_atomic`, `LockedInc`, `__sync`), P.I.P.S. (libpthread
 | P8 | ossrv `libc` `gdtoa/misc.c` | `pow5mult`'s cache was published before it was complete |
 | P9–P10 | ossrv `libpthread` `sem_*.cpp` | A post racing `sem_timedwait`'s timeout left a token too many; error paths kept the mutex |
 | P11 | ossrv `libc` `clock_funcs.cpp` | No ISB before the generic-timer read |
+| P12 | ossrv `libc` `localeinfo.cpp`, `lnumeric.cpp`, `lmonetary.cpp`, `timelocal.cpp`, `setlocale.cpp` | Without `setlocale`, every `snprintf` reloads the system locale into 20/50-byte shared buffers, moving global pointers as cursors: two threads overflowed them into the backend heap (a TLS key node's `next` became garbage). Now one recursive lock |
+| P13 | ossrv `libc` `neo_posix.cpp` (ours) | `pread`/`pwrite` emulation (seek, transfer, seek back) interleaved between threads on one fd |
+| P14 | ossrv `libc` `stdio/fclose.c` | `fclose` released the FILE slot before destroying its mutex; another thread's `fopen` locked the mutex being destroyed |
 | R1 | e32-rs `e32-sys` `TRequestStatus::get` | A completed status seen by polling had no acquire barrier |
 
 **Before the fixes, on the Pixel** (main `dd7e573`): `smp_printf_g` killed threads (KERN-EXEC 0 and 3),
-`smp_static_init` had 13,494 error returns, and `smp_shared_fd` aborted (KERN-EXEC 3) and hung STDTEST.
+`smp_static_init` had 13,494 error returns, and `smp_shared_fd` aborted (KERN-EXEC 3, jumps to address 0) and hung
+STDTEST. P12–P14 were found by these checks, after the audit.
+
+**After** (build `0ae7e94`: kernel `d13d70ee`, ossrv `00d888e`, the Rust apps of every repo's main): all seven `smp`
+checks pass 3 runs of 3 on the Pixel, no aborts; the UI ROM boots on Syborg; the modem stays on LTE.
+
+**Found, not US1 (it happens on main too):** the first sockets of a process, made by 3 threads at once while ESock
+starts, crash `c32exe.exe::ESock_DIP` (KERN-EXEC 3, null read) and C32Start reboots the phone (STDTEST
+`smp_cross_thread_fd`). Probably what made NEOWEBE see EBADF on connect and on `/dev/urandom` in one session.
 
 **Safe, nothing to do:** the rest of euser's sync now that its atomics have barriers (`LockedInc`/`SafeInc`,
 `RCriticalSection`, `RHybridHeap`, TLS, the active scheduler); efsrv and hal have no `.cia`; the other 2010 packages only
