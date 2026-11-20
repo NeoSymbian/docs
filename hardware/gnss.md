@@ -90,7 +90,7 @@ status, 0 = success).
 | GN2 | GNSSD.EXE, the shared NeoHub client in `sys`, `exes.txt`, MODEMD starts it | phone RAM boot: bind, Register / Lock / Mode answered; WIFID still joins | 2026-11-20, phone |
 | GN3 | XTRA download, cache, inject | phone: validity after the inject; the cache reused after a reboot | code done; phone re-test pending |
 | GN4 | Dev tools row and actions | Syborg ("no modem") and the phone | 2026-11-20, phone |
-| GN5 | Outdoor fix | horizontal accuracy < 50 m; time to first fix with and without XTRA | |
+| GN5 | First fix, through the GR stages below | GR5 | |
 
 ## Phone results (2026-11-20, RAM boots, kernel c416f22c)
 
@@ -105,12 +105,30 @@ status, 0 = success).
 - Three boots ended in a kernel fault while Dev tools was open: a kernel-stack overflow into its guard page, since
   every kernel stack was 4 KB instead of 16 KB (`Init1Common` reset it). Fixed in kernel#30; a 10-minute soak with
   Dev tools and a fix running had no fault.
-- **No signal at all:** with the fixed kernel, the modem lists satellites but every one has SNR 0 (0 heard, best
-  0 dB-Hz) minutes into a fix, near a window. Weak indoor signal would still show 10–30 dB-Hz, so the RF path is
-  probably unpowered or unconfigured (an LNA rail or GPIO, modem RF or EFS config). Research into the Android and
-  Linux stacks is running; results in `private/gnss/research-rf-path.md`.
+- **No positive C/N0 yet:** with the fixed kernel, the modem lists satellites with SNR 0 minutes into a fix, near a
+  window. That alone does not prove a dead RF path: Qualcomm's stack keeps almanac/ephemeris entries with SNR 0 when
+  not tracking (research below).
 - The modem names its XTRA servers as `https://`; GNSSD now fetches the same paths over HTTP (neohw `208b878`), not
   yet tried on the phone (the modem didn't ask for XTRA on that boot).
+
+## Getting a first fix (research 2026-11-20, `private/gnss/research-rf-path.md`)
+
+Findings (Codex, from Android, Linux and our logs):
+- No Bonito GNSS LNA/antenna rail or GPIO exists in the Android kernel DT, the PM660/PM660L regulators or our DTB
+  (818 nodes). Android forbids the AP from PM660 GPIOs 1, 5, 7, 8, 10 and PM660L 1, 10, 11, 12: never guess there.
+- Maemo Leste reports GPS working on sargo/bonito (Linux 6.12) through ModemManager's QMI LOC, the same protocol.
+- Our gaps: Start is sent before the unlock and mode answers; SV reports are not kept raw (a missing or cut list
+  can look like "0"); a missing accuracy shows as 0 m; HWHUB's TFTP keeps the modem's `mcfg.tmp` write but refuses
+  to read it back.
+
+| Stage | Work | Gate |
+|---|---|---|
+| GR0 | Trustworthy evidence: raw SV records (validity, C/N0, status) logged periodically, cut lists rejected, request/answer correlation | malformed never shows as a measured 0 |
+| GR1 | Serialized start (register → unlock + read-back → standalone + read-back → Start); one 15-min open-sky run (owner) | valid positive C/N0 on several satellites |
+| GR2 | One variable per run: low-power/constellation read-back, UTC, coarse position, XTRA (the exact requested file) | read-backs accepted; C/N0 and TTFF recorded |
+| GR3 | Same-phone Linux comparison (RAM-booted C1 with ModemManager GPS enabled), open sky | Linux hears satellites and we don't → our setup |
+| GR4 | TFTP `mcfg.tmp` read-back; then an AP-owned rail/pin/clock only if GR3 shows one | a reproducible GNSS change |
+| GR5 | First fix: LOC SUCCESS with satellite technology, used SVs, a present accuracy under 50 m, plausible place, 5 min | |
 
 ## Not in scope
 
