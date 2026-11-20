@@ -97,6 +97,11 @@ STDTEST. P12–P14 were found by these checks, after the audit.
 **After** (build `0ae7e94`: kernel `d13d70ee`, ossrv `00d888e`, the Rust apps of every repo's main): all seven `smp`
 checks pass 3 runs of 3 on the Pixel, no aborts; the UI ROM boots on Syborg; the modem stays on LTE.
 
+**Old apps (K2, the SWP path), the same build with `SIS=xplore,frozenbubble` and the installed `ROFS_CORE='\.dll$'`
+split, on the Pixel:** Frozen Bubble, X-plore and PerfMon run, with no panics or kernel faults. eshell quits with -1, as
+it did before US1. (Without `ROFS_CORE` the old-apps launcher fails with -5 and X-plore panics in `aknskins.dll`: a
+recipe mistake, not US1.)
+
 **Found, not US1 (it happens on main too):** the first sockets of a process, made by 3 threads at once while ESock
 starts, crash `c32exe.exe::ESock_DIP` (KERN-EXEC 3, null read) and C32Start reboots the phone (STDTEST
 `smp_cross_thread_fd`). Probably what made NEOWEBE see EBADF on connect and on `/dev/urandom` in one session.
