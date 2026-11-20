@@ -36,8 +36,12 @@ the whole user side, and puts one urgent fix in front.
 
 ## What "modern" means here
 
-- **Instruction set:** ARMv7-A, which ARMv8-AArch32 runs as-is. It runs on the Pixel (A55/A75 in AArch32), on QEMU
-  virt and on QEMU Syborg (Cortex-A8). No ARMv8-only AArch32 instructions (LDA/STL), so Syborg keeps working.
+- **Instruction set: ARMv8-A AArch32** (owner's decision, 2026-11-20: as current as the hardware allows). The Pixel's
+  A55/A75 are ARMv8.2-A. In AArch32 that adds to ARMv7: acquire/release loads and stores (`LDA`/`STL`, cheaper locks
+  than LDREX + DMB), CRC32, AES/SHA (TLS, zip), and the ARMv8 NEON/VFP additions. Flags: `-march=armv8-a+crc+crypto`
+  (C/C++), an ARMv8 AArch32 Rust target.
+  - **QEMU Syborg is not a blocker.** It emulates a Cortex-A8 (ARMv7), so ARMv8 binaries don't run there. Updating
+    it is its own stage (US6). Until then, Syborg keeps building the ARMv7 flavour, and the phone images move ahead.
 - **Calling convention: soft-float stays.**
   - New code may use VFP/NEON inside a function, but floats still pass in core registers.
   - Never `eabihf`: it breaks every call into the 2010 libraries.
@@ -52,14 +56,49 @@ the whole user side, and puts one urgent fix in front.
 | Stage | What | Where | Exit |
 |---|---|---|---|
 | **US0** | euser `.cia` built with `-D__CPU_CORTEX_A9__ -D__SMP__` (A8N + `__SMP__` is a `cpudefs.h` `#error`): 133 DMBs, none before | build `emitter/build_euser_device.py` (`_extra_flags_tu`), **build#41** | **Pixel 2026-11-20:** 3.5 min of browsing with no crash, against 3/3 crashes within 2 min before; a 15-min soak is pending. The UI ROM boots on Syborg |
-| **US1** | Audit the user side's other hand-written synchronisation for ARMv5/UP assumptions: P.I.P.S. (libpthread, backend locks), the efsrv client, the window-server client, `User::LockedInc/Dec`, the `.cia` files of other DLLs. **Known so far:** (1) `RReadWriteLock` (`euser/us_rwlock.cpp`) has acquire and release swapped (lock uses `cas_rel64`, unlock uses `cas_acq64`); (2) the P.I.P.S. pthread mutex's lazy-init race (`libpthread` `mutex.cpp:95-145`); (3) the kernel's SWP emulation has no leading barrier (`a64e_a32fix.cpp:58`) | kernel (euser), ossrv | A list: each site is fixed or marked safe |
-| **US2** | All of euser (C++ too) as ARMv7 `-march=armv7-a -mfloat-abi=softfp`; the same for efsrv and hal | build emitter | Pixel + Syborg boot; neotest, R0–R3, neoui CI; size and boot time recorded |
-| **US3** | The rest of the 2010 ROM (P.I.P.S., ESOCK, the window server stack, …) as ARMv7: one `-march` switch in `build_mmp.py`/`symcc` | build | The full UI ROM boots on both; SWP-trap counter (smooth-ui S4 open question) near 0 |
-| **US4** | no_std Rust moves to `armv7a-neosymbian-eabi` (smooth-ui S4): real `core::sync::atomic`, `Arc`, NEON in neoui-render | e32-rs, neoui, phone, files, neohw | neotest on both; neoui ns/px before/after (S4 exit) |
-| **US5** | Clean-up: drop the ARMv5TE build paths from the emitter; docs (rust-integration, port-map, CLAUDE.md ABI rules) | build, docs | One user-side ABI left: ARMv7 softfp |
+| **US1** | The user side's other synchronisation, audited for single-core assumptions; [list below](#us1-the-audit). Fixes: `RReadWriteLock` order and the SWP emulation's barrier (kernel), 11 P.I.P.S. races (ossrv), a barrier after a polled `TRequestStatus` (e32-rs) | kernel, ossrv, e32-rs (branches `user-side-smp-us1`) | Every site fixed or marked safe; STDTEST's `smp` checks fail before and pass after on the Pixel |
+| **US2** | All of euser (C++ too) as ARMv8-A AArch32 softfp (`-march=armv8-a+crc+crypto -mfloat-abi=softfp`), with `__SMP__`; the same for efsrv and hal | build emitter | Pixel boots; neotest, R0–R3; size and boot time recorded |
+| **US3** | The rest of the 2010 ROM (P.I.P.S., ESOCK, the window server stack, …) as ARMv8-A AArch32: one `-march` switch in `build_mmp.py`/`symcc` | build | The full UI ROM boots on the Pixel; SWP-trap counter (smooth-ui S4 open question) near 0 |
+| **US4** | no_std Rust on an ARMv8 AArch32 target (smooth-ui S4): real `core::sync::atomic`, `Arc`, NEON in neoui-render; the browser's `armv7a-symbian-eabi` moves up too | e32-rs, neoui, phone, files, neohw, browser | neotest on the Pixel; neoui ns/px before/after (S4 exit) |
+| **US5** | Clean-up: drop the ARMv5TE build paths from the emitter; docs (rust-integration, port-map, CLAUDE.md ABI rules) | build, docs | One user-side ABI left: ARMv8-A AArch32 softfp |
+| **US6** | QEMU catches up: an ARMv8 CPU for the Syborg board (`symbian-qemu`), or the tests move to QEMU virt under our AArch64 kernel (`neo kernel qemu`). Until then Syborg builds the ARMv7 flavour | symbian-qemu, build, CI | The CI boots the same ARMv8 user side the phone runs |
 
 US0 is urgent and small. US1 decides how much of US2–US3 is correctness work and how much is speed. US4 can run in
-parallel once US0 is in.
+parallel once US0 is in. US6 never blocks US2–US5.
+
+## US1: the audit
+
+Checked: euser and the kernel's user-visible paths, every `.cia` the emitter builds, the pinned 2010 packages (grep for
+hand-written locks, `__e32_atomic`, `LockedInc`, `__sync`), P.I.P.S. (libpthread, backend, libc), and the Rust crates.
+
+**Fixed** (branches `user-side-smp-us1`; test: STDTEST's `smp` group, browser `std/stdtest/src/smp.rs`):
+
+| # | Where | What was wrong |
+|---|---|---|
+| K1 | kernel `euser/us_rwlock.cpp` | `RReadWriteLock` took the lock with a release CAS and gave it up with an acquire CAS (upstream 2010 bug) |
+| K2 | kernel `arm64/a64e_a32fix.cpp` | SWP emulation had only a trailing DMB; old binaries use SWP to release locks too |
+| P1 | ossrv `backend` `fdesc.h`/`fdesc.cpp` | Descriptor dup count `++`/`--` on every read/write, from any thread |
+| P2 | ossrv `backend` `ftable.cpp` | fd-table lookups, dup and detach without `iFidLock` (CArrayPtrSeg lookups even write its cache) |
+| P3 | ossrv `libpthread` `condvar.cpp` | A timed wait that timed out after a signal took its node freed the node under the signaller |
+| P4–P6 | ossrv `libpthread` `mutex.cpp`, `condvar.cpp`, `pthread_once.cpp` | Static initializers and `pthread_once` published and tested state without acquire/release |
+| P7 | ossrv `libc` `stdio/findfp.c` | `__sfp()` had an empty lock: two threads could take one FILE |
+| P8 | ossrv `libc` `gdtoa/misc.c` | `pow5mult`'s cache was published before it was complete |
+| P9–P10 | ossrv `libpthread` `sem_*.cpp` | A post racing `sem_timedwait`'s timeout left a token too many; error paths kept the mutex |
+| P11 | ossrv `libc` `clock_funcs.cpp` | No ISB before the generic-timer read |
+| R1 | e32-rs `e32-sys` `TRequestStatus::get` | A completed status seen by polling had no acquire barrier |
+
+**Before the fixes, on the Pixel** (main `dd7e573`): `smp_printf_g` killed threads (KERN-EXEC 0 and 3),
+`smp_static_init` had 13,494 error returns, and `smp_shared_fd` aborted (KERN-EXEC 3) and hung STDTEST.
+
+**Safe, nothing to do:** the rest of euser's sync now that its atomics have barriers (`LockedInc`/`SafeInc`,
+`RCriticalSection`, `RHybridHeap`, TLS, the active scheduler); efsrv and hal have no `.cia`; the other 2010 packages only
+call euser's atomics (gdi/textbase `hextree.cpp`, commsfw `User::LockedInc`); CP15 barriers are enabled at EL0; no
+`__sync_*` anywhere. ARMv5TE Rust has no atomics at all (`critical-section` is a kernel `RMutex`), and every hand-off
+between threads goes through a kernel object.
+
+**Left, recorded:** libstdcpp is built with `_STLP_NO_THREADS` (the browser doesn't link it); the backend's
+signal-handler flag (`localif.cpp:607`, only with `SYMBIAN_OE_POSIX_SIGNALS`); `-fno-threadsafe-statics` in the mmp
+components (as the 2010 build); the SWP emulation checks access and then accesses (`a64e_a32fix.cpp:38-59`).
 
 ## US0 recipe (done: build#41)
 
@@ -78,6 +117,6 @@ parallel once US0 is in.
 
 - **Kernel and user side out of step:** `__SMP__` must stay off the C++ files until US2. Some euser C++ structs
   (`TLocalThreadData` …) may differ between the SMP and UP builds.
-- **Code size** grows a little with ARMv7 Thumb-2 + NEON and barriers. The ROFS limit is 256 MB (kernel `wb4-rofs`).
+- **Code size** grows a little with Thumb-2 + NEON and barriers. The ROFS limit is 256 MB (kernel `wb4-rofs`).
 - **Old binaries:** apps built for ARMv5 keep their own inline SWP. They stay correct only while the kernel emulation
   is atomic (it is: an LDXR/STXR loop plus DMB).
