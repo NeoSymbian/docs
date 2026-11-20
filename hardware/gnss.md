@@ -113,6 +113,8 @@ status, 0 = success).
 
 ## Getting a first fix (research 2026-11-20, `private/gnss/research-rf-path.md`)
 
+**Paused 2026-11-20 (owner):** GN0–GN4 are in review; resume at GR0.
+
 Findings (Codex, from Android, Linux and our logs):
 - No Bonito GNSS LNA/antenna rail or GPIO exists in the Android kernel DT, the PM660/PM660L regulators or our DTB
   (818 nodes). Android forbids the AP from PM660 GPIOs 1, 5, 7, 8, 10 and PM660L 1, 10, 11, 12: never guess there.
