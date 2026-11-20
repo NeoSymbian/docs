@@ -365,6 +365,12 @@ touch. Nothing else changes in the ROM.
   - **Dates:** Symbian's `TTime` calendar counts leap years before 1600 the Julian way, so 1970-01-01 is day 719,540,
     not 719,528. e32's dates were 12 days late, the Clock app's date included; fixed in `ecf8697`.
   - **PlatSec:** this ROM doesn't enforce it, so `Z:\sys\bin` lists without AllFiles (47 entries).
+- **Open files between processes** (2026-11-20, e32-rs#7, Files FA8): `Fs::share_protected` (Exec::SessionShare,
+  globally sharable), `File::transfer_to_server` (EFsFileDuplicate 96 into a handle IPC argument) and `SharedFile`
+  (`adopt_from_client` through Exec::MessageOpenObject, checked against the file server's secure ID 0x100039E3;
+  `transfer_to_client` with `Message::complete_with_handle`; `adopt_from_server`; EFsFileAdopt 97), ported from the
+  2010 efsrv client. neotest's `fs_share` sends a private file to NEOSRV and back on Syborg; on the Pixel, Files
+  passes files to other apps this way (neoui protocol 1.12).
 - **`NEOFILES.EXE`** (`neoui/symbian/apps/files`, model `neoui/crates/neoui-files`): drive cards, folders, a text
   viewer, New folder / Rename / Delete. What it does today, and the plan for the full app (a `NeoSymbian/files`
   repo, phases FA0–FA13), are in [files-app.md](files-app.md). At R8 it claimed the v1 toolbar's Back (`NAV`, op 6);
