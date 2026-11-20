@@ -51,8 +51,8 @@ the whole user side, and puts one urgent fix in front.
 
 | Stage | What | Where | Exit |
 |---|---|---|---|
-| **US0** | euser `.cia` built with `-D__SMP__`; check with objdump that DMBs are in `RFastLock::Wait/Signal` and the `__e32_atomic_*_acq/_rel/_ord` | build `emitter/build_euser_device.py` (`_extra_flags_tu`) | NEOWEBE survives 15 min of browsing on the Pixel with `C:\neowebe.check`; neotest and the Syborg CI pass |
-| **US1** | Audit the user side's other hand-written synchronisation for ARMv5/UP assumptions: P.I.P.S. (libpthread, backend locks), the efsrv client, the window-server client, `User::LockedInc/Dec`, the `.cia` files of other DLLs | kernel (euser), ossrv | A list: each site is fixed or marked safe |
+| **US0** | euser `.cia` built with `-D__CPU_CORTEX_A9__ -D__SMP__` (A8N + `__SMP__` is a `cpudefs.h` `#error`): 133 DMBs, none before | build `emitter/build_euser_device.py` (`_extra_flags_tu`), **build#41** | **Pixel 2026-11-20:** 3.5 min of browsing with no crash, against 3/3 crashes within 2 min before; a 15-min soak is pending. The UI ROM boots on Syborg |
+| **US1** | Audit the user side's other hand-written synchronisation for ARMv5/UP assumptions: P.I.P.S. (libpthread, backend locks), the efsrv client, the window-server client, `User::LockedInc/Dec`, the `.cia` files of other DLLs. **Known so far:** (1) `RReadWriteLock` (`euser/us_rwlock.cpp`) has acquire and release swapped (lock uses `cas_rel64`, unlock uses `cas_acq64`); (2) the P.I.P.S. pthread mutex's lazy-init race (`libpthread` `mutex.cpp:95-145`); (3) the kernel's SWP emulation has no leading barrier (`a64e_a32fix.cpp:58`) | kernel (euser), ossrv | A list: each site is fixed or marked safe |
 | **US2** | All of euser (C++ too) as ARMv7 `-march=armv7-a -mfloat-abi=softfp`; the same for efsrv and hal | build emitter | Pixel + Syborg boot; neotest, R0–R3, neoui CI; size and boot time recorded |
 | **US3** | The rest of the 2010 ROM (P.I.P.S., ESOCK, the window server stack, …) as ARMv7: one `-march` switch in `build_mmp.py`/`symcc` | build | The full UI ROM boots on both; SWP-trap counter (smooth-ui S4 open question) near 0 |
 | **US4** | no_std Rust moves to `armv7a-neosymbian-eabi` (smooth-ui S4): real `core::sync::atomic`, `Arc`, NEON in neoui-render | e32-rs, neoui, phone, files, neohw | neotest on both; neoui ns/px before/after (S4 exit) |
@@ -61,15 +61,16 @@ the whole user side, and puts one urgent fix in front.
 US0 is urgent and small. US1 decides how much of US2–US3 is correctness work and how much is speed. US4 can run in
 parallel once US0 is in.
 
-## Requirements to start (US0)
+## US0 recipe (done: build#41)
 
-1. In `build/emitter/build_euser_device.py`, `_extra_flags_tu`, add `-D__SMP__` to the `.cia` flags. Leave the C++
-   flags alone (`__SMP__` may change structs there; that's for US2).
+1. In `build/emitter/build_euser_device.py`, `_extra_flags_tu`, give the `.cia` files `-D__CPU_CORTEX_A9__ -D__SMP__`
+   in place of `__CPU_CORTEX_A8N__`. Leave the C++ flags alone (`__SMP__` may change structs there; that's for US2).
 2. Rebuild euser. Check that `armv7-symbian-objdump -d euser0.elf` shows `dmb` in `RFastLock::Wait`, `RFastLock::Signal`
    and `__e32_atomic_add_acq32`.
 3. Test on the Pixel, RAM boot only: a UI ROM with `ROFS=1 EMMC_C=1 USBDEBUG=1 AUTOFASTBOOT=…`.
-   - Browse with NEOWEB/NEOWEBE for 15 minutes with `C:\neowebe.check` present.
-   - Pass: no KERN-EXEC 3 in RHybridHeap and no heap-check panic.
+   - Browse with NEOWEB/NEOWEBE for 15 minutes, **without** `C:\neowebe.check`. Its whole-heap check runs on every
+     command (300–600 ms each), so the browser crawls; keep it for finding where a corruption happens.
+   - Pass: no KERN-EXEC 3 in RHybridHeap, and no abort or panic in a neowebe thread.
 4. Check that nothing else broke: neotest and the neoui Syborg CI.
 5. Merge, re-pin `build`, and install it on slot a (the owner's call). Every multithreaded process benefits.
 
