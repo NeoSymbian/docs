@@ -8,6 +8,12 @@ telemetry work on `feat/pixel-driver-support`. Hardware control remains owned by
 firmware: this driver does not configure charging, kick its watchdog, load a
 battery profile, access gauge SRAM or trigger ADC conversions.
 
+**The charger watchdog needs nothing from us** (phone, 2026-11-20,
+[record](verification/charger-2026-11-20.md)): after ABL, `WD_CFG` (`0x1651`) is `0x00`, so the watchdog is off
+and is not armed on plug-in. Android's charger driver arms it and pets it from the bark interrupt; we never arm it,
+so no pet and no boot-time write are needed. The monitor's `battery` command prints `WD_CFG`, the timeouts
+(`0x1653`), `WDOG_STATUS` (`0x160c`), the MISC live bits (`0x1610`) and `CHGR_CFG2` (`0x1051`), so a change shows.
+
 ## Readings and confidence
 
 The accepted policy is to display the PMIC-reported charge estimate when its

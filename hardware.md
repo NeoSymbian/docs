@@ -19,7 +19,7 @@ The hub for everything that drives the phone's hardware. Target: **Pixel 3a XL (
 | [hardware/wifi.md](hardware/wifi.md) | WCN3990 Wi-Fi: firmware, copy engines, WPA2, NEONET (IP) | W0–W7 |
 | [hardware/bluetooth.md](hardware/bluetooth.md) | Bluetooth: the Rust host stack and the 2010 facade (design) | B0– |
 | [hardware/battery.md](hardware/battery.md) | PM660 battery and thermal telemetry | D2 |
-| [hardware/verification/](hardware/verification/) | Run records: [driver support](hardware/verification/driver-support-2026-11-10.md), [TSENS](hardware/verification/tsens-2026-11-10.md), [battery](hardware/verification/battery-2026-11-11.md) | |
+| [hardware/verification/](hardware/verification/) | Run records: [driver support](hardware/verification/driver-support-2026-11-10.md), [TSENS](hardware/verification/tsens-2026-11-10.md), [battery](hardware/verification/battery-2026-11-11.md), [charger watchdog](hardware/verification/charger-2026-11-20.md) | |
 
 Also: [debug-access.md](debug-access.md) (USB console and monitor), [filesystem.md](filesystem.md) (eMMC, A/B),
 [known-issues.md](known-issues.md), [roadmap.md](roadmap.md) track H.
@@ -35,7 +35,7 @@ Also: [debug-access.md](debug-access.md) (USB console and monitor), [filesystem.
 | Storage | `qcom_sdhci.cpp`, `qcom_fat16.cpp`, `qcom_bootctrl.cpp` | 0x4e09 slot info | — | eMMC, C:/E:, ROFS, A/B slots | installed |
 | Display | `qcom_dsi.cpp`, `bv/panel_sofef00.cpp` | display HAL | neoui (`screen.rs`) | ABL framebuffer; brightness, on/off ([below](#d2-display-brightness-screen-off-wake-done-2026-11-11)) | 2026-11-11 |
 | Touch, keys | `bv/a64_touch.cpp` (RMI4), `bv/a64_keys.cpp` (PMIC) | — | neoui | 5 fingers; power/volume keys | 2026-11-17 |
-| Battery, TSENS | `qcom_battery.cpp`, `qcom_tsens.cpp`, `qcom_spmi.cpp` | 0x4e1a | neoui (status bar, Settings, Dev tools) | read-only telemetry; no charger control | 2026-11-11 |
+| Battery, TSENS | `qcom_battery.cpp`, `qcom_tsens.cpp`, `qcom_spmi.cpp` | 0x4e1a | neoui (status bar, Settings, Dev tools) | read-only telemetry; no charger control; charger watchdog off after ABL ([checked](hardware/verification/charger-2026-11-20.md)) | 2026-11-20 |
 | Haptics | `bv/a64_haptics.cpp` | 0x4e27 | MODEMD (ring, SMS), neoui | bounded pulses | yes |
 | USB debug | `qcom_dwc3.cpp`, `qcom_usbpower.cpp` | 0x4e04/05 | neoui (`usb_debug.rs`) | console on RAM boots; cold-boot power open | RAM boots |
 | Modem (MSS) | `qcom_mss.cpp`, `qcom_pas.cpp`, `qcom_glink.cpp`, `qcom_smp2p.cpp`, `qcom_ipa.cpp`, telhal | 0x4e0d–0x4e13, 0x4e24/25 | HWHUB (boot, QRTR, recovery) + MODEMD (cellular) ([modem.md](hardware/modem.md)) | calls, SMS, call log, recovery | 2026-11-18 |
