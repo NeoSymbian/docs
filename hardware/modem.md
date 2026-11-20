@@ -323,7 +323,7 @@ Exit:
 **What was built:**
 - **MODEMD.EXE is the `modemsrv`.** A separate server process would need a QRTR socket API between processes, so the
   QMI clients live in MODEMD. It serves the IPC server **`NeoModem`** (v1.0; the contract is the `no_std` crate
-  `modem-ipc` in the telephony repo):
+  `modem-ipc` in neohw (then the telephony repo)):
   - `STATUS` returns a fixed 74-byte snapshot: modem state, SIM, registration, technology, bars 0–4, operator, and
     one call `{id, state, incoming, number}`;
   - `DIAL(number)`, `ANSWER` and `HANGUP` complete with `KErrNone`, `KErrNotReady`, `KErrArgument` or

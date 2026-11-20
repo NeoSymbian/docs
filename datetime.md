@@ -170,7 +170,7 @@ widget text now comes from `NEXT`. The shell drops the alarm check (`due()`, `Ap
 | Ring while silent | sound profiles don't exist yet | profiles (settings S-boards) and an audio path for tones | neoui, telephony |
 | Alarm sounds | a beep | the audio service of files FA9 (MP3/AAC), or built-in tones first | telephony, files |
 | OPEN a page with arguments from a server | OPEN is app-to-app (1.9) | allow a non-UI client (DTSRV) to OPEN and NOTIFY | neoui |
-| .ics in Messages | SMS only | MMS (telephony C10) | telephony |
+| .ics in Messages | SMS only | MMS (modem C10) | neohw |
 | Share by Bluetooth | none | hardware/bluetooth.md B5 | neohw |
 
 ## Phases

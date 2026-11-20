@@ -41,7 +41,10 @@ unmodified S60 app processes
 | Fixes to Symbian code | The fork that owns the file, on `main`: graphics (guest wserv), classicui (Avkon/Uikon), appsupport (AppArc, view server), uiresources (icons, skins), cellularsrv (ETel), svgt (SVG icons). |
 | C++ run time of RVCT-built binaries (`drtaeabi`, `dfpaeabi`) | kernel `kernel/eka/compsupp/gcce` |
 | The launcher protocol (1.6 `ENTRY`, `FRONT`, `Entry` event) and the Old apps grid | neoui |
-| Telephony for old apps (ETel TSY over MODEMD) | telephony |
+| Telephony for old apps (ETel TSY over MODEMD) | neohw (was telephony) |
+| The key pads (Navigator, Gamepad, Number, Abc, Hidden, the console) | legacy `host/pad.cpp` (legacy#4); the page, haptics and Settings → Old apps in neoui (protocol 1.10, neoui#15) |
+| Sound for old apps (DevSound, the audio server, the WAV player's MMF plugins) | legacy (legacy#5: our `mmfdevsoundadaptor.dll` over NeoAudio); the DSP side is AUDIOD in neohw ([audio.md](hardware/audio.md)) |
+| Sockets for old apps (ESOCK over NeoNet, `RConnection` included) | build `apps/esock` (build#37) |
 | ELF/E32 emission, unwind tables, ROM/ROFS, the component loader | build |
 
 ## Compatibility contract
@@ -152,33 +155,47 @@ pad states, console, settings; the spec sheets "Pad keys", "Touch & hold", "Pad 
 
 ## Milestones
 
-| | Work | Done when |
-|---|---|---|
-| **L0** | Ownership and inventory: the legacy repo, the run time in compsupp, the manifest loading, honest audit reports. | The same ROM before and after; build owns no legacy runtime. |
-| **L0.5** | The AppArc launcher: protocol 1.6, the Old apps grid, real icons (SVG-T engine). | Old apps shows X-plore and Frozen Bubble with their icons; a tap starts the app in the guest. |
-| **L1** | A stable runtime and desktop: guest handshake, persistent supervisor, AknCapServer CONE 9 found from evidence, the Avkon service closure. | A minimal Avkon app starts again and again; notes and menus work; a guest failure leaves neoui usable. |
-| **L2** | Two usable apps: Frozen Bubble's `mediaclientaudiostream`, X-plore's dynamic loads, typed providers, controls, basic text. | **X-plore:** lists, copies and renames files, and keeps its settings. **Frozen Bubble:** a full game with held controls. Whether audio works is recorded either way. |
-| **L3** | Shell integration: damage instead of the 10 Hz full copy, frame ownership, a task protocol, several apps at once. | Two apps keep running while switching; no idle full-frame copies. |
-| **L4** | Runtime SIS install. Now NeoStore ST6 ([store.md](store.md), 2026-11-18): a Rust SIS installer in NEOINST instead of the SWI engine from mw.appinstall, plus the store's install screens. | Install from C: without a ROM build; the launcher updates; uninstall and upgrade work. |
-| **L5** | Breadth: screen modes and rotation, a FEP bridge to the neoui keyboard, media, a corpus of apps. | Per-app feature results published. |
+| | Work | Done when | Status (2026-11-20) |
+|---|---|---|---|
+| **L0** | Ownership and inventory: the legacy repo, the run time in compsupp, the manifest loading, honest audit reports. | The same ROM before and after; build owns no legacy runtime. | **Done** (2026-11-14) |
+| **L0.5** | The AppArc launcher: protocol 1.6, the Old apps grid, real icons (SVG-T engine). | Old apps shows X-plore and Frozen Bubble with their icons; a tap starts the app in the guest. | **Done** |
+| **L1** | A stable runtime and desktop: guest handshake, persistent supervisor, AknCapServer CONE 9 found from evidence, the Avkon service closure. | A minimal Avkon app starts again and again; notes and menus work; a guest failure leaves neoui usable. | **Largely done.** The guest desktop persists, AknCapServer starts first (the CONE 9 cause was found), and closing and reopening Old apps is stable. Open: the explicit guest handshake (guest mode is still detected from the chunk) |
+| **L2** | Two usable apps: Frozen Bubble's `mediaclientaudiostream`, X-plore's dynamic loads, typed providers, controls, basic text. | **X-plore:** lists, copies and renames files, and keeps its settings. **Frozen Bubble:** a full game with held controls. Whether audio works is recorded either way. | **Frozen Bubble done:** a full game with held controls and sound (legacy#4, #5). **X-plore in progress:** it browses C: and E: with the Navigator; copying, renaming and kept settings are not recorded yet |
+| **L3** | Shell integration: damage instead of the 10 Hz full copy, frame ownership, a task protocol, several apps at once. | Two apps keep running while switching; no idle full-frame copies. | Not started |
+| **L4** | Runtime SIS install. Now NeoStore ST6 ([store.md](store.md), 2026-11-18): a Rust SIS installer in NEOINST instead of the SWI engine from mw.appinstall, plus the store's install screens. | Install from C: without a ROM build; the launcher updates; uninstall and upgrade work. | Designed (store.md), not built. Packages still go in at build time (`SIS=` in build) |
+| **L5** | Breadth: screen modes and rotation, a FEP bridge to the neoui keyboard, media, a corpus of apps. | Per-app feature results published. | **Partly done.** Input: the key pads, the landscape console, multi-touch, key vibration and per-app pad memory ([Key pads](#key-pads-s60-apps-take-keys-not-touch)); text from neoui's keyboard through the Abc pad, as key events (no FEP needed). Media: sound and the WAV player's MMF plugins. Network: sockets on an `RConnection` work. Open: AknFep (multi-tap, T9), the apps' own screen modes and rotation (the console turns the canvas, the app keeps its mode), IAP records, a corpus of apps |
 
 Each step is tested on QEMU (Syborg, watched over VNC with `neo live`), then on the Pixel.
 
-**Status (2026-11-17):**
-- L0 and L0.5 are done.
-- L2 has started, on QEMU and on the Pixel:
-  - X-plore 1.64 opens its file browser, with C: and E: on the phone, and browses with the Navigator pad.
-  - Frozen Bubble is played with the Gamepad (QEMU: its key setup, a game, held aiming, firing), in portrait and in
-    the console; silent: there is no audio server yet.
+**Status (2026-11-20):**
+- **L0, L0.5 done; L1 largely done** (table above).
+- **On the Pixel** (key pads and multi-touch installed on slot a 2026-11-17):
+  - Frozen Bubble is played with the Gamepad, in portrait or in the landscape console, with sound.
+  - X-plore 1.64 browses C: and E: with the Navigator.
   - Closing and reopening Old apps is stable.
-- Sound (2026-11-18, [audio.md](hardware/audio.md) A3): Frozen Bubble's DevSound reaches the ADSP through our
-  `mmfdevsoundadaptor.dll` and NeoAudio (16 kHz mono); the 2010 audio server runs with our launcher.
-- Next:
-  - AknFep (multi-tap and T9 on the Number pad).
+- **Sound** (2026-11-18, [audio.md](hardware/audio.md) A3/A4):
+  - The path: old apps' DevSound → our `mmfdevsoundadaptor.dll` → NeoAudio → the ADSP (16 kHz mono).
+  - The 2010 audio server runs with our launcher.
+  - The WAV player's MMF plugins are built.
+- **Input beyond the keys:**
+  - The Abc pad types neoui's keyboard into the app's editor (all languages) without a FEP.
+  - AknFep itself is still not built: only its resources are (legacy `components.py`), so multi-tap and T9 on the
+    Number pad are open.
+- **Network** (2026-11-19, build#37 + ossrv#2, browser WB2d):
+  - ESOCK sockets opened on an `RConnection` work, as do P.I.P.S. sockets. A link tier under NEOTIER answers the
+    flow shim's bearer request.
+  - Still missing: IAP records. An app that lists access points, or asks the user to pick one, finds none.
+  - After an image with build#37 has run, an older image needs `C:\private\10202be9\persists\cccccc00.cre`
+    deleted (its NEOCDB then recreates its records).
+- **Next:**
+  - AknFep (multi-tap and T9 on the Number pad);
+  - X-plore's L2 file operations and kept settings;
+  - IAP records in NEOCDB;
+  - L3 (damage-based drawing, several apps at once).
 
 ## Open decisions (owner)
 
-- **Audio:** is audible sound required for L2?
+- ~~**Audio:** is audible sound required for L2?~~ Settled: sound works (audio A3/A4, 2026-11-18).
 - **Unsigned packages:** how to treat unsigned, expired and privileged packages (a permissive development policy is the default).
 - **PIM data:** do legacy contacts, calendar and messages share the native stores or keep their own?
 - **Guest failure:** after a guest failure, the user chooses whether to restart; unsaved work is never silently relaunched.
