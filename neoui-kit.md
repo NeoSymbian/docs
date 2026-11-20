@@ -212,6 +212,23 @@ The modes:
 
 **Back to Settings.** An app opened from the Settings app (its Calls & Messages row) returns there on Back.
 
+**Protocol 1.12 (Files FA8, 2026-11-20).** Apps pass open files by handle (e32 `SharedFile`): the opener shares its
+file-server session (`Fs::share_protected`), the server adopts the file and hands it to the target.
+
+| # | Opcode | Arguments → result |
+|---|---|---|
+| 20 | `CLIP_SET` | `[text, kind]`: kind 0 text (what 1.11 apps send), 1 paths to copy, 2 paths to move (one per line) |
+| 26 | `OPEN_FILE` | `[key, page, handle fs, file]` → 0: `OPEN` with a file instead of an arg |
+| 27 | `ARG_FILE` | `[out 4 B]` → a session handle; the file handle in the descriptor (`SharedFile::adopt_from_server`). Taking it removes it; `KErrNotFound` when none |
+| 28 | `DONE_FILE` | `[handle fs, file]` → 0: `DONE` with a file for the app that opened this one |
+| 29 | `RESULT_FILE` | as `ARG_FILE`, for that answer (taken after `AppEvent::Visible(true)`) |
+| 30 | `CLIP_KIND` | → the clipboard's kind |
+
+neoapp: `open_file`, `arg_file`, `done_file`, `result_file`, `set_clipboard_paths`, `clipboard_kind`, and
+`neoapp::open` (the handler table `HANDLERS` with `handlers_for(ext)`, Files' pages `files::PICK` (arg: a filter) and
+`files::SAVE` (arg: a name), and `always`/`set_always` for the setting `open.always`, which `Owner::Any` lets every app
+write). NEOKIT's Files page is the example: Pick a file, Save a file, and the `kit::VIEW` page Open with targets.
+
 **Libraries beside `@neoui`.** `neoui_kit::compile_with("ui/app.slint", &[("phone-shared", dir)])` maps an app repo's own Slint library (`@phone-shared/...`), for parts several apps of one repo share.
 
 ## Create an app
@@ -239,6 +256,7 @@ The app can live in another repo, as NEOPHONE does (NeoSymbian/phone). It pins n
 | copy/paste | the keyboard's edit bar (apps' fields) | built |
 | 1.9 | OPEN / ARG / DONE, notification actions, two residents, Keypad / Fab / Bubble / Composer | built (neoui `apps-split`) |
 | 1.11 | `Notification.progress` (0–100, an optional trailing byte): the shade draws a bar (Files' copies) | built 2026-11-18 (neoui `2047404`) |
+| 1.12 | files between apps by handle (`OPEN_FILE`, `ARG_FILE`, `DONE_FILE`, `RESULT_FILE`), the clipboard's kind (`CLIP_KIND`), `neoui_proto::open` (Open with, Files' PICK/SAVE, `open.always`), the kit's Files page | built 2026-11-20 (neoui#27, Files FA8) |
 | NV11, NV12 | this doc, `gestures.md`, the roadmap; Gestures is the default | docs written; install pending |
 
 **Not done yet:**

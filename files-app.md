@@ -3,8 +3,8 @@
 
 Written 2026-11-17. This is the implementation proposal for the Files app: a new `NeoSymbian/files` repo, every screen
 of the design canvas's Files page, the platform work it needs, and the phases FA0–FA13. Today's app (R8) is built and,
-since FA0, lives in [NeoSymbian/files](https://github.com/NeoSymbian/files). FA1–FA7 are built (2026-11-18/20, see
-[Status](#status-2026-11-20)); FA8–FA13 are not.
+since FA0, lives in [NeoSymbian/files](https://github.com/NeoSymbian/files). FA1–FA8 are built (2026-11-18/20, see
+[Status](#status-2026-11-20)); FA9–FA13 are not.
 
 **The design:** the canvas's Files page, https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#page-766d8f9d8c3a
 (60 `files2-*` boards, decisions F01–F11, published 2026-11-17). Each phase below links to its boards. The prototype is
@@ -142,8 +142,8 @@ What Files needs that doesn't exist, who owns the fix, and the phase that needs 
 | Open a vCard in Contacts | done (FA7): Contacts' IMPORT page (`contacts::IMPORT`, its arg a .vcf path) | — | phone | FA7 |
 | Add an event to a calendar | Calendar is a shell mock | a calendar store (and app) | neoui or a new repo | FA7 |
 | Fonts at run time (the font viewer) | done (FA7): our rasteriser over `ttf-parser` in `neo-format-inspect` | installing a font for other apps | files | FA7 |
-| Open with, file types | OPEN by key, ARG ≤ 256 bytes; a fixed `APPS` table | a handler table (type → app), a file picker, file handles (`EFsFileAdopt`) for long paths | neoui (protocol 1.10), e32-rs | FA8 |
-| Copy and paste files | CLIP: text, ≤ 2048 bytes | a file clip (paths) | neoui | FA8 |
+| Open with, file types | done (FA8): neoui protocol 1.12 (`OPEN_FILE`, `DONE_FILE`), the handler table `neoui_proto::open`, Files' PICK/SAVE pages, e32's `SharedFile` (`EFsFileAdopt`) | a registry of installed apps' types (store ST) | neoui, e32-rs | FA8 |
+| Copy and paste files | done (FA8): CLIP's kind (paths to copy or move) | — | neoui | FA8 |
 | Audio out | MODEMD's ringtone PCM only (ASM→ADM→AFE); MMF has no server | an audio service (hardware.md D3, roadmap H5) | neohw + kernel | FA9 |
 | FP/NEON for apps | the kernel part done (WB1, 2026-11-17: Q0–Q15 saved per thread) | an ARMv7/NEON build of the Rust user side (smooth-ui S4) | e32-rs, neoui, build | FA9–FA12 |
 | Video | nothing | a decoder on the NEON build | files | FA12 |
@@ -195,9 +195,10 @@ about 1 month, FA3–FA8 about 2–3 months, FA9–FA12 several months each, mos
 | FA5 | built 2026-11-19: files#6 (with NeoSymbian/image-webp `neosymbian`, the decoder made no_std). Pixel: a 12 MP JPEG decodes in 310 ms and shows in about a second; thumbnails come from a worker and a cache; swipe; rotate / crop / resize and Save as copy, on a 12 MP photo too. Syborg passes every Files step (its C: has no images) |
 | FA6 | built 2026-11-19: files#7. Pixel: a 1 GB zip (made on the phone by our writer in 36 s) extracts in 70 s, as fast as a plain copy of it (68 s), with the extract sheet open or closed (before progress changed once a second, the open sheet made it 396 s); browse a zip with Armenian and Cyrillic names, open a member read-only, list a tar.gz on the worker, compress to tar.gz on E: through the folder picker. Syborg passes every Files step (no archive taps: its C: has none) |
 | FA7 | built 2026-11-20: files#8, phone#7 (Contacts' IMPORT page). Pixel: Add to Contacts imports the ticked cards through NEOCONT, and Files then marks them "In Contacts" (a vCard 2.1 copy too); a saved edit changes only the edited line (PHOTO, X- properties, groups and CRLFs stay byte-exact); each of 9 corrupt fixtures shows its typed error and the hex view, with no panic; the DejaVu Sans samples (Latin, Cyrillic, Armenian, 12–32 px) draw in under about 2 s; X-plore's real SIS shows its platform, signer, UID and 4 capabilities |
-| FA8–FA13 | proposed; next: FA8 (open with, share, pick) |
+| FA8 | built 2026-11-20: e32-rs#7 (file handles between processes; Syborg `fs_share`), neohw#11 (pin), neoui#27 (protocol 1.12, the kit's Files page; Syborg: the kit saves through Files), files#9. Pixel: the kit picks `big.log` and saves `note.txt` through Files' picker; Open with sends a 298-byte path and a file in Files' private folder (a zip member) to the kit by handle; Always routes a .txt tap to the kit and is undone from the sheet; Copy to clipboard pastes the text; a Copy survives Files being killed (the paste bar comes back) |
+| FA9–FA13 | proposed; next: FA9 (audio) |
 
-**Decided while building FA1–FA7:**
+**Decided while building FA1–FA8:**
 - **Settings** `files.*` (sort, ascending, folders first, grid, hidden, wrap) are unregistered keys in the app's own
   namespace, not registry rows; rows can come with Settings › Apps › Files.
 - **Progress** of a copy goes into the shade through protocol 1.11 (`Notification.progress`, an optional trailing
@@ -258,9 +259,28 @@ about 1 month, FA3–FA8 about 2–3 months, FA9–FA12 several months each, mos
   shown, never verified; SIS v2 reads only the header and the controller (SIS v1 says so); .jad and a .jar's
   manifest; any other file, or a file a viewer can't read, opens as hex (pages read with `read_at`).
 - **Disabled until later phases:** Install font (needs a font store), Install as trusted (a certificate store,
-  browser WB6), Install for .sis/.sisx (NEOINST, FA13), Open with… and Share (FA8). Each says why in its footer.
+  browser WB6), Install for .sis/.sisx (NEOINST, FA13). Each says why in its footer.
+- **Files go by handle** (FA8, owner decision): Open with and the picker's answer pass an open file (e32
+  `SharedFile`: the 2010 `RFile` transfer and adopt), so a long path or a file in Files' private folder (an archive
+  member) reaches another app. Files' file-server session is shared (`Fs::share_protected`) at start.
+- **Protocol 1.12:** `OPEN_FILE` / `ARG_FILE` open an app with a file; `DONE_FILE` / `RESULT_FILE` answer the opener
+  with one (Files' `PICK` and `SAVE` pages); the clipboard has a kind, and copied files are their paths, one per
+  line. neoui holds a passed file between the two apps.
+- **Who opens what** is `neoui_proto::open::HANDLERS` (owner decision: in neoui-proto, not Files): Contacts' IMPORT
+  takes a .vcf by name (it reads a path), the kit's file viewer anything by handle. Files' own viewer always comes
+  first. **Always** is the system setting `open.always` (`ext=key;`, any app may write it); undo it by picking Files
+  with Always on (the selection ⋮ has Open with… for one file).
+- **No Photos app yet** (owner decision): the gate is the kit's Files page (Pick a file, Save a file, and a view page
+  Open with targets), which is also the template for apps that pick or save files.
+- **The picker** is FA6's folder picker: files after the folders (filtered by extensions or a family) for PICK, a
+  name field for SAVE and the editor's Save as. A name clash keeps both (`name (1).txt`); ✕ answers with plain `DONE`.
+- **Share:** Copy path; Copy to clipboard (a text file up to 2 KB as text, any other file as a paths clip with the
+  paste bar); Open with…; Bluetooth and MMS drawn disabled (FA13).
+- **Copied files on the system clipboard** (owner: the typed clip): Copy and Move also set a paths clip, and Files
+  restores the paste bar from it on start and when shown again; Paste and Cancel clear it.
 - **Pixel test images** are built with `--features test-files` (a 5 MB `C:\Data\big.log`, `C:\Data\photos\`,
-  `C:\Data\zips\` with a 1 GB zip, and `C:\Data\fa7\` with each FA7 fixture and a broken copy of it); the shipped
+  `C:\Data\zips\` with a 1 GB zip, `C:\Data\fa7\` with each FA7 fixture and a broken copy of it, and `C:\Data\fa8\` with
+  a note, contact cards and a 298-byte path); the shipped
   app has no such hook.
 
 ## Not doing
