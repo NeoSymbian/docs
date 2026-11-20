@@ -111,7 +111,7 @@ status, 0 = success).
 - The modem names its XTRA servers as `https://`; GNSSD now fetches the same paths over HTTP (neohw `208b878`), not
   yet tried on the phone (the modem didn't ask for XTRA on that boot).
 
-## Getting a first fix (research 2026-11-20, `private/gnss/research-rf-path.md`)
+## Getting a first fix (research 2026-11-20, [gnss-research.md](gnss-research.md))
 
 **Paused 2026-11-20 (owner):** GN0–GN4 are in review; resume at GR0.
 
