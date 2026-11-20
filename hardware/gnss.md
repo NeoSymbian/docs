@@ -86,11 +86,25 @@ status, 0 = success).
 | Stage | Work | Gate | Status |
 |---|---|---|---|
 | GN0 | This design | the owner reads it | 2026-11-20 |
-| GN1 | `crates/loc`; hub port 0x28 | host tests: replies built with the QMI builder, a hand-built position report, XTRA parts, the 15-min bound, reset | |
-| GN2 | GNSSD.EXE, the shared NeoHub client in `sys`, `exes.txt`, MODEMD starts it | phone RAM boot: bind, Register / Lock / Mode answered; WIFID still joins | |
-| GN3 | XTRA download, cache, inject | phone: validity after the inject; the cache reused after a reboot | |
-| GN4 | Dev tools row and actions | Syborg ("no modem") and the phone | |
+| GN1 | `crates/loc`; hub port 0x28 | host tests: replies built with the QMI builder, a hand-built position report, XTRA parts, the 15-min bound, reset | 2026-11-20: 18 tests |
+| GN2 | GNSSD.EXE, the shared NeoHub client in `sys`, `exes.txt`, MODEMD starts it | phone RAM boot: bind, Register / Lock / Mode answered; WIFID still joins | 2026-11-20, phone |
+| GN3 | XTRA download, cache, inject | phone: validity after the inject; the cache reused after a reboot | code done; phone re-test pending |
+| GN4 | Dev tools row and actions | Syborg ("no modem") and the phone | 2026-11-20, phone |
 | GN5 | Outdoor fix | horizontal accuracy < 50 m; time to first fix with and without XTRA | |
+
+## Phone results (2026-11-20, RAM boots, kernel c416f22c)
+
+- GNSSD starts (MODEMD spawns it), binds LOC through HWHUB, and sees `server 16 v2 i0` at 0:74 or 0:75.
+- **The modem's engine lock is ALL (4) on every boot** (the EFS keeps no write); GNSSD sets NONE each time and the
+  modem accepts it.
+- Start a fix (Dev tools): `engine on`, session status 1 (in progress), the modem asks for time (injected from NITZ)
+  27 s later and for XTRA. Indoors, away from a window: 0 satellites seen in 2 minutes.
+- The source query at start brought no XTRA URLs; the modem's own request does. A first build let that empty attempt
+  hold off the download for 10 minutes (fixed in neohw `e224825`).
+- Dev tools' Location row: "Off · idle (LOC service up)", then "Starting · searching, 0 satellites seen".
+- Two boots ended in a kernel fault while Dev tools was open: an SError from AArch32 EL0 whose entry (`exc_common`)
+  faults because SP_EL1 is 0x90 above the thread's stack top. Same fault as [audio.md](audio.md) "Open"
+  (2026-11-18, before GNSS). Being diagnosed; logs in `private/gnss/`.
 
 ## Not in scope
 
