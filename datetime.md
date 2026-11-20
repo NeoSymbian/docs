@@ -84,8 +84,9 @@ datetime/
   crates/
     datetime-core/   Apache, no_std: alarm, timer, stopwatch, world (moved from neoui-proto/src/clock),
                      next-due planning, snooze; the dt-ipc 1.0 codec
-    pim-ics/         Apache, no_std + alloc: iCalendar (RFC 5545) VEVENT/VTODO parse and write, unknown
-                     properties kept; files FA7's neo-format-pim reuses it
+    pim-ics/         Apache, no_std + alloc: reuses files' neo-format-pim (ical: VEVENT/VTODO/VALARM/
+                     VTIMEZONE parse and write, unknown properties kept, built in FA7) and adds what the
+                     calendar needs on top (RRULE expansion lives in calendar-core)
     calendar-core/   Apache: events, recurrence (an RRULE subset: daily, weekly by day, monthly by date,
                      yearly, COUNT/UNTIL, EXDATE), to-dos, the agenda and range queries, birthdays
     clock-ui/        GPL (Slint): Clock screens, host snapshots snapshots/clk2-*.png

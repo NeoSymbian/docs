@@ -3,8 +3,8 @@
 
 Written 2026-11-17. This is the implementation proposal for the Files app: a new `NeoSymbian/files` repo, every screen
 of the design canvas's Files page, the platform work it needs, and the phases FA0–FA13. Today's app (R8) is built and,
-since FA0, lives in [NeoSymbian/files](https://github.com/NeoSymbian/files). FA1–FA6 are built (2026-11-18/19, see
-[Status](#status-2026-11-19)); FA7–FA13 are not.
+since FA0, lives in [NeoSymbian/files](https://github.com/NeoSymbian/files). FA1–FA7 are built (2026-11-18/20, see
+[Status](#status-2026-11-20)); FA8–FA13 are not.
 
 **The design:** the canvas's Files page, https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#page-766d8f9d8c3a
 (60 `files2-*` boards, decisions F01–F11, published 2026-11-17). Each phase below links to its boards. The prototype is
@@ -139,9 +139,9 @@ What Files needs that doesn't exist, who owns the fix, and the phase that needs 
 | Settings keys `files.*` (sort, view, hidden) | the settings store | the keys in `neoui-proto` `settings/registry.rs` | neoui | FA1 |
 | Images at run time | `slint::Image::from_rgba8` | decoders (Slint has none on the device; ICL has no codecs) | files (`neo-format-image`) | FA5 |
 | Zip, gzip, tar | ezlib in the ROM, C++ only | Rust readers and writers | files (`neo-format-archive`) | FA6 |
-| Open a vCard in Contacts | Contacts imports every .vcf it finds (`phone/symbian/common/src/store.rs`) | an OPEN page that takes a path | phone | FA7 |
+| Open a vCard in Contacts | done (FA7): Contacts' IMPORT page (`contacts::IMPORT`, its arg a .vcf path) | — | phone | FA7 |
 | Add an event to a calendar | Calendar is a shell mock | a calendar store (and app) | neoui or a new repo | FA7 |
-| Fonts at run time (the font viewer) | fonts compiled in as SDF | a rasteriser for a loaded font | files (`neo-format-inspect`) | FA7 |
+| Fonts at run time (the font viewer) | done (FA7): our rasteriser over `ttf-parser` in `neo-format-inspect` | installing a font for other apps | files | FA7 |
 | Open with, file types | OPEN by key, ARG ≤ 256 bytes; a fixed `APPS` table | a handler table (type → app), a file picker, file handles (`EFsFileAdopt`) for long paths | neoui (protocol 1.10), e32-rs | FA8 |
 | Copy and paste files | CLIP: text, ≤ 2048 bytes | a file clip (paths) | neoui | FA8 |
 | Audio out | MODEMD's ringtone PCM only (ASM→ADM→AFE); MMF has no server | an audio service (hardware.md D3, roadmap H5) | neohw + kernel | FA9 |
@@ -182,7 +182,7 @@ The replacement map (old boards → new) is [`spec-replace`](https://claude.ai/a
 protocol, so it goes with a neoui release). FA9–FA12 depend on platform work and run beside it. *Estimate:* FA0–FA2
 about 1 month, FA3–FA8 about 2–3 months, FA9–FA12 several months each, mostly platform work.
 
-## Status (2026-11-19)
+## Status (2026-11-20)
 
 | Part | State |
 |---|---|
@@ -194,9 +194,10 @@ about 1 month, FA3–FA8 about 2–3 months, FA9–FA12 several months each, mos
 | FA4 | built 2026-11-18: files `e42811c`, neoui `ae720c6` (taps: New file → editor → type → save, 2 bytes exact). Pixel: a 5 MB log opens in about a second and scrolls; saves are byte-exact |
 | FA5 | built 2026-11-19: files#6 (with NeoSymbian/image-webp `neosymbian`, the decoder made no_std). Pixel: a 12 MP JPEG decodes in 310 ms and shows in about a second; thumbnails come from a worker and a cache; swipe; rotate / crop / resize and Save as copy, on a 12 MP photo too. Syborg passes every Files step (its C: has no images) |
 | FA6 | built 2026-11-19: files#7. Pixel: a 1 GB zip (made on the phone by our writer in 36 s) extracts in 70 s, as fast as a plain copy of it (68 s), with the extract sheet open or closed (before progress changed once a second, the open sheet made it 396 s); browse a zip with Armenian and Cyrillic names, open a member read-only, list a tar.gz on the worker, compress to tar.gz on E: through the folder picker. Syborg passes every Files step (no archive taps: its C: has none) |
-| FA7–FA13 | proposed; next: FA7 (cards and inspectors) |
+| FA7 | built 2026-11-20: files#8, phone#7 (Contacts' IMPORT page). Pixel: Add to Contacts imports the ticked cards through NEOCONT, and Files then marks them "In Contacts" (a vCard 2.1 copy too); a saved edit changes only the edited line (PHOTO, X- properties, groups and CRLFs stay byte-exact); each of 9 corrupt fixtures shows its typed error and the hex view, with no panic; the DejaVu Sans samples (Latin, Cyrillic, Armenian, 12–32 px) draw in under about 2 s; X-plore's real SIS shows its platform, signer, UID and 4 capabilities |
+| FA8–FA13 | proposed; next: FA8 (open with, share, pick) |
 
-**Decided while building FA1–FA6:**
+**Decided while building FA1–FA7:**
 - **Settings** `files.*` (sort, ascending, folders first, grid, hidden, wrap) are unregistered keys in the app's own
   namespace, not registry rows; rows can come with Settings › Apps › Files.
 - **Progress** of a copy goes into the shade through protocol 1.11 (`Notification.progress`, an optional trailing
@@ -242,8 +243,25 @@ about 1 month, FA3–FA8 about 2–3 months, FA9–FA12 several months each, mos
   photos, archives) are stored, not deflated. Extracted files get today's date (neo-fs has no set-modified).
 - **Progress** of an archive job changes once a second: redrawn every 250 ms poll, the open extract sheet slowed a
   1 GB extract from 70 s to 396 s on the Pixel; once a second, it takes 71 s.
-- **Pixel test images** are built with `--features test-files` (a 5 MB `C:\Data\big.log`, `C:\Data\photos\`, and
-  `C:\Data\zips\` with a 1 GB zip); the shipped app has no such hook.
+- **vCard and iCal** (`neo-format-pim`, our own, no_std): a file is a list of content lines that keep their raw
+  bytes; an edit rewrites only the lines it changes, in the file's own version (2.1 quoted-printable, 3.0/4.0
+  escapes, folded at 75 octets) and line ends. Text that isn't valid UTF-8 opens read-only. A save edits a copy and
+  swaps it in only after the write succeeds. iCal reads VEVENT, VTODO, VALARM (shown as "1 hour before") and
+  VTIMEZONE (the offset for a TZID); a Repeat the form can't show (an RRULE beyond FREQ) stays untouched unless the
+  user changes it. datetime's `pim-ics` reuses this crate.
+- **Add to Contacts** writes the ticked cards' original bytes to `C:\private\e0006001\open\add.vcf` and opens
+  Contacts on its IMPORT page; NEOCONT stays the only writer of the book. "In Contacts" is phone's own duplicate
+  rule (`Book::has_same`: same name and first number), run by Files over a read of `contacts.dat`.
+- **Add to Calendar** and "Your week" are left out until datetime DT6 (a calendar store).
+- **Inspectors** (`neo-format-inspect`): fonts through `ttf-parser` and our own coverage rasteriser (no shaping;
+  one cmap subtable; at most 1024 glyphs or 8 MB cached); certificates through `x509-cert` (PEM bundles, DER),
+  shown, never verified; SIS v2 reads only the header and the controller (SIS v1 says so); .jad and a .jar's
+  manifest; any other file, or a file a viewer can't read, opens as hex (pages read with `read_at`).
+- **Disabled until later phases:** Install font (needs a font store), Install as trusted (a certificate store,
+  browser WB6), Install for .sis/.sisx (NEOINST, FA13), Open with… and Share (FA8). Each says why in its footer.
+- **Pixel test images** are built with `--features test-files` (a 5 MB `C:\Data\big.log`, `C:\Data\photos\`,
+  `C:\Data\zips\` with a 1 GB zip, and `C:\Data\fa7\` with each FA7 fixture and a broken copy of it); the shipped
+  app has no such hook.
 
 ## Not doing
 
