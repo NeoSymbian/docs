@@ -182,7 +182,7 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
 - **More than 4 GB physical**: widen `TPhysAddr` to 64 bits in the memory model. The Pixel's DRAM runs from
   0x80000000 to 0x17FFFFFFF, so this is its other 2 GB.
 - Exit: before/after numbers from the nkernsa benchmarks, boot time, and idle current.
-- The UI's needs from M4 (clocks, placement, FP/NEON for user code) are stages S3–S4 of [smooth-ui.md](smooth-ui.md).
+- The UI's needs from M4 (clocks, placement, FP/NEON for user code) are stages S3–S4 of [smooth-ui.md](neoui-shell/smooth-ui.md).
 
 ### Track H: hardware
 
@@ -192,7 +192,7 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
 | **H1 platform base** | RPMh (clocks, regulators, bus votes), SPMI PMIC arbiter, TLMM GPIO, GENI I2C/SPI, GPI DMA, SCM calls to TrustZone | Can talk to PM660 and to an I2C device |
 | **H2 storage** | SDHCI-msm eMMC media driver (CQHCI later), read the GPT, `C:` on `userdata`; then the file system plan ([filesystem.md](filesystem.md)): FS1 FAT32 plugin, FS2 HS200, FS3 `C:` + `E:`, FS4 `Z:` on ROFS, FS5 A/B updates, FS6 USB | Files written in Symbian survive a reboot and a power cut |
 | **H3 power** | PM660 charger + RRADC battery reading (Rust policy); suspend and resume (PSCI CPU_SUSPEND / system suspend); screen off | Phone idles a night on battery and wakes on the power key |
-| **H4 display + input** | Synaptics RMI4 touch (I2C; **done 2026-11-06** in kernel C++, polled; Rust behind `hwaccess` later); power and volume keys (**done**, SPMI); OLED panel brightness and DSI panel on/off (**done 2026-11-11**, D2 in [driver-support.md](hardware.md): DCS commands through the command DMA ABL leaves running; screen timeout and the power key in neoui). Keep the bootloader's splash framebuffer as scan-out until a DPU driver is needed (vsync, double buffer, hardware planes: [smooth-ui.md](smooth-ui.md) S5). | Touch coordinates reach a user-side process; backlight dims |
+| **H4 display + input** | Synaptics RMI4 touch (I2C; **done 2026-11-06** in kernel C++, polled; Rust behind `hwaccess` later); power and volume keys (**done**, SPMI); OLED panel brightness and DSI panel on/off (**done 2026-11-11**, D2 in [driver-support.md](hardware.md): DCS commands through the command DMA ABL leaves running; screen timeout and the power key in neoui). Keep the bootloader's splash framebuffer as scan-out until a DPU driver is needed (vsync, double buffer, hardware planes: [smooth-ui.md](neoui-shell/smooth-ui.md) S5). | Touch coordinates reach a user-side process; backlight dims |
 | **H5 audio** | ADSP and C6 call audio (CS35L36 amps, RT5514 mic); **2026-11-18:** NeoAudio ([audio.md](hardware/audio.md)): ASM/ADM playback and recording on the Pixel, old apps' DevSound, Settings → Sounds → Media, the jack driver | Play a tone through the earpiece |
 | **H6 haptics, LEDs, sensors** | TI DRV2624 haptics (driver drafted in C7, pending acceptance), verified flash controller and ADSP sensors (exact chips/protocol pending) | Vibrate on touch |
 
@@ -222,14 +222,17 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
 - Apps talk to it over Symbian IPC: create surface, input events, focus, notifications.
 - UI toolkit: **Slint** with its CPU-only software renderer (needs no GPU or operating system).
 - Exit: a Rust launcher drawn and scrollable by touch. Target 60 fps at 1080×2160; measure it, CPU only.
-  Measured at ~15 fps (R9); the way to 60 fps is [smooth-ui.md](smooth-ui.md).
+  Measured at ~15 fps (R9); the way to 60 fps is [smooth-ui.md](neoui-shell/smooth-ui.md).
 
 **U3: system apps in Rust**
 - Launcher, status bar (battery from H3, signal from P2), settings, dialer, messages, contacts, Files.
 - Old Symbian text apps keep running from a terminal app.
-- Shell services (settings store, notifications, home pages with widgets, pin/unpin): designed in
-  [neoui-shell.md](neoui-shell.md). The settings store is done; the others are planned.
-- **Navigation v2 and the neoui kit** ([gestures.md](gestures.md), [neoui-kit.md](neoui-kit.md); merged to main
+- Shell services: the hub is [neoui-shell.md](neoui-shell.md) (its documents moved into `neoui-shell/` on
+  2026-11-21). The settings store is done; home pages and widgets are planned.
+- **Top panel** ([top-panel.md](neoui-shell/top-panel.md), designed 2026-11-21): the status bar v2, notification
+  cards, the media session (background playback), banners and inline reply, calls and messages from the panel, the
+  live island, the control centre and the lock screen, as stages TP0–TP9. TP0 (docs + canvas) is next.
+- **Navigation v2 and the neoui kit** ([navigation.md](neoui-shell/navigation.md), [kit.md](neoui-shell/kit.md); merged to main
   2026-11-17, installed into slot a the same day):
   - apps draw their header and footer with a shared kit (`neoui-kit`, `@neoui/kit.slint`) and talk to the shell
     through the app API (`neoapp`; protocol 1.8: toasts, the shade, badges, the clipboard; 1.9: apps open each
@@ -238,8 +241,8 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   - the UI's font is NeoSans (Inter with Noto Sans Armenian, 400–700);
   - Clock, Files, Dev tools, Terminal, Phone, Contacts and Messages are on the kit; NEOKIT.EXE is the gallery and the
     new-app template;
-  - next: the other apps' v2 boards, N9 peek, live Open apps, swipe to close, Lanes home and a lock
-    screen (G2–G6).
+  - next: the other apps' v2 boards, N9 peek, live Open apps, swipe to close and Lanes home (G2–G5); the lock
+    screen moved to the top panel's TP8.
 - **System keyboard (done 2026-11-12):**
   - English, Armenian and Russian, managed in Settings → Language & keyboard;
   - a terminal mode;
@@ -311,7 +314,7 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
 
 **U4: GPU** (stretch)
 - Adreno 615 + GMU + its SMMU. Kernel part in C++; command-stream builder in Rust. Freedreno is the reference.
-- Until then, everything renders on the CPU. Stage S6 of [smooth-ui.md](smooth-ui.md); its S2 and S5 cover a 2D UI first.
+- Until then, everything renders on the CPU. Stage S6 of [smooth-ui.md](neoui-shell/smooth-ui.md); its S2 and S5 cover a 2D UI first.
 
 ### Track P: phone
 

@@ -116,7 +116,7 @@ The maintained conclusions are in the issue register; temporary reports are supp
 
 Existing big.LITTLE capacity weighting and touch boost are already implemented; FP/NEON context support, a power
 governor, thermal management and tickless operation are separate work. Historical performance/phone passes in
-[smooth-ui.md](smooth-ui.md) and [known-issues.md](known-issues.md) were not rerun here.
+[smooth-ui.md](neoui-shell/smooth-ui.md) and [known-issues.md](known-issues.md) were not rerun here.
 
 ## External known issues and references
 

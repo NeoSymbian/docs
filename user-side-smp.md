@@ -1,6 +1,6 @@
 # The user side on modern cores: SMP-safe, one ARMv8-A AArch32 flavour (US0–US6)
 
-Written 2026-11-20 (browser WB4c session). It extends [smooth-ui.md](smooth-ui.md) S4 (the Rust ARMv7 target) to
+Written 2026-11-20 (browser WB4c session). It extends [smooth-ui.md](neoui-shell/smooth-ui.md) S4 (the Rust ARMv7 target) to
 the whole user side, and puts one urgent fix in front. Revised 2026-11-21 after US1: the owner chose one user-side
 flavour, 32-bit ARMv8-A; the stages below follow a Codex (`gpt-6.2-astra`) research pass, checked against the code.
 

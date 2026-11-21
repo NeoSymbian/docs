@@ -3,7 +3,7 @@
 **Status: in progress. S1, S2 and S3 are done (2026-11-08; S2's exit check is met by the home swipe, the fades and
 scrolling are 2–3× faster but just over budget); S4–S6 are open.** The plan (2026-11-07) comes from a
 read-through of neoui, e32-rs and the kernel after the R9 speed measurements
-([rust-integration.md](rust-integration.md#r9-neoui-speed-on-the-phone-measured)). Stages S1–S6 below are the work
+([rust-integration.md](../rust-integration.md#r9-neoui-speed-on-the-phone-measured)). Stages S1–S6 below are the work
 list. Each stage has an owner, an exit check, and an **estimate** of what it gains. Estimates are not measurements
 until the stage's exit check says so.
 
@@ -31,7 +31,7 @@ Paths name the repository first (`neoui`, `e32-rs`, `kernel`), then the path ins
 | 5 | CPU clocks are never set. The gold cores run 2.2× *slower* than silver, probably left at a low clock by ABL (unverified). | `kernel` `baseport/arm64/common/specific/a64_variant.cpp:91` (hard-coded nominal clock) | kernel |
 | 6 | Threads move freely across all 8 cores, so neoui lands on the slow gold cores. The balancer ignores core capacity. | `kernel` `kernel/eka/kernel/sthread.cpp:614` (`KCpuAffinityAny`), `kernel/eka/nkernsmp/nk_bal.cpp` | kernel |
 | 7 | No FP/NEON for user code: CPACR_EL1 is never set, and no V registers are saved on a context switch. This forces the soft-float ABI and an ARMv5TE build. | `kernel` `kernel/eka/nkernsmp/arm64/vectors.S` (x0–x30 only), `a64s_ncsched.cpp:560` (`CompleteContextSave` stub) | kernel |
-| 8 | The ARMv5TE build has no NEON, no LDREX/STREX and no hardware divide. Atomics and locks go through the kernel: every Rust alloc/free makes 2 exec calls. (euser's `RFastLock` is LDREX/STREX, with DMBs since [user-side-smp.md](user-side-smp.md) US0; only old ARMv5 binaries still use SWP, which ARMv8 traps and the kernel emulates.) | `e32-rs` `crates/e32/src/heap.rs` (`mutex_wait`/`mutex_signal`); `kernel` `kernel/eka/kernel/arm64/a64e_a32fix.cpp` `EmulateSwp` | e32-rs, kernel |
+| 8 | The ARMv5TE build has no NEON, no LDREX/STREX and no hardware divide. Atomics and locks go through the kernel: every Rust alloc/free makes 2 exec calls. (euser's `RFastLock` is LDREX/STREX, with DMBs since [user-side-smp.md](../user-side-smp.md) US0; only old ARMv5 binaries still use SWP, which ARMv8 traps and the kernel emulates.) | `e32-rs` `crates/e32/src/heap.rs` (`mutex_wait`/`mutex_signal`); `kernel` `kernel/eka/kernel/arm64/a64e_a32fix.cpp` `EmulateSwp` | e32-rs, kernel |
 | 9 | One uncached framebuffer with no vsync, no flip and no double buffer, so updates can tear and there is nothing to pace frames against. | `kernel` `baseport/arm64/common/specific/a64_display.cpp:124` (`EMapAttrBufferedC`); no MDP/DPU register is touched | kernel |
 | 10 | Touch is polled every 10 ms over 100 kHz I2C with a busy spin. Every press and release calls `Kern::Printf`, which prints with interrupts off. | `kernel` `baseport/arm64/bonito_variant/specific/a64_touch.cpp:282` (`KPollMs`), `:345` (the print); `baseport/arm64/sdm670_assp/qcom_geni_i2c.cpp` | kernel |
 
@@ -151,7 +151,7 @@ keeps its one `MinimalSoftwareWindow`; the server takes snapshots of the screen 
 
 ### S3: CPU placement and clocks
 
-**Owner:** kernel; overlaps [roadmap.md](roadmap.md) M4. **Status: done (2026-11-08)**, in `kernel` `6ca665a` (S3a),
+**Owner:** kernel; overlaps [roadmap.md](../roadmap.md) M4. **Status: done (2026-11-08)**, in `kernel` `6ca665a` (S3a),
 `a584295` (S3b), `9b127ce` (S3c) and `618a9d9` (S3d). Checked on the Pixel and on QEMU. Clock policy chosen by the
 owner: touch boost.
 
@@ -242,7 +242,7 @@ kernel#19: eager save/restore, Qualcomm's EL2 does not trap AArch32 FP, tested o
 
 ### S6: Adreno 615 GPU (stretch)
 
-**Owner:** kernel + a Rust command-stream builder. **Status:** not planned; this is [roadmap.md](roadmap.md) U4.
+**Owner:** kernel + a Rust command-stream builder. **Status:** not planned; this is [roadmap.md](../roadmap.md) U4.
 
 - Needs:
   - the GMU and its firmware;

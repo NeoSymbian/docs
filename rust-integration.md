@@ -409,7 +409,7 @@ from H2.1: check that a folder made in Files survives a reboot. Rebuild NEOTEST 
   frame per transition.
 - **Taps are lost while frames are slow:** a press from one tap gets paired with a release from a later one.
 
-**Superseded (2026-11-07):** the order below is replaced by [smooth-ui.md](smooth-ui.md). Slint draws pixels with
+**Superseded (2026-11-07):** the order below is replaced by [smooth-ui.md](neoui-shell/smooth-ui.md). Slint draws pixels with
 integer math, so hardware floats (item 2) gain less than expected. Input handling and retained layers come first.
 
 **Next, in order of measured gain:**
