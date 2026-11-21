@@ -308,8 +308,11 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   page, with "In Contacts" marks; a font viewer drawn by our own rasteriser; certificate, app package (.sis, .sisx,
   .jad, .jar) and hex views; every corrupt file shows an error, never a crash. **FA8 built 2026-11-20:** apps pass
   open files to each other by handle (neoui protocol 1.12, e32's file handles): Open with (with Always), Share, and
-  Files as the system file picker and Save as; copied files stay on the clipboard after Files closes. Next is FA9,
-  audio.
+  Files as the system file picker and Save as; copied files stay on the clipboard after Files closes. **FA9 M0–M1
+  built 2026-11-21:** Files on ARMv7 and the audio player (WAV). **FA10 built 2026-11-21:** documents (Pixel-tested):
+  docx, odt and rtf in Reflow and Page, an EPUB reader (pages, Contents, text size, themes, the place kept) and xlsx
+  as a read-only grid, laid out by Rust at the widths Slint draws; pictures stream (decoded only as they scroll in).
+  Next: FA9 M1b–M6 (more audio formats) and FA11 (PDF).
 - **Clock + Calendar (proposed 2026-11-17):** [datetime.md](datetime.md). A new `NeoSymbian/datetime` repo
   (UIDs 0xE0008001–3): NEOCLOCK moves out of neoui and gets a v2 UI (3 tabs); NEOCAL is new (Month, Week, Day,
   To-do, .ics); a resident DTSRV owns alarms, timers, events and to-dos and rings them, replacing clockwork's alarm

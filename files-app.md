@@ -4,7 +4,8 @@
 Written 2026-11-17. This is the implementation proposal for the Files app: a new `NeoSymbian/files` repo, every screen
 of the design canvas's Files page, the platform work it needs, and the phases FA0–FA13. Today's app (R8) is built and,
 since FA0, lives in [NeoSymbian/files](https://github.com/NeoSymbian/files). FA1–FA8 are built (2026-11-18/20, see
-[Status](#status-2026-11-21)); FA9–FA13 are not.
+[Status](#status-2026-11-21)); FA9 M0–M1 and FA10 are built (FA10 tried on the Pixel, not merged); the rest of FA9 and
+FA11–FA13 are not.
 
 **The design:** the canvas's Files page, https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#page-766d8f9d8c3a
 (60 `files2-*` boards, decisions F01–F11, published 2026-11-17). Each phase below links to its boards. The prototype is
@@ -197,7 +198,8 @@ about 1 month, FA3–FA8 about 2–3 months, FA9–FA12 several months each, mos
 | FA7 | built 2026-11-20: files#8, phone#7 (Contacts' IMPORT page). Pixel: Add to Contacts imports the ticked cards through NEOCONT, and Files then marks them "In Contacts" (a vCard 2.1 copy too); a saved edit changes only the edited line (PHOTO, X- properties, groups and CRLFs stay byte-exact); each of 9 corrupt fixtures shows its typed error and the hex view, with no panic; the DejaVu Sans samples (Latin, Cyrillic, Armenian, 12–32 px) draw in under about 2 s; X-plore's real SIS shows its platform, signer, UID and 4 capabilities |
 | FA8 | built 2026-11-20: e32-rs#7 (file handles between processes; Syborg `fs_share`), neohw#11 (pin), neoui#27 (protocol 1.12, the kit's Files page; Syborg: the kit saves through Files), files#9. Pixel: the kit picks `big.log` and saves `note.txt` through Files' picker; Open with sends a 298-byte path and a file in Files' private folder (a zip member) to the kit by handle; Always routes a .txt tap to the kit and is undone from the sheet; Copy to clipboard pastes the text; a Copy survives Files being killed (the paste bar comes back) |
 | FA9 M0 + M1 | built 2026-11-21: files#10. Files builds for ARMv7 on the phone (`cargo arm7`: VFPv3 + NEON, softfp; Syborg keeps `cargo arm`). The player plays WAV (8/16/24/32-bit PCM, float, A-law, µ-law, extensible). Pixel (muted): ARMv7 Files runs; 44.1/48/22.05/8 kHz WAVs play; next, previous, end-of-track advance, seek and pause work; one underrun per track (the end); a broken file is skipped; music goes on with the screen off. **Not done yet:** the incoming-call test on the Pixel, Syborg CI with the branch, the decoder choices (before M2), M1b |
-| FA9 M1b–M6, FA10–FA13 | proposed; next: the decoder choices, then M2 (MP3); M1b with the top panel's media session ([top-panel.md](neoui-shell/top-panel.md) TP3: Files posts MEDIA and keeps playing in the background, owner 2026-11-21) |
+| FA10 | built 2026-11-21 on files branch `fa10` (D0–D4, review fixes, a Pixel fix; not merged): docx, odt and rtf in Reflow and Page; the EPUB reader; xlsx as a grid. Host: every reader on its fixtures and on broken copies (no panic), the layout's widths equal Slint's, snapshots `files2-view-docx(-page)`, `files2-view-epub(-controls, -contents)`, `files2-view-xlsx(-chart)`. **Pixel** (RAM boot): the board's Armenian docx in Reflow and Page; the 311-page EPUB (a page turn is one ~3.4 ms app frame plus ≤ 7.3 ms of rendering; 12 chapters counted in ~250 ms; the place, size and theme kept over a reboot); the xlsx grid (E7's formula and sum, a row's sum, sideways scroll, the chartsheet); a docx with three 12 MP photos: each decoded on the worker only as it scrolls in (4000×3000 → 800×600 in 1.2–1.4 s); every broken copy in `C:\Data\fa10\` opens as hex (or, a cut rtf, partly), no crash. The run found pages laid out 264 px short (measured before the reader's frame): the viewers now lay out again when their area changes size. **Not tried:** the pinch (the debug monitor injects one finger) |
+| FA9 M1b–M6, FA11–FA13 | proposed; next: the decoder choices, then M2 (MP3); M1b with the top panel's media session ([top-panel.md](neoui-shell/top-panel.md) TP3: Files posts MEDIA and keeps playing in the background, owner 2026-11-21) |
 
 **Decided while building FA1–FA8:**
 - **Settings** `files.*` (sort, ascending, folders first, grid, hidden, wrap) are unregistered keys in the app's own
@@ -293,6 +295,49 @@ about 1 month, FA3–FA8 about 2–3 months, FA9–FA12 several months each, mos
 - **What a file is** comes from its first bytes (`neo_format_media::probe`), not its name; `.aac` is an alias of the M4A row (the board's 55 types stay).
 - **Accented tags draw:** Slint bakes only the glyphs its literals use (plus ASCII and the keyboard's alphabets), so the player carries the Latin-1 and Latin Extended-A letters ("Café", "Tunç").
 - **Test images play muted** (`test-files`: the stream's own gain at 0, the media volume untouched); generated WAVs go to `C:\Data\fa9\`.
+
+**Decided while building FA10 (2026-11-21):**
+- **Slint draws the text, Rust lays it out** (owner). Slint's software renderer keeps each glyph's advance at one SDF
+  size T (26.6 fixed point; rounded for glyphs with an outline, truncated for blank ones; T comes from every font size
+  in the UI, 16 in Files) and draws it at P px as `(P·adv/T + 32)/64`, P truncated to whole pixels. files-ui's build
+  script writes the faces' advances for the glyph set, and `doc::Fonts::calibrate` finds T once from a hidden probe
+  run (it needs many sizes: three sizes fit 9, 14 and 16). A host test checks Rust's widths equal Slint's for 100+
+  runs. Slint has no underline: underlines and strikes are drawn as rectangles.
+- **The document faces are a family of their own, NeoDoc** (owner): DejaVu Sans, Bold and Oblique 2.37 renamed (the
+  Bitstream Vera licence asks a changed font to be renamed; `ui/fonts/NeoDoc.license`). Adding a "DejaVu Sans" Bold
+  had turned every weight-600 DejaVu title in Files bold. Markdown Preview's italic now draws italic (Slint finds the
+  Oblique for NeoSans). Slint bakes every literal character into every embedded font, so the documents' set (Latin-1,
+  Latin Extended-A, Greek, Cyrillic, Armenian, punctuation, currency, □) took the baked glyphs from 0.45 to 1.35 MB;
+  a character outside it is drawn as □.
+- **Documents stream** (owner: big photos must not load all at once). A docx, odt, EPUB or xlsx is read through the
+  open file a part at a time; a picture's size comes from its member's first 64 KB (512 KB for a JPEG with a large
+  EXIF); pictures are decoded on the picture worker only when the window shows them, at the size they are drawn
+  (into a chunk when they can), and let go when they leave it; a quiet box stands in meanwhile. An rtf is read whole
+  (at most 32 MB): its pictures are in its text.
+- **Content is checked, not only the name:** `neo_format_document::detect` reads `{\rtf`, a zip's `mimetype` (EPUB,
+  ODF text) and its parts (`[Content_Types].xml` with `word/` or `xl/`); the viewer is still chosen by extension
+  (`.csv` is in the Excel family and keeps its table editor).
+- **docx / odt / rtf:** styles (with `basedOn`), headings, lists (bullets and numbers), tables (spans; a column is at
+  least its longest word), pictures, page breaks and the page setup. Not shown: headers, footers, footnotes,
+  comments, deleted text, text boxes' frames. Left-aligned, centred or end-aligned; no justification, hyphenation or
+  right-to-left text.
+- **Page mode** (owner: now, not later): the file's page size and margins (A4 when it has none), scaled to the
+  screen on grey; a pinch zooms 1–4× and the pages are laid out again when the fingers lift (the footer says the
+  zoom meanwhile); a zoomed page scrolls sideways.
+- **EPUB:** a chapter at a time; the contents from EPUB 3's nav, else EPUB 2's NCX; DRM refused (obfuscated fonts
+  are fine: unused); stylesheets aren't read (an element's inline style is). The reader (owner: Contents, Text size,
+  Themes, pictures): taps on the left and right quarters or swipes turn pages, the middle shows Contents · A− · A+ ·
+  the theme (Sepia, Light, Dark); Contents is an overlay (a kit sheet doesn't scroll a long list). Sizes 13–30 dp,
+  books start at 17. A worker lays every chapter out to number the pages ("Page n of N in the chapter" until it is
+  done; a newer size stops an older count). The place in each book is kept in `C:\private\e0006001\books.dat`
+  (path, size, date → chapter and position), the size and theme in `files.reader.size` / `files.reader.theme`.
+- **xlsx:** cached values only (nothing is calculated); shared formulas shifted from their master for the formula
+  bar; number formats: General, decimals, grouping (a no-break space, as the board), percent, thousands, literals,
+  currencies, dates and times (1900 and 1904); bold from the cell's font; merged cells; at most 200,000 cells a
+  sheet; a chartsheet says "Charts aren't shown". A tap selects a cell (or its merge); a column letter or a row number
+  selects the column or row, and the footer sums its numbers (no drag selection). Columns are 6 dp a character
+  (Excel's width), rows 29 dp.
+- **Syborg is no longer a target** (owner, 2026-11-21, user-side-smp.md): FA10 is not checked there.
 
 ## Not doing
 
