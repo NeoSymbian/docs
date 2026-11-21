@@ -231,7 +231,7 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   2026-11-21). The settings store is done; home pages and widgets are planned.
 - **Top panel** ([top-panel.md](neoui-shell/top-panel.md), designed 2026-11-21): the status bar v2, notification
   cards, the media session (background playback), banners and inline reply, calls and messages from the panel, the
-  live island, the control centre and the lock screen, as stages TP0–TP9. TP0 (docs + canvas) is next.
+  live island, the control centre and the lock screen, as stages TP0–TP9. TP0 (docs + canvas) is done; TP1 is next.
 - **Navigation v2 and the neoui kit** ([navigation.md](neoui-shell/navigation.md), [kit.md](neoui-shell/kit.md); merged to main
   2026-11-17, installed into slot a the same day):
   - apps draw their header and footer with a shared kit (`neoui-kit`, `@neoui/kit.slint`) and talk to the shell

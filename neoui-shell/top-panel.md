@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Top panel: status bar, shade, notifications, media, calls and messages, live island, control centre, lock screen
 
-**Status: designed 2026-11-21, nothing of TP1–TP9 built.** The design comes from the canvas page **Top panel &
+**Status: designed 2026-11-21; TP0 done (docs + canvas), nothing of TP1–TP9 built.** The design comes from the canvas page **Top panel &
 notifications** (18 boards) plus the related boards on the Shell, Navigation, Phone, Messages, Clock, Files, Store,
 Browser and Settings pages. The screen map is at the [end](#screen-map). It replaces `neoui-shell.md` Part 2 (the
 2026-11-09 notification sketch, whose opcode numbers are void) and Navigation's G6 lock screen. The hub is
@@ -305,7 +305,10 @@ TP7 and TP8 can swap.
 - Browser WB5 (download done: TP2; downloads in the island: TP6);
 - Files FA9 M1b (TP3).
 
-## Boards to draw in TP0
+## Boards drawn in TP0
+
+Drawn on 2026-11-21 (canvas version 67, the Top panel page's "TP0" row). The same publish renumbered
+`api-notify-protocol`/`api-notify-model` and fixed the notes on `set2-notifications`, `set2-notify-app` and `store-shade`.
 
 | New board | Shows | Phase |
 |---|---|---|
@@ -321,7 +324,7 @@ TP7 and TP8 can swap.
 Every board on the five pages the shell owns, and the related boards elsewhere. "Baseline" means as built and
 replaced by the named phase.
 
-**Top panel & notifications page (18):**
+**Top panel & notifications page (26):**
 
 | Board | Phase | Notes |
 |---|---|---|
@@ -343,6 +346,12 @@ replaced by the named phase.
 | `di-call` | TP6, TP5 | the call expanded in an app |
 | `api-notify-protocol` | TP2–TP7 | → [protocol.md](protocol.md) (renumbered in TP0) |
 | `api-notify-model` | — | the flow, P01–P06 and stages (renumbered as TP in TP0) |
+| `nt-call-banner` | TP5 | new in TP0 |
+| `nt-volume` | TP3 | new in TP0 |
+| `tp-shade-buttons`, `tp-control-buttons`, `nt-headsup-buttons` | TP1, TP7, TP4 | new in TP0: Buttons mode |
+| `nt-lock-pin` | TP9 | new in TP0 (later) |
+| `nt-files-player` | TP3 | new in TP0: Files with background play |
+| `nt-home-media` | TP3 | new in TP0: the live home Media card |
 
 **Shell & system UI page, the boards this design replaces (8):**
 

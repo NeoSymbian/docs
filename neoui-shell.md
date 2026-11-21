@@ -37,7 +37,7 @@ the SIM PIN. An app draws its header, footer and content with the kit ([kit.md](
 | Kit and app API | 1.8–1.12 | — |
 | Navigation | NV1–NV12 (not installed) | G2–G5 |
 | Keyboard | en/hy/ru, pads, terminal; old-app key pads | — |
-| Top panel | status bar v1, shade with entries (1.8–1.11) | TP0 docs + canvas, then TP1 |
+| Top panel | status bar v1, shade with entries (1.8–1.11); TP0 (docs + canvas) | TP1 |
 | Home | live clock; static mock-up cards | Parts 3–4; the Media card in TP3 |
 | Lock screen | none | TP8 (replaces Navigation G6) |
 | Smoothness | S1–S3 | S4 (ARMv7/ARMv8 user side) |
@@ -59,7 +59,7 @@ belongs to:
 | Shell & system UI · UI kit, patterns | `kit-header`, `kit-footer`, `kit-lists`, `kit-controls`, `kit-menus`, `kit-feedback`; `pat-prototype`, `pat-clock-buttons`, `pat-clock-gestures`, `pat-tabs-swipe`, `pat-files-select`, `pat-files-search`, `pat-files-refresh`, `pat-settings-top`, `pat-row-actions` | [kit.md](neoui-shell/kit.md) |
 | Shell & system UI · Shell API | `api-overview`, `api-kit-reference`, `api-recipes`, `api-decisions` | [kit.md](neoui-shell/kit.md) |
 | | `api-protocol` | [protocol.md](neoui-shell/protocol.md) |
-| Top panel & notifications | all 18 (`tp-*`, `nt-*`, `di-*`, `api-notify-*`) | [top-panel.md](neoui-shell/top-panel.md#screen-map) |
+| Top panel & notifications | all 26 (`tp-*`, `nt-*`, `di-*`, `api-notify-*`; 8 added in TP0) | [top-panel.md](neoui-shell/top-panel.md#screen-map) |
 | Navigation | all 35 (`nav-*`, `nav2-spec-*`) | [navigation.md](neoui-shell/navigation.md) |
 | Keyboard | `kb2-*` (7), `pad-*` (22) | [keyboard.md](neoui-shell/keyboard.md#canvas-the-keyboard-page-29-boards) |
 
