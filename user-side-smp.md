@@ -41,8 +41,12 @@ flavour, 32-bit ARMv8-A; the stages below follow a Codex (`gpt-6.2-astra`) resea
   A55/A75 are ARMv8.2-A. In AArch32 that adds to ARMv7: acquire/release loads and stores (`LDA`/`STL`, cheaper locks
   than LDREX + DMB), CRC32, AES/SHA (TLS, zip), and the ARMv8 NEON/VFP additions. Flags: `-march=armv8-a+crc+crypto`
   (C/C++), an ARMv8 AArch32 Rust target.
-  - **One flavour, no ARMv5/v6/v7 builds** (owner, 2026-11-21). QEMU Syborg emulates a Cortex-A8 (ARMv7), so the
-    CI moves to QEMU `virt` under our AArch64 kernel, which boots the same user payload as the phone (US6a/US6b).
+  - **One flavour, no ARMv5/v6/v7 builds** (owner, 2026-11-21). The CI runs on QEMU `virt` under our AArch64
+    kernel, which boots the same user payload as the phone (US6a/US6b).
+  - **Syborg is no longer a target** (owner, 2026-11-21: "why we need syborg, ignore it"). Its 2010 ARM kernel has
+    no VFP support and doesn't keep the user-side thread data, so the ARMv8 user side doesn't run there (efile dies on
+    its first `vldr d16`; with VFP off, E32USER-CBase 66). build's and e32-rs's CI boot `virt` only; neoui's Syborg UI
+    job is manual until US6b ports it; `neo boot`/`neo live` (Syborg) don't run new builds until `virt` has a VNC view.
   - **32-bit, not 64-bit:** the kernel is AArch64; the user side stays AArch32. A 64-bit user side is
     [parked](#parked-a-64-bit-user-side).
 - **Calling convention: soft-float stays.**
@@ -90,9 +94,8 @@ stdtest smp_printf_g smp_condvar_timeout smp_static_init smp_once smp_stdio smp_
 - **SMP on virt** (atlas, the `2026-11-20-finchmane` user side with the eshell console): the seven `smp` checks print
   `7 ok, 0 failed, 0 skipped`. QEMU on an x86 host orders memory more strongly than the Pixel, so the phone stays the
   real test of ordering; `virt` catches crashes, hangs and lost wake-ups.
-- **Syborg with an ARMv8 CPU:** the 2010 Syborg ROM boots to the neoui launcher with `-cpu max,has_el2=off` (checked
-  that QEMU ran with it) exactly as on the Cortex-A8. So the UI CI can probably stay on Syborg with one flag instead of
-  being ported (US6b); still to test there: FP state across preemption (lazy VFP, `d16`–`d31`) with ARMv8 user code.
+- **Syborg with an ARMv8 CPU:** the 2010 Syborg ROM (ARMv5 user side) boots with `-cpu max,has_el2=off` as on the
+  Cortex-A8 (symbian-qemu#1, build#45), but the ARMv8 user side doesn't (above): Syborg is dropped.
 - **Size baseline** (`2026-11-20-finchmane`, bonito flash image): core ROM 255 E32 images, 13,903,220 bytes
   (`romsect.bin` 13,337,812); ROFS 48 E32 images, 41,433,068 bytes (`rofs.img` 50,278,808); `boot.img` 6,569,984.
   `euser.dll` 431,648, `efsrv.dll` 60,436, `hal.dll` 4,960. Per-image list with SHA-256: atlas task `us1`,
