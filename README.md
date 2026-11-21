@@ -23,7 +23,7 @@ NeoSymbian brings the open-source 2010 Symbian (EKA2, the Symbian^3 release) bac
 | [phone-apps.md](phone-apps.md) | Phone, Contacts and Messages v2: three apps that open each other; shared data; missing platform functions |
 | [files-app.md](files-app.md) | Files: the new files repo, every canvas screen, platform gaps, phases FA0–FA13 |
 | [store.md](store.md) | NeoStore: the Go store server, the phone app, the `.npk` format, the on-phone installer for `.npk` and `.sis`, phases ST0–ST11 |
-| [browser.md](browser.md) | Web browser design: every candidate, why Servo, the browser repo and forks, stages WB0–WB7 |
+| [browser.md](browser.md) | **Web browser hub:** the tracker of every stage (WB0–WB7), UI phase and screen, and the open items. Details in `browser/`: [design](browser/design.md) (why Servo), [architecture](browser/architecture.md), [protocol](browser/protocol.md), [UI spec](browser/ui.md) and [screens](browser/ui-screens.md), one file per stage (WB0–WB7) |
 | [port-map.md](port-map.md) | How EKA2 maps onto AArch64: what was reused, adapted and written new |
 | [ekern-backend.md](ekern-backend.md) | The full kernel's AArch64 backend |
 | [filesystem.md](filesystem.md) | File system plan: drives, flash layout, stages FS1–FS6 |

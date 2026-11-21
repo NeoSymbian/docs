@@ -21,7 +21,7 @@ design (settings, notifications, home pages, widgets); its parts moved into the 
 | [neoui-shell/smooth-ui.md](neoui-shell/smooth-ui.md) | 60 fps: input pacing, layers, CPU placement, FP/NEON, DPU, GPU | S1–S6 | S1–S3 done |
 | [datetime.md](datetime.md#system-time-shell-built-2026-11-13) | The shell's system time: Date & time, network time, time zones (was Parts 5–6) | — | built 2026-11-13 |
 | [legacy.md](legacy.md) | Old S60 apps through LEGACY.EXE (their key pads are drawn there) | — | — |
-| [files-app.md](files-app.md), [phone-apps.md](phone-apps.md), [datetime.md](datetime.md), [store.md](store.md), [browser-ui.md](browser-ui.md) | The apps built on the kit | — | — |
+| [files-app.md](files-app.md), [phone-apps.md](phone-apps.md), [datetime.md](datetime.md), [store.md](store.md), [browser/ui.md](browser/ui.md) | The apps built on the kit | — | — |
 
 ## Who draws what (K01)
 

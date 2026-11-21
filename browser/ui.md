@@ -1,10 +1,12 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
-# The browser app (NEOWEB): UI spec and phases
+# The browser app (NEOWEB): UI spec
 
-Written 2026-11-17. This is the app side of [browser.md](browser.md): every screen of `NEOWEB.EXE`, the rules its
-chrome follows, how it talks to the shell and to the engine, and the phases that build it. browser.md stays the
-engine plan (WB0–WB7). **Status (2026-11-21):** UI0–UI4 are built, and since WB5 they run on Servo on the Pixel
-(browser.md "WB5 result"); the WB6 and WB7 screens are next.
+Part of the [browser docs](../browser.md). Written 2026-11-17: every screen of `NEOWEB.EXE`, the rules its chrome
+follows, how it talks to the shell and to the engine. The phases that build the screens, and each screen's status, are
+in [ui-screens.md](ui-screens.md); the engine side is the WB stages.
+
+**Status (2026-11-21):** ✅ UI0–UI4 built, and on Servo on the Pixel since WB5; ⬜ UI5 (WB6) and UI6 (WB7). The
+counts per screen are in [ui-screens.md](ui-screens.md).
 
 **The design is the canvas.** The Browser page of the design canvas is the source of truth:
 https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#page-9cb33ae9a178
@@ -21,7 +23,7 @@ Board names below are the canvas's file names; open the page and find the board 
 
 **What this replaces:**
 - the mock browser screen inside the neoui shell (`neoui/ui/screens/browser.slint`, wired in `ui/shell.slint`);
-- browser.md's one-line chrome plan ("URL bar, tabs, menu, downloads, certificate errors").
+- the engine plan's one-line chrome plan ("URL bar, tabs, menu, downloads, certificate errors").
 
 ## Decisions
 
@@ -46,16 +48,16 @@ B01–B07 were the owner's decisions of 2026-11-17 on the canvas; B08–B11 were
 - Downloads go to `C:\Data\Downloads`. That Files shows the folder is unverified.
 - 6 pages stay loaded and at most 30 are open. There is also a heap budget of about 512 MiB.
 - When the chrome shows, it overlays the page; the page is never resized on hide.
-- **Back uses `can_back`.** Protocol 1.8 removed NAV, so browser.md's `claim_nav` is gone.
+- **Back uses `can_back`.** Protocol 1.8 removed NAV, so the old design's `claim_nav` is gone.
 - **The Wi-Fi portal hand-off is protocol 1.9 `OPEN`.** Wi-Fi opens `browser` with the portal URL as its argument, and
-  NEOWEB reads it with `ARG` ([kit.md](neoui-shell/kit.md), protocol 1.9).
+  NEOWEB reads it with `ARG` ([kit.md](../neoui-shell/kit.md), protocol 1.9).
 
 ## Architecture
 
 **NEOWEB is a normal neoui app**, a separate process like NEOPHONE:
 - it draws its own header and footer with the kit (`@neoui/kit.slint`);
 - it tells the shell about its page with `PAGE`;
-- it gets Back, the area and the keyboard as events ([kit.md](neoui-shell/kit.md)).
+- it gets Back, the area and the keyboard as events ([kit.md](../neoui-shell/kit.md)).
 
 It lives in `NeoSymbian/browser`, laid out like `NeoSymbian/phone`:
 
@@ -194,7 +196,7 @@ From `br2-spec-shell`; the calls are in `neoui-proto/src/ipc.rs`, protocol 1.9.
 | `NOTIFY` | Downloads: "Downloading …" → "Download complete", with action Open → the Downloads page | Title ≤ 48 B, text ≤ 160 B; the same id replaces; ≤ 16 per app; no progress bar |
 | `BADGE` | Not used | — |
 | `CLIP_SET` / `CLIP_GET` | Copy link, Copy (selection), Paste in the address bar and in forms, paste-and-go | ≤ 2048 B, shared by all apps; a longer URL is refused with a NOTE, never cut |
-| `KEYBOARD` | TEXT for the address bar and inputs, NUMBER, PHONE | Returns h; direct Unicode input, no preedit (browser.md) |
+| `KEYBOARD` | TEXT for the address bar and inputs, NUMBER, PHONE | Returns h; direct Unicode input, no preedit ([architecture.md](architecture.md)) |
 | `OPEN` / `ARG` / `DONE` | Wi-Fi opens the captive portal URL; a download notification opens the Downloads page | Arg ≤ 256 B |
 
 **Events handled:**
@@ -212,149 +214,31 @@ From `br2-spec-shell`; the calls are in `neoui-proto/src/ipc.rs`, protocol 1.9.
 
 | What | Where |
 |---|---|
-| Cookies, cache, local storage | `C:\private\<NEOWEB SID>\` (browser.md) |
+| Cookies, cache, local storage | `C:\private\<NEOWEB SID>\` ([architecture.md](architecture.md)) |
 | Bookmarks, history, the tab list (session), settings, shortcuts | The same folder |
 | Downloads | `C:\Data\Downloads`; Open hands the file to Files |
 | Passwords | Not stored until a secure store exists (B11) |
 | `neo:` pages | start, the errors (certificate, network, crashed), served by `load_web_resource` |
 
-## Phases
+## When Servo arrives (marked 2026-11-21)
 
-Every phase builds **all of its screens for real on `FakeEngine`**. A screen's engine side lights up when the engine
-reaches the stage in its last column. Boards are on the canvas Browser page
-(https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#page-9cb33ae9a178).
-
-**The gate of every phase:**
-- **Host snapshots:** `app/neoweb-ui` renders each of the phase's boards to `snapshots/br2-*.png`, checked side by
-  side with the board.
-- **Unit tests:** `neoweb-core` covers the phase's logic.
-- **On a device:** NEOWEB runs on Syborg and on the phone (a RAM boot, with the owner's OK) through the phase's flow.
-
-### UI0: the app and its chrome
-
-Gate flow: tap the Browser tile, see the start page, tap a shortcut, and get a page in both navigation modes.
-
-| Screen | Board | Build | Engine |
-|---|---|---|---|
-| Start page | `br2-start` | Empty header; Shortcuts 4 × 2 with Edit; Recently visited; footer with ← → dim and count 1 | WB5 |
-| Start page, Buttons | `br2-start-buttons` | The same above the key row | WB5 |
-| Page | `br2-page` | Secure header (lock, domain, ☆, ⟳), page area 583, footer | WB4 draws, WB5 chrome |
-| Page, Buttons | `br2-page-buttons` | Page area 543; key ← = footer ← while there is history | WB5 |
-| Header and footer states | `br2-footer-states` | Every header and footer state in the tables above | WB5 |
-
-- **The app:**
-  - `NEOWEB.EXE` with a UID in `exes.txt`, an entry in neoui's `APPS` (`symbian/src/host.rs`) and the Apps list;
-  - the Home and Apps tiles open it.
-- **neoui:** the mock `BrowserScreen` (`ui/screens/browser.slint` and its `shell.slint` wiring) is removed.
-- **neoweb-core:** the geometry per mode, `PAGE` and `can_back`.
-- **FakeEngine:** bundled pages that draw static content (the boards' Wikipedia, GitHub and forum pages).
-
-### UI1: address, loading, reading
-
-Gate flow: type an address or a search, watch it load, read with the chrome hiding, and use Back through every level.
-
-| Screen | Board | Build | Engine |
-|---|---|---|---|
-| Address (edit) | `br2-address` | The full URL selected, ✕ cancel, `KEYBOARD_TEXT`; suggestions: history and bookmark rows, then "Search for …" (DuckDuckGo, B09); paste-and-go | WB5 |
-| Loading | `br2-loading` | A 2 dp progress line, ✕ stops, the chrome forced on | WB4 stages, WB5 |
-| Reading | `br2-reading` | The chrome hidden, page 679; a "scroll up to show" hint | WB5 |
-
-- **neoweb-core:**
-  - address vs search parsing: a scheme, a dot or `localhost` makes an address, else a search;
-  - the hide-on-scroll state machine with its always-shown cases;
-  - the Back order;
-  - ← and → long-press history.
-
-### UI2: opened pages and Options
-
-Gate flow: open 7 pages and see the 7th evict the oldest; long-press a link; select text and copy it; find a word.
-
-| Screen | Board | Build | Engine |
-|---|---|---|---|
-| Opened pages | `br2-tabs` | A full-screen grid (footer hidden), the current page outlined, ✕ on each card, New tab; the note "Up to 6 pages stay loaded; older ones reload when you open them." | WB5 |
-| Options panel | `br2-menu` | The bottom tile panel. **Page:** New tab, Find in page, Share, Copy link, Desktop site. **Pages:** Bookmarks, History, Downloads, Settings | WB5 |
-| Link long-press | `br2-link-menu` | A sheet with the link's title and URL: Open in new tab, Copy link, Download link, Share | WB5 |
-| Text selection | `br2-select` | Handles + a bar: Copy (`CLIP_SET`), Select all, Search | WB5 |
-| Find in page | `br2-find` | The header becomes the find field with "2/7", ↑ ↓ and ✕; matches highlighted. Back: keyboard → find bar → page | WB5 |
-| Page reloaded | `br2-evicted` | The NOTE "Page reloaded to save memory" · "Why?" | WB5 |
-
-- **neoweb-core:** the tab list with the 6 loaded / 30 open caps, LRU eviction and the heap budget; the session save on
-  Quit.
-- **Share:** goes to Messages by protocol 1.9 `OPEN`.
-- **Desktop site:** a per-tab user agent switch.
-
-### UI3: forms and dialogs
-
-Gate flow: sign in on a form with the keyboard up; answer a JS confirm and a prompt; attach a file.
-
-| Screen | Board | Build | Engine |
-|---|---|---|---|
-| Login form | `br2-form` | The keyboard covers the footer; the page is 679 − 48 − h (355 dp with the 276 dp keyboard); the focused field scrolls into view | WB5, logins WB6 |
-| JS confirm | `br2-js-alert` | Shell `QUERY`: "site: text", OK · Cancel | WB5 |
-| JS prompt | `br2-js-prompt` | An app sheet: "site asks: …", a text field, Cancel · OK, `KEYBOARD_TEXT` (QUERY has no text field) | WB5 |
-| File upload | `br2-upload` | A "Choose a file" sheet: Photos · Files · Memory card E:, then Recent files | WB5 |
-| Save password | `br2-login-save` | A sheet with username and masked password; Never · Not now · Save. Save is disabled until a secure store exists (B11) | WB6 |
-
-**Open item:** how Files hands NEOWEB the chosen file (a 1.9 `OPEN` of Files with a picker page and `DONE` with the
-path is the likely route; to be agreed with `NeoSymbian/files`).
-
-### UI4: library and settings
-
-Gate flow: bookmark a page, find it in Bookmarks and History, download a file and open it from the shade, change the
-search engine, and clear data.
-
-| Screen | Board | Build | Engine |
-|---|---|---|---|
-| Bookmarks | `br2-bookmarks` | Header `[← Bookmarks · search · new folder · ⋮]`; Folders, then bookmarks. Long-press: Edit · Move · Delete; ☆ in the address bar adds one | — (local) |
-| History | `br2-history` | Grouped by day (Today, Yesterday, …), times; a ✕ per row; Clear browsing data at the top; search | WB5 |
-| Downloads | `br2-downloads` | Downloading: progress, time left, pause, cancel. Done: size, time, Open (hands the file to Files) | WB5, files on C: WB6 |
-| Download complete (shade) | `br2-download-done` | `NOTIFY` "Download complete · Browser · name · size", action Open → `Open { page: Downloads }` | WB5 |
-| Settings | `br2-settings` | **General:** Search engine (DuckDuckGo), Text size, Desktop site by default. **Content:** JavaScript (interpreter only, no JIT). **Privacy:** Cookies (allow, block third-party), Clear browsing data, the certificate switch (B10). **About:** NEOWEB, Servo 0.8.0 | WB5 |
-| Clear browsing data | `br2-clear-data` | Shell `QUERY`, destructive: "Clear browsing data? History, cookies and cached files on this phone are deleted." Clear · Cancel | WB5 |
-| Settings app → Apps → Browser | `set2-app-browser` | Notifications (allow, banners), Storage used (data + cache), Clear data, Open app settings, Stop app | — (Settings app) |
-
-**neoweb-core:** bookmarks with folders, history grouped by day, settings keys, and the download list. `set2-app-browser`
-is built in the Settings app, which reads NEOWEB's storage size and opens NEOWEB's Settings page with 1.9 `OPEN`.
-
-### UI5: safety and errors
-
-Gate flow: tap the lock for site info; open an expired certificate, a dead address and a captive portal from Wi-Fi.
-
-| Screen | Board | Build | Engine |
-|---|---|---|---|
-| Site info | `br2-siteinfo` | A sheet from the lock: the connection (TLS version), the certificate (issuer, valid until), cookies and site data with Clear, Site settings | WB6 |
-| Certificate error | `br2-cert-error` | A `neo:` page: "This site's identity can't be confirmed", Back to safety, Details (issued to/by, validity, error code). "Open the site anyway (unsafe)" appears only when B10's switch is on | WB6 |
-| No connection | `br2-offline` | A `neo:` page: "No internet connection", the cause and code, Retry, Check Wi-Fi (opens Settings › Wi-Fi with 1.9 `OPEN`) | WB6 |
-| Wi-Fi sign-in | `br2-captive` | Opened by Wi-Fi: a "Sign in to Wi-Fi network …" banner with Dismiss over the portal page; the header shows Not secure | WB6 |
-
-**neoui side:** Wi-Fi's "No access" state gets a "Sign in" action that sends `OPEN("browser", …, url)`. This replaces
-the shortcut in `neoui/symbian/src/wifi.rs` ("open it when there is a browser").
-
-### UI6: media
-
-| Screen | Board | Build | Engine |
-|---|---|---|---|
-| Video full screen | `br2-video` | `PAGE` full (720, no status bar, no nav); a tap shows the controls for 3 s: pause, seek, volume, exit full screen | WB7 |
-
-### The prototype
-
-`br2-prototype` is the clickable flow (start → page → tabs → menu). Each phase's gate flow follows it where they
-overlap.
-
-## When Servo arrives
-
-- **WB2:** the EXE moves from the ARMv5TE target to `armv7a-neosymbian-eabi` (browser.md), with the same code.
-- **WB4:** `crates/neoweb-host` implements `Engine` over Servo, and `FakeEngine` stays for host tests. Pages are real
-  from then on; the screens don't change.
-- **WB5–WB7:** each screen's engine column lights up, and the phase gates are re-run against Servo. WB4 is done
+- ⬜ **WB2:** the EXE moves from the ARMv5TE target to `armv7a-neosymbian-eabi` ([wb2-std.md](wb2-std.md)), with the same
+  code. Not done: NEOWEB is still built with `cargo arm` (ARMv5TE); only NEOWEBE is ARMv7. It moves with US4 (ARMv8).
+- ✅ **WB4:** `crates/neoweb-host` implements `Engine` over Servo, and `FakeEngine` stays for host tests. Pages are real
+  from then on; the screens don't change. As built, Servo runs in its own process, NEOWEBE.EXE
+  ([protocol.md](protocol.md)), not behind the `Engine` trait inside NEOWEB.
+- 🟡 **WB5–WB7:** each screen's engine column lights up, and the phase gates are re-run against Servo. WB4 is done
   (2026-11-20) and WB5 too (2026-11-21): every WB5 screen above works on Servo.
 - **Memory:** a full-screen 1080 × 2160 XRGB surface is 8.9 MiB; the app area in Gestures mode (1080 × 2037) is
   8.4 MiB. `host.rs`'s "~7 MB a surface" predates the 2160-high screen.
 
 ## Open items
 
-- **File upload:** the Files picker hand-off (UI3).
-- **Engine hooks:** Servo 0.8's exact delegate names for selection, find in page and downloads (unverified; they may
-  need patches on our `neosymbian` fork).
-- **Downloads folder:** that Files shows `C:\Data\Downloads`.
-- **Secure store:** a secure store for passwords (B11), shared with Wi-Fi keys later.
+- ✅ **File upload:** the Files picker hand-off (UI3): `OPEN_FILE` of Files' picker and `RESULT_FILE`, done in WB5a.
+- ✅ **Engine hooks:** selection, find in page and downloads, done in WB5c/d with Servo 0.8's API and a page helper
+  script; no Servo patch was needed for them. The selection handles are approximate.
+- 🟡 **Downloads folder:** downloads land in `C:\Data\Downloads`, but the shade's Open starts Files on its home page:
+  Files has no page yet that shows a file another app opens it with.
+- ⬜ **Secure store:** a secure store for passwords (B11), shared with Wi-Fi keys later (WB6).
+- ⬜ **Session on Quit:** NEOWEB doesn't save its tab list on Quit yet (Pages, memory and eviction, above).
+- ⬜ **History list:** long-press on ← or → doesn't show the history list yet.

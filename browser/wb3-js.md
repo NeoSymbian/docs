@@ -1,10 +1,20 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
-# SpiderMonkey on NeoSymbian (browser WB3)
+# WB3: SpiderMonkey on NeoSymbian
 
-Written 2026-11-19. This is the working doc for [browser.md](browser.md) stage **WB3**: Servo's JavaScript engine,
+Part of the [browser docs](../browser.md).
+
+**Status:** ✅ done 2026-11-19 · [browser#7](https://github.com/NeoSymbian/browser/pull/7), [mozjs#1](https://github.com/NeoSymbian/mozjs/pull/1)
+
+## Scope
+
+| Stage | Work | Gate | Estimate (PM) |
+|---|---|---|---:|
+| WB3 mozjs shell | SpiderMonkey interpreter-only, as an EXE | JS test scripts, GC stress, threads, a clean OOM on the phone | 3–6 |
+
+Written 2026-11-19. This is the working doc for [browser.md](../browser.md) stage **WB3**: Servo's JavaScript engine,
 SpiderMonkey, as a NeoSymbian EXE, before Servo itself (WB4) depends on it.
 
-**The gate (browser.md):** JS test scripts, GC stress, threads and a clean out-of-memory, all on the phone.
+**The gate (above):** JS test scripts, GC stress, threads and a clean out-of-memory, all on the phone.
 
 **✅ Passed 2026-11-19** on QEMU and on the Pixel 3a XL: `JSSHELL.EXE` reports `jssuite: 9 ok, 0 failed`.
 
@@ -48,7 +58,7 @@ mozbuild knows only the operating systems it lists, so it gets one more: OS and 
 | Logging | `MozSymbianLog` writes to the debug port (P.I.P.S.'s stderr doesn't reach the serial log); used only on failures |
 | Leftovers | No `mprotect`/`mmap` callers; `unsetenv` returns `void`; double-conversion parses ASCII without the locale |
 
-**No user protect call is needed** (browser.md WB1 asked): the interpreter never makes memory executable or
+**No user protect call is needed** ([WB1](wb1-kernel.md) asked): the interpreter never makes memory executable or
 read-only.
 
 ### The C++ runtime (`std/cxxrt`)
@@ -96,4 +106,4 @@ multilib's MOVW/MOVT relocations can't go into an E32 image.
 - **No Intl.** `Intl`, locale-aware `toLocaleString` and `String.prototype.normalize` are missing until WB4 settles
   ICU.
 - **Not measured yet:** start-up time and peak committed memory under a real page. WB4 measures them with Servo.
-- **WB4,** Servo in `NEOWEB.EXE`, is done (2026-11-20, browser.md).
+- **WB4,** Servo in `NEOWEB.EXE`, is done (2026-11-20, [wb4-servo.md](wb4-servo.md)).
