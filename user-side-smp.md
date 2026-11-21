@@ -80,6 +80,25 @@ The seven checks, run three times, must each print `7 ok, 0 failed` (`stdtest sm
 stdtest smp_printf_g smp_condvar_timeout smp_static_init smp_once smp_stdio smp_shared_fd smp_sem_timeout
 ```
 
+## US6a: results so far (2026-11-21)
+
+- **The driver:** kernel#33 gives `test-fshell-qemu.py` `--cdrive` (pushes the build's drive=c EXEs to C:) and
+  `--run` (runs a program in fshell, prints its exit status).
+- **CI:** e32-rs#9 boots the same ROM on `virt` after Syborg and checks R0–R3 and NEOWB1 there. First run: neohello 0,
+  neor1 42, neopanic `Panic RUST`, neotest 12/12, neor1c 42 (pushed to C:), neocli 9/9, **NEOWB1 6/6** (it needs our
+  kernel, so it never ran in CI before).
+- **SMP on virt** (atlas, the `2026-11-20-finchmane` user side with the eshell console): the seven `smp` checks print
+  `7 ok, 0 failed, 0 skipped`. QEMU on an x86 host orders memory more strongly than the Pixel, so the phone stays the
+  real test of ordering; `virt` catches crashes, hangs and lost wake-ups.
+- **Syborg with an ARMv8 CPU:** the 2010 Syborg ROM boots to the neoui launcher with `-cpu max,has_el2=off` (checked
+  that QEMU ran with it) exactly as on the Cortex-A8. So the UI CI can probably stay on Syborg with one flag instead of
+  being ported (US6b); still to test there: FP state across preemption (lazy VFP, `d16`–`d31`) with ARMv8 user code.
+- **Size baseline** (`2026-11-20-finchmane`, bonito flash image): core ROM 255 E32 images, 13,903,220 bytes
+  (`romsect.bin` 13,337,812); ROFS 48 E32 images, 41,433,068 bytes (`rofs.img` 50,278,808); `boot.img` 6,569,984.
+  `euser.dll` 431,648, `efsrv.dll` 60,436, `hal.dll` 4,960. Per-image list with SHA-256: atlas task `us1`,
+  `logs/baseline-e32.txt`.
+- **Still to do:** 5 Pixel RAM-boot medians; AArch32 CRC32/AES/SHA known-answer tests on both clusters.
+
 ## US2: what to fix first
 
 1. **Runtime library relocations.** The v8 multilib (`thumb/v8-a+simd/softfp`) has `libgcc.a`/`libsupc++.a`, but
