@@ -366,6 +366,36 @@ Kernel PR [kernel#19](https://github.com/NeoSymbian/kernel/pull/19), tests [e32-
   - there is no user protect call: no-JIT SpiderMonkey does not need one (WB3, [browser-js.md](browser-js.md)).
 - **Still open from S4:** the Rust ARMv7/NEON softfp target and LDREX atomics, which come with WB2.
 
+### WB4 result (2026-11-20): done
+
+Merged in browser#8, build#40, kernel#31, ossrv#3 and mozjs#2. The heap crash that followed was fixed by US0/US1
+([user-side-smp.md](user-side-smp.md)).
+- **Two processes:** NEOWEB.EXE (the neoui app, the Slint chrome) and NEOWEBE.EXE (Servo 0.8 with SWGL on C:, the
+  engine). They talk over the Symbian server `NeoWebEngine` (`app/neoweb-proto`); frames arrive in a global chunk
+  with two RGBA buffers, and a buffer is reused only after NEOWEB shows it.
+- **On the Pixel:** local pages render in about 8 s and Wikipedia over https in about 30 s; touch scrolling works.
+- **Open after WB4:** scrolling at about 10 fps; CSS mask icons render black; GitHub's module scripts fail their
+  CORS check.
+
+### WB5 so far (2026-11-21)
+
+Branches `wb5a` → `wb5c` → `wb5d` in NeoSymbian/browser (protocol 1.4); ossrv `no-tzserver`; the Servo fork's `wb5`
+(paint timing) and the WebRender fork's `wb5`. Gate flows run on the Pixel by RAM boot.
+
+| Part | Works on the Pixel | Notes |
+|---|---|---|
+| WB5a input and forms | Typing (English and Armenian on the on-screen keyboard) into page fields; the keyboard mode follows the field; the page shrinks above the keyboard (355 dp); confirm through the shell's QUERY; prompt as a sheet; `<select>` sheet; upload through Files' picker; Save password offer | Keys reach Servo as keyboard presses; contenteditable gets no keyboard yet |
+| WB5c tabs and menus | Opened pages with thumbnails; a new tab from the link menu; long-press on a link opens the link menu; find in page with its count | Word selection uses Servo's double-click selection; the handles are approximate (Servo's Range rectangles cover a whole text node) |
+| WB5d library | Bookmarks (☆), history by day (kept on C: across boots), the Options panel's views | Downloads, Settings and Clear data are built; not yet run on the phone |
+| WB5b speed | NEOWEB draws an opaque RGB frame: its draw went from 41-56 to 22-34 ms | The engine still re-rasterizes picture tiles on every scroll frame (95-140 ms); being diagnosed with per-reason tile-invalidation counters |
+
+**Fixed on the way:**
+- A thread calling `localtime` died with `TzServer 1` (no time zone server in the ROM). P.I.P.S. now uses the
+  kernel's UTC offset when `tzserver.exe` is missing.
+- `\p{L}` in the page helper needed ICU, which this SpiderMonkey lacks.
+- Calling back into the WebView from a script result panicked Servo ("RefCell already borrowed").
+- The engine's main thread is now process-critical, and NEOWEB restarts the engine for tabs.
+
 ### WB0 plan (2026-11-16)
 
 Checked against Servo v0.8.0 (a Codex pass plus spot checks); items marked *unverified* are WB0's first gates.
