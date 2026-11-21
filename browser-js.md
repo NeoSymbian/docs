@@ -96,4 +96,4 @@ multilib's MOVW/MOVT relocations can't go into an E32 image.
 - **No Intl.** `Intl`, locale-aware `toLocaleString` and `String.prototype.normalize` are missing until WB4 settles
   ICU.
 - **Not measured yet:** start-up time and peak committed memory under a real page. WB4 measures them with Servo.
-- **Next: WB4,** Servo in `NEOWEB.EXE`.
+- **WB4,** Servo in `NEOWEB.EXE`, is done (2026-11-20, browser.md).

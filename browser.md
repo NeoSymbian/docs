@@ -293,8 +293,8 @@ Estimates are in person-months (PM), *estimates*. A stage starts only when its g
 | **WB1** kernel ✅ 2026-11-17 | smooth-ui S4 (kernel part), M4.3, stack limits, VM primitives, entropy. Result below | FP patterns survive preemption and migration; 8 MiB threads; GC-style reserve/decommit tests | 3–5 |
 | **WB2** OS personality ✅ 2026-11-19 ([browser-std.md](browser-std.md): WB2a–WB2d; a Tokio and a std HTTP fetch over Wi-Fi on the Pixel) | rust + libc forks, the std unix PAL over P.I.P.S., the mio bridge. The EXE runtime for `std`: today `e32::main!` brings its own panic handler, a 64 MiB Rust heap (`e32/src/heap.rs`) and a 1 MiB native heap (`build/emitter/build_rust_exe.py`); a `std` EXE needs std-aware start-up, allocator budgets, panic/unwind, and C/C++ linkage | Rust's std tests on Syborg and the phone; **one EXE mixing `std`, e32 and C++** runs; a Tokio TCP fetch over NeoNet | 6–12 |
 | **WB3** mozjs shell ✅ 2026-11-19 ([browser-js.md](browser-js.md): `jssuite: 9 ok, 0 failed` on QEMU and the Pixel) | SpiderMonkey interpreter-only, as an EXE | JS test scripts, GC stress, threads, a clean OOM on the phone | 3–6 |
-| **WB4** Servo → neoui | servo/surfman forks, SWGL, fonts, presentation. **The rustls crypto provider and entropy come here, not in WB6:** `Servo::new` always calls `prewarm_tls` | Local HTML/CSS/JS pages and images draw in `NEOWEB.EXE`; the memory is measured again | 6–12 |
-| **WB5** input and chrome | Touch, scrolling, focus, direct Unicode input (a versioned composition/preedit protocol in neoui + its keyboard comes later), selection, forms, keyboard resize, Back, the Slint chrome (already built on FakeEngine by UI0–UI4, [browser-ui.md](browser-ui.md)) | Typing into forms and navigating with Back on the phone | 2–4 |
+| **WB4** Servo → neoui ✅ 2026-11-20 | servo/surfman forks, SWGL, fonts, presentation. **The rustls crypto provider and entropy come here, not in WB6:** `Servo::new` always calls `prewarm_tls` | Local HTML/CSS/JS pages and images draw in `NEOWEB.EXE`; the memory is measured again | 6–12 |
+| **WB5** input and chrome ✅ 2026-11-21 (result below; every UI2–UI4 screen on Servo) | Touch, scrolling, focus, direct Unicode input (a versioned composition/preedit protocol in neoui + its keyboard comes later), selection, forms, keyboard resize, Back, the Slint chrome (already built on FakeEngine by UI0–UI4, [browser-ui.md](browser-ui.md)) | Typing into forms and navigating with Back on the phone | 2–4 |
 | **WB6** browser services | certificate handling and errors, cookies/storage on C:, redirects, logins; wifi.rs opens portals in NEOWEB | Signing in to a site; a captive portal over Wi-Fi | 2–4 |
 | **WB7** media | The custom media backend (FFmpeg/dav1d, DevSound/MMF) | Video with sound, seeking, A/V sync, a thermal soak | 6–12+ |
 
@@ -377,10 +377,11 @@ Merged in browser#8, build#40, kernel#31, ossrv#3 and mozjs#2. The heap crash th
 - **Open after WB4:** scrolling at about 10 fps; CSS mask icons render black; GitHub's module scripts fail their
   CORS check.
 
-### WB5 so far (2026-11-21)
+### WB5 result (2026-11-21): done
 
-Branches `wb5a` → `wb5c` → `wb5d` in NeoSymbian/browser (protocol 1.4); ossrv `no-tzserver`; the Servo fork's `wb5`
-(paint timing) and the WebRender fork's `wb5`. Gate flows run on the Pixel by RAM boot.
+Merged in browser#10 and #11 (protocol 1.4), ossrv#5, servo#1 (paint timing), webrender#1 (the scroll root fix),
+build#47 (the ossrv pin) and docs#52. The gate flows ran on the Pixel by RAM boot, on a user side from before US2
+(ARMv7); US4 rebuilds the Rust binaries for ARMv8.
 
 | Part | Works on the Pixel | Notes |
 |---|---|---|
