@@ -284,7 +284,10 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   the Pixel).
   **WB3 (SpiderMonkey) done 2026-11-19** ([browser-js.md](browser-js.md)): SpiderMonkey 153, interpreter only and
   without Intl, as `JSSHELL.EXE`; GC memory in a disconnected chunk; the language tests, GC stress, 4 runtimes on 4
-  threads and a clean out-of-memory all pass on QEMU and the Pixel. Next: WB4 (Servo in `NEOWEB.EXE`).
+  threads and a clean out-of-memory all pass on QEMU and the Pixel.
+  **WB4 (Servo) done 2026-11-20:** NEOWEB.EXE shows live Servo frames from the engine process NEOWEBE.EXE on the Pixel.
+  **WB5 (input and chrome) done 2026-11-21:** typing into forms, JS dialogs, upload, tabs, the link menu, find,
+  selection, bookmarks, history, downloads and settings on Servo; scrolling 15-18 fps. Next: WB6 (browser services).
   **Later: upstream sync.** `std` needs forks of rust (`library/` only), libc and mio on branch `neosymbian`
   ([why](browser-std.md#why-forks)). Keep them synced on every nightly bump, offer libc and mio upstream once stable,
   then propose a tier 3 `symbian` Rust target (as NuttX, Vita and the 3DS did) so the forks go away.

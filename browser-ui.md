@@ -3,7 +3,8 @@
 
 Written 2026-11-17. This is the app side of [browser.md](browser.md): every screen of `NEOWEB.EXE`, the rules its
 chrome follows, how it talks to the shell and to the engine, and the phases that build it. browser.md stays the
-engine plan (WB0–WB7). Nothing here is built yet.
+engine plan (WB0–WB7). **Status (2026-11-21):** UI0–UI4 are built, and since WB5 they run on Servo on the Pixel
+(browser.md "WB5 result"); the WB6 and WB7 screens are next.
 
 **The design is the canvas.** The Browser page of the design canvas is the source of truth:
 https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#page-9cb33ae9a178
@@ -345,7 +346,8 @@ overlap.
 - **WB2:** the EXE moves from the ARMv5TE target to `armv7a-neosymbian-eabi` (browser.md), with the same code.
 - **WB4:** `crates/neoweb-host` implements `Engine` over Servo, and `FakeEngine` stays for host tests. Pages are real
   from then on; the screens don't change.
-- **WB5–WB7:** each screen's engine column lights up, and the phase gates are re-run against Servo.
+- **WB5–WB7:** each screen's engine column lights up, and the phase gates are re-run against Servo. WB4 is done
+  (2026-11-20) and WB5 too (2026-11-21): every WB5 screen above works on Servo.
 - **Memory:** a full-screen 1080 × 2160 XRGB surface is 8.9 MiB; the app area in Gestures mode (1080 × 2037) is
   8.4 MiB. `host.rs`'s "~7 MB a surface" predates the 2160-high screen.
 
