@@ -276,20 +276,20 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   web-font bug; 37–210 MiB per page; SWGL works). The speed gate WB0p waits for real hardware.
   **WB1 done 2026-11-17** (kernel#19): FP/NEON for apps (smooth-ui S4's kernel part), 16 MiB stacks, a seeded
   secure RNG; GC-style memory works with disconnected chunks. Tested on the Pixel. Next: WB2 (Rust `std` over P.I.P.S.).
-  **The app UI is specified** in [browser-ui.md](browser-ui.md) (2026-11-17): every Browser v2 canvas screen in phases
+  **The app UI is specified** in [browser/ui.md](browser/ui.md) (2026-11-17): every Browser v2 canvas screen in phases
   UI0–UI6, built first on a stand-in engine in parallel with WB2–WB4.
-  **WB2 (Rust `std`) done 2026-11-19** ([browser-std.md](browser-std.md)): WB2a (ARMv7 + NEON target), WB2b (P.I.P.S.
+  **WB2 (Rust `std`) done 2026-11-19** ([browser/wb2-std.md](browser/wb2-std.md)): WB2a (ARMv7 + NEON target), WB2b (P.I.P.S.
   measured), WB2c (Rust std for `target_os = "symbian"`: STDTEST/MIXTEST pass on QEMU and the Pixel, P.I.P.S. fixes),
   WB2d (Tokio; TCP through P.I.P.S., ESOCK's new link layer and NEONET.PRT fixes: Tokio and std HTTP over Wi-Fi on
   the Pixel).
-  **WB3 (SpiderMonkey) done 2026-11-19** ([browser-js.md](browser-js.md)): SpiderMonkey 153, interpreter only and
+  **WB3 (SpiderMonkey) done 2026-11-19** ([browser/wb3-js.md](browser/wb3-js.md)): SpiderMonkey 153, interpreter only and
   without Intl, as `JSSHELL.EXE`; GC memory in a disconnected chunk; the language tests, GC stress, 4 runtimes on 4
   threads and a clean out-of-memory all pass on QEMU and the Pixel.
   **WB4 (Servo) done 2026-11-20:** NEOWEB.EXE shows live Servo frames from the engine process NEOWEBE.EXE on the Pixel.
   **WB5 (input and chrome) done 2026-11-21:** typing into forms, JS dialogs, upload, tabs, the link menu, find,
   selection, bookmarks, history, downloads and settings on Servo; scrolling 15-18 fps. Next: WB6 (browser services).
   **Later: upstream sync.** `std` needs forks of rust (`library/` only), libc and mio on branch `neosymbian`
-  ([why](browser-std.md#why-forks)). Keep them synced on every nightly bump, offer libc and mio upstream once stable,
+  ([why](browser/wb2-std.md#why-forks)). Keep them synced on every nightly bump, offer libc and mio upstream once stable,
   then propose a tier 3 `symbian` Rust target (as NuttX, Vita and the 3DS did) so the forks go away.
 - **Files (proposed 2026-11-17):** [files-app.md](files-app.md). The canvas's 60 `files2-*` boards in a new
   `NeoSymbian/files` repo (UID 0xE0006001): browsing, copy/move with a per-drive Recycle bin, search, archives,
