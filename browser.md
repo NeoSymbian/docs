@@ -33,7 +33,7 @@ measurements.
 |---|---|---|
 | Sockets | NeoNet (smoltcp: DHCP, DNS, TCP, UDP; IPv4) and the 2010 `RSocket` API over it (W5a) | [wifi.md](hardware/wifi.md) W5, W5a |
 | TLS, HTTP client | **none** (only hand-written `GET /generate_204`) | `neoui/symbian/src/wifi.rs:439` |
-| Hardware FP/NEON at EL0 | **off**: the per-thread FP save/restore hooks are empty | [kernel-issues.md](kernel-issues.md) KRN-019, [smooth-ui.md](smooth-ui.md) S4 |
+| Hardware FP/NEON at EL0 | **off**: the per-thread FP save/restore hooks are empty | [kernel-issues.md](kernel-issues.md) KRN-019, [smooth-ui.md](neoui-shell/smooth-ui.md) S4 |
 | Atomics | **none**: user code is ARMv5TE, which has no CAS, so Rust has no `Arc` | `e32-rs/crates/e32/src/cs.rs` |
 | RAM | **~87 MB** on `main` for the kernel and the whole user side (`A64_BOOT_RAM_END`). M4.3 is in progress: kernel branch `ram-map` (`640aa2ff`, 2026-11-15) takes the RAM banks from the bootloader's DTB, below 4 GiB (`KPhysTop`) | `kernel/baseport/arm64/bonito_variant/variant.conf:8`, `kernel/kernel/eka/kernel/arm64/a64boot.cpp` |
 | Address space | ~2 GiB private VA per process (flexible model) | `kernel/kernel/eka/include/memmodel/epoc/flexible/arm64/mmboot.h` |
@@ -43,7 +43,7 @@ measurements.
 | libc | P.I.P.S./Open C sources (libc, libm, libpthread), today only registered for SVG-T. **`mprotect` does nothing**; `poll` is unverified | `legacy/components.py:188`; `ossrv` `genericopenlibs/openenvcore/libc/src/mmap.cpp` |
 | Surface and input | Each app gets a shared XRGB8888 chunk + DAMAGE, and 16-byte touch/key events | `neoui/crates/neoui-proto/src/ipc.rs` |
 | Fonts and images | Slint bakes SDF glyphs (no shaping, no fallback); PNG only | `neoui/Cargo.toml` |
-| GPU | No driver; everything renders on the CPU | [smooth-ui.md](smooth-ui.md) S6 |
+| GPU | No driver; everything renders on the CPU | [smooth-ui.md](neoui-shell/smooth-ui.md) S6 |
 
 Any modern engine needs hardware floats, real atomics, far more RAM, bigger stacks, a libc that behaves, and a TLS
 stack. Those are platform work, not browser work. Every candidate below except the tiny ones needs them.
@@ -274,7 +274,7 @@ Tokio → mio → P.I.P.S. sockets → ESOCK → NeoNet (Wi-Fi now, mobile data 
 
 | Item | Owner | Where it is planned |
 |---|---|---|
-| ~~FP/NEON per thread at EL0~~ **done (WB1, 2026-11-17):** eager save of Q0–Q15, FPSR, FPCR; Qualcomm's EL2 does not trap AArch32 FP | kernel | [smooth-ui.md](smooth-ui.md) S4, KRN-019 |
+| ~~FP/NEON per thread at EL0~~ **done (WB1, 2026-11-17):** eager save of Q0–Q15, FPSR, FPCR; Qualcomm's EL2 does not trap AArch32 FP | kernel | [smooth-ui.md](neoui-shell/smooth-ui.md) S4, KRN-019 |
 | An ARMv7/v8 AArch32 softfp target, LDREX/STREX and 64-bit atomics (LDREXD/STREXD) | e32-rs + browser | smooth-ui S4 |
 | ~~The phone's RAM below 4 GiB~~ **done** (above it needs a 64-bit `TPhysAddr`) | kernel | M4.3, the RAM map under [roadmap.md](roadmap.md) M4 |
 | ~~Stack limits for 8 MiB threads, and tens of threads per process~~ **done (WB1):** 16 MiB cap, 128 threads tested | kernel | WB1 |

@@ -19,9 +19,7 @@ NeoSymbian brings the open-source 2010 Symbian (EKA2, the Symbian^3 release) bac
 | [kernel-modernization.md](kernel-modernization.md) | Phases KM0–KM6: fixes, owners, dependencies, tests and supported-release gates |
 | [kernel audit verification](verification/kernel-audit-2026-11-09.md) | Exact documentation checks, controlled runner probe, artifacts and unexecuted kernel tests |
 | [rust-integration.md](rust-integration.md) | Rust on the Symbian user side: stages R0–R8 |
-| [smooth-ui.md](smooth-ui.md) | Making the UI smooth (60 fps): why it isn't yet, and stages S1–S6 |
-| [neoui-shell.md](neoui-shell.md) | Shell services design: settings store, notifications, home pages, widgets (planned) |
-| [neoui-kit.md](neoui-kit.md) | The neoui kit (shared Slint components), the app API (`neoapp`), protocols 1.8 and 1.9, creating an app |
+| [neoui-shell.md](neoui-shell.md) | **neoui shell hub:** what the shell draws and serves, every stage and the canvas map. Details in `neoui-shell/`: [top panel](neoui-shell/top-panel.md) (status bar, notifications, media, calls/messages, live island, control centre, lock screen; TP0–TP9), [protocol](neoui-shell/protocol.md), [kit](neoui-shell/kit.md), [navigation](neoui-shell/navigation.md), [keyboard](neoui-shell/keyboard.md), [settings](neoui-shell/settings.md), [home](neoui-shell/home.md), [design system](neoui-shell/design-system.md), [smooth UI](neoui-shell/smooth-ui.md) (S1–S6) |
 | [phone-apps.md](phone-apps.md) | Phone, Contacts and Messages v2: three apps that open each other; shared data; missing platform functions |
 | [files-app.md](files-app.md) | Files: the new files repo, every canvas screen, platform gaps, phases FA0–FA13 |
 | [store.md](store.md) | NeoStore: the Go store server, the phone app, the `.npk` format, the on-phone installer for `.npk` and `.sis`, phases ST0–ST11 |

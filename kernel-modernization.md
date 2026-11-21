@@ -174,7 +174,7 @@ did not access or write the phone. Existing filesystem/telephony write gates rem
 
 **Exit:** every adopted optimization has matched before/after evidence, resource bounds and a correctness/power
 regression result. Record median/tail latency, throughput, memory and energy, with clock/thermal conditions.
-Frame latency should meet the existing [smooth UI budget](smooth-ui.md#goal-and-budget); kernel changes alone
+Frame latency should meet the existing [smooth UI budget](neoui-shell/smooth-ui.md#goal-and-budget); kernel changes alone
 do not establish that result. Leave unmeasured optimizations deferred. None of these items authorizes weakening
 metadata flushes, validation, fairness, isolation or failure handling to improve a benchmark.
 

@@ -7,15 +7,15 @@ surfaces. It is not installed on the phone yet. The design is the canvas's Navig
 The model is the Nokia N9's Swipe UI (MeeGo Harmattan, 2011), not Android's or iOS's. Gestures sit beside a key row of
 system buttons, and the user picks in Settings.
 
-How apps build their part (the kit, the app API, protocol 1.8) is in [neoui-kit.md](neoui-kit.md).
+How apps build their part (the kit, the app API, protocol 1.8) is in [kit.md](kit.md).
 
 The chapters after "Navigation v2" are v1, kept for the record:
 - the N9 map, which v2 keeps as "N9 gestures";
 - the recognizer;
 - Five places, whose strip and shell-drawn page actions v2 replaced.
 
-It belongs to roadmap stage U3 ("system apps in Rust", [roadmap.md](roadmap.md)) and builds on
-[neoui-shell.md](neoui-shell.md) (the settings store, notifications, home pages) and [smooth-ui.md](smooth-ui.md)
+It belongs to roadmap stage U3 ("system apps in Rust", [roadmap.md](../roadmap.md)) and builds on
+[neoui-shell.md](../neoui-shell.md) (the settings store, notifications, home pages) and [smooth-ui.md](smooth-ui.md)
 (the server's layers and slides).
 
 | Stage | What | Status |
@@ -29,7 +29,7 @@ It belongs to roadmap stage U3 ("system apps in Rust", [roadmap.md](roadmap.md))
 | G3 | Open apps with live thumbnails, 2 or 3 columns, N9 long-press close mode | Planned |
 | G4 | Swipe down from the top to close an app (N9's option) | Planned |
 | G5 | Lanes home: Events · Home · Open apps side by side | Planned |
-| G6 | N9 lock screen: swipe in from any edge to unlock; double-tap to wake | Planned |
+| G6 | N9 lock screen: swipe in from any edge to unlock; double-tap to wake | Moved to [top-panel.md](top-panel.md) TP8 (2026-11-21) |
 
 ## Navigation v2
 
@@ -258,7 +258,7 @@ Gestures: no strip on home; dock:
 
 - **Incoming call:** full screen with its own Answer and Reject.
 - **Legacy S60 apps:** the app group stays empty. Their softkeys come with the on-screen keypad (docs
-  [legacy.md](legacy.md)).
+  [legacy.md](../legacy.md)).
 - **Lock screen:** G6.
 
 ### Window management
@@ -403,7 +403,7 @@ screens. The UI server feeds it touches and acts on what it returns.
 | Layer | Path | What |
 |---|---|---|
 | Pure logic | `neoui/crates/neoui-proto/src/gesture.rs` | `Edge`, `Gesture`, `Recognizer`, `Step`; unit tests |
-| Setting | `neoui-proto/src/settings/registry.rs`, `neoui-render/src/settings.rs`, `ui/system-settings.slint` | `nav.mode`, following "Adding a setting" in [neoui-shell.md](neoui-shell.md) |
+| Setting | `neoui-proto/src/settings/registry.rs`, `neoui-render/src/settings.rs`, `ui/system-settings.slint` | `nav.mode`, following "Adding a setting" in [neoui-shell.md](../neoui-shell.md) |
 | Settings page | `ui/screens/settings.slint` | Root row "Home screen & navigation" → view `navigation` |
 | Shell | `ui/shell.slint`, `ui/components/frame.slint` | Back arrow hidden in gesture mode (`Toolbar.no-back`; its place stays empty); `nav-back()` is the toolbar Back's path, shared with the gesture |
 | Renderer | `neoui-render/src/lib.rs` | `Renderer::gesture(Gesture)` |
@@ -426,7 +426,7 @@ default may flip.
 - Under it, one line saying what the edges do in the chosen mode.
 - Later stages add their rows here: Swipe down closes apps (G4), Open apps columns (G3), Home style (G5).
 
-### Classic and Gestures (G1; replaced by [Five places](#five-places-one-strip-every-app-two-modes))
+### Classic and Gestures (G1; replaced by [Five places](#five-places-one-strip-every-app-two-modes-v1-replaced-by-navigation-v2))
 - **Classic** is exactly today's navigation.
 - **Gestures** hides the toolbar's Back button. Action, Options and the keyboard toggle stay, so an app's `NAV`
   claims keep working. Back by gesture runs the same path as the button:
@@ -537,6 +537,9 @@ In the event loop (`symbian/src/lib.rs`, the `InputEvent::Touch` arm):
 - The right edge opens the Open apps lane, and Home the lane used last (the N9's behaviour).
 
 ## G6: lock screen
+**Moved (2026-11-21):** the lock screen is now [top-panel.md](top-panel.md#lock-screen-tp8) TP8; its any-edge
+unlock and double-tap wake are kept there. The notes below are the original G6 sketch.
+
 - There is no lock screen today: `now.slint` only names it.
 - G6 adds one: the time, the date and notification counts.
   - Unlock by swiping in from any edge. The screen slides away in that direction, using G2's layer.
@@ -559,5 +562,5 @@ In the event loop (`symbian/src/lib.rs`, the `InputEvent::Touch` arm):
 - By hand: QEMU over VNC (`neo live`), then the phone. Check the edges with a thumb, and that taps on the toolbar and
   the dock never trigger a gesture.
 
-When a stage lands, mark it in the table at the top, and update [roadmap.md](roadmap.md) U3 and the org profile's
+When a stage lands, mark it in the table at the top, and update [roadmap.md](../roadmap.md) U3 and the org profile's
 status list.
