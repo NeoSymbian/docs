@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # neoweb-proto: the Browser app ↔ the engine
 
-Part of the [browser docs](../browser.md). **Version 1.4** (2026-11-21). The source is
+Part of the [browser docs](../browser.md). **Version 1.5** (2026-11-21, UI5). The source is
 [`app/neoweb-proto/src/lib.rs`](https://github.com/NeoSymbian/browser/blob/main/app/neoweb-proto/src/lib.rs); this page
 lists it, and the code wins where they differ.
 
@@ -29,6 +29,9 @@ lists it, and the code wins where they differ.
   into an opaque RGB image (WB5b).
 - **Tabs:** NEOWEB numbers its tabs; a tab a page opens itself gets an engine id ≥ `0x8000_0000` (`ENGINE_TABS`).
   Load, Url, Title and History are the shown tab's; the other tabs report `TabInfo`.
+- **Error pages (1.5):** the engine serves its own certificate and network error pages in place of Servo's; they
+  only report to NEOWEB (`PageError`, through a console line with a token per engine run), and NEOWEB draws
+  `br2-cert-error` or `br2-offline`. A tab keeps its error until its next load or a Reload.
 - **The engine dies:** the held request fails with `KErrServerTerminated`; NEOWEB starts the engine again on the
   next Load, Open, Reload or Activate.
 
@@ -59,7 +62,10 @@ lists it, and the code wins where they differ.
 | 23 | `Download` | url (the link menu's Download link) | 1.3 (WB5d) |
 | 24 | `DownloadOp` | id, op (Pause, Resume, Cancel) | 1.3 |
 | 25 | `Zoom` | percent (Settings' text size) | 1.4 |
-| 26 | `ClearData` | — (cookies, site storage, the cache) | 1.4 |
+| 26 | `ClearData` | — (cookies, every site's storage, the cache) | 1.4 |
+| 27 | `AllowCert` | — (open the shown certificate error's site anyway; sent only with B10's switch on) | 1.5 (UI5) |
+| 28 | `SiteInfo` | — (the shown page's connection and certificate: answered by `SiteInfo`) | 1.5 |
+| 29 | `ClearSite` | — (the shown page's site: its cookies and stored data) | 1.5 |
 
 ## Events (engine → NEOWEB)
 
@@ -84,6 +90,8 @@ lists it, and the code wins where they differ.
 | 16 | `Selection` | ends (start left/top, end right/top, line height; empty = none) | 1.2 |
 | 17 | `Found` | index (1-based, 0 = none), count | 1.2 |
 | 18 | `Download` | id, name, url, path, received, total, state (Downloading, Paused, Done, Failed, Cancelled) | 1.3 (WB5d) |
+| 19 | `PageError` | kind (Cert, Net), reason, host, issued to, issued by, valid from, valid until (the cert fields empty for Net) | 1.5 (UI5) |
+| 20 | `SiteInfo` | host (the site asked about), tls ("TLS 1.3"), issued to, issued by, valid until, cookies, error | 1.5 |
 
 ## Open
 
