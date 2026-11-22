@@ -21,7 +21,7 @@ folder.
 | WB3 | SpiderMonkey, interpreter only (`JSSHELL.EXE`) | ✅ 2026-11-19 | browser#7, mozjs#1 | [wb3-js.md](browser/wb3-js.md) |
 | WB4 | Servo in the Browser app (engine process NEOWEBE) | ✅ 2026-11-20 | browser#8, build#40, kernel#31, ossrv#3, mozjs#2 | [wb4-servo.md](browser/wb4-servo.md) |
 | WB5 | Input and chrome: forms, dialogs, tabs, menus, library, downloads, settings; scrolling 15–18 fps | ✅ 2026-11-21 | browser#10 #11, ossrv#5, servo#1, webrender#1, build#47, docs#52 #53 | [wb5-input-chrome.md](browser/wb5-input-chrome.md) |
-| WB6 | Browser services: certificates, cookies on C:, logins, Wi-Fi portals | ⬜ next | — | [wb6-services.md](browser/wb6-services.md) |
+| WB6 | Browser services: certificates, cookies on C:, logins, Wi-Fi portals | 🟡 UI5 done 2026-11-22 | browser `ui5`, servo `ui5`, neoui `ui5-portal` | [wb6-services.md](browser/wb6-services.md) |
 | WB7 | Media: video and sound | ⬜ | — | [wb7-media.md](browser/wb7-media.md) |
 
 The estimate for all of it was about 29–56+ person-months, not counting audio-driver bring-up or upstream web
@@ -30,7 +30,7 @@ each one's engine side arrives with its WB stage.
 
 ### UI phases
 
-25 of 31 screens built; on Servo on the Pixel: 19 ✅, 5 🟡, 7 ⬜. Each screen: [ui-screens.md](browser/ui-screens.md).
+29 of 31 screens built; on Servo on the Pixel: 23 ✅, 5 🟡, 3 ⬜. Each screen: [ui-screens.md](browser/ui-screens.md).
 
 | Phase | Built | On Servo | Waits for |
 |---|---|---|---|
@@ -39,7 +39,7 @@ each one's engine side arrives with its WB stage.
 | UI2 opened pages and Options | ✅ 6/6 | 5 ✅ 1 🟡 (eviction not checked on the phone) | — |
 | UI3 forms and dialogs | ✅ 5/5 | 5 ✅ | — |
 | UI4 library and settings | 🟡 6/7 | 4 ✅ 2 🟡 1 ⬜ | Settings' Apps list (`set2-app-browser`) |
-| UI5 safety and errors | ⬜ 0/4 | ⬜ | WB6 |
+| UI5 safety and errors | ✅ 4/4 | 4 ✅ | — |
 | UI6 media | ⬜ 0/1 | ⬜ | WB7 |
 
 ### Platform
@@ -59,11 +59,12 @@ to ARMv8 (owner, 2026-11-21; [user-side-smp.md](user-side-smp.md)):
 | contenteditable gets no keyboard; `<select>` lists over 4 KiB lose rows; link URLs over about 2 KiB are cut | [wb5-input-chrome.md](browser/wb5-input-chrome.md) | next |
 | The tab list isn't saved on Quit; no heap budget for eviction; no ←/→ history list | [ui.md](browser/ui.md#open-items) | next |
 | JavaScript on/off and the cookie rule are saved, not applied | [wb6-services.md](browser/wb6-services.md) | WB6 |
-| Passwords need a secure store (B11); certificate errors and the B10 switch | [wb6-services.md](browser/wb6-services.md) | WB6 |
+| Passwords need a secure store (B11) | [wb6-services.md](browser/wb6-services.md) | WB6 |
 | The shade's Open lands on Files' home: Files has no page for a file another app opens | [ui.md](browser/ui.md#open-items) | Files |
 | The Settings app's Browser page (`set2-app-browser`) | [ui-screens.md](browser/ui-screens.md#ui4-library-and-settings) | Settings |
 | NEOWEB is still ARMv5TE; NEOWEBE ARMv7; both move to ARMv8 | [ui.md](browser/ui.md#when-servo-arrives-marked-2026-11-21) | US4 |
 | CSS mask icons render black; GitHub's module scripts fail their CORS check | [wb4-servo.md](browser/wb4-servo.md) | — |
+| The No connection page can't tell no-such-site from refused or timed out: Servo reports only "client error (Connect)" (a Servo patch to keep the error's cause) | [ui-screens.md](browser/ui-screens.md#ui5-safety-and-errors) | next |
 
 ## Documents
 

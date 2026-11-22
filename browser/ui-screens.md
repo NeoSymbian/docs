@@ -17,7 +17,7 @@ they follow is [ui.md](ui.md).
 | UI2 opened pages and Options | ✅ in WB5c ([browser#10](https://github.com/NeoSymbian/browser/pull/10)) | 6/6 | 5 ✅ 1 🟡 |
 | UI3 forms and dialogs | ✅ in WB5a (browser#10) | 5/5 | 5 ✅ |
 | UI4 library and settings | 🟡 in WB5d (browser#10); `set2-app-browser` waits | 6/7 | 4 ✅ 2 🟡 1 ⬜ |
-| UI5 safety and errors | ⬜ with WB6 | 0/4 | ⬜ |
+| UI5 safety and errors | ✅ 2026-11-22 (browser `ui5`, servo `ui5`, neoui `ui5-portal`) | 4/4 | 4 ✅ |
 | UI6 media | ⬜ with WB7 | 0/1 | ⬜ |
 
 ## Phases
@@ -125,13 +125,33 @@ Gate flow: tap the lock for site info; open an expired certificate, a dead addre
 
 | Screen | Board | Build | Engine | Built | On Servo |
 |---|---|---|---|---|---|
-| Site info | `br2-siteinfo` | A sheet from the lock: the connection (TLS version), the certificate (issuer, valid until), cookies and site data with Clear, Site settings | WB6 | ⬜ | ⬜ |
-| Certificate error | `br2-cert-error` | A `neo:` page: "This site's identity can't be confirmed", Back to safety, Details (issued to/by, validity, error code). "Open the site anyway (unsafe)" appears only when B10's switch is on | WB6 | ⬜ | ⬜ |
-| No connection | `br2-offline` | A `neo:` page: "No internet connection", the cause and code, Retry, Check Wi-Fi (opens Settings › Wi-Fi with 1.9 `OPEN`) | WB6 | ⬜ | ⬜ |
-| Wi-Fi sign-in | `br2-captive` | Opened by Wi-Fi: a "Sign in to Wi-Fi network …" banner with Dismiss over the portal page; the header shows Not secure | WB6 | ⬜ | ⬜ |
+| Site info | `br2-siteinfo` | A sheet from the lock: the connection (TLS version), the certificate (issuer, valid until), cookies and site data with Clear, Site settings | WB6 | ✅ (no Site settings row: no per-site settings yet) | ✅ TLS 1.3, issuer, validity, Clear |
+| Certificate error | `br2-cert-error` | A `neo:` page: "This site's identity can't be confirmed", Back to safety, Details (issued to/by, validity, error code). "Open the site anyway (unsafe)" appears only when B10's switch is on | WB6 | ✅ | ✅ expired.badssl.com: no override with the switch off, opens with it on |
+| No connection | `br2-offline` | A `neo:` page: "No internet connection", the cause and code, Retry, Check Wi-Fi (opens Settings › Wi-Fi with 1.9 `OPEN`) | WB6 | ✅ | ✅ Retry, Check Wi-Fi; the cause is generic (Servo says only "client error (Connect)") |
+| Wi-Fi sign-in | `br2-captive` | Opened by Wi-Fi: a "Sign in to Wi-Fi network …" banner with Dismiss over the portal page; the header shows Not secure | WB6 | ✅ | ✅ from the shade entry (a test host answering instead of the 204) |
 
-⬜ **neoui side:** Wi-Fi's "No access" state gets a "Sign in" action that sends `OPEN("browser", …, url)`. This replaces
-the shortcut in `neoui/symbian/src/wifi.rs` ("open it when there is a browser").
+✅ **neoui side (owner, 2026-11-21: Settings and the shade):** the internet check tells a login page from no internet
+(`Internet::SignIn`). The current network reads "Connected · Sign in needed"; a tap on it, Sign in in its details,
+or the shade's "Sign in to Wi-Fi network" entry opens NEOWEB with `OPEN("browser", 5, "<url>\n<network>")`. The
+network is checked again every 30 s until the login is done. `OPEN("settings", 0, "wifi")` shows Settings › Wi-Fi
+(the offline page's Check Wi-Fi).
+
+**Phone run (2026-11-22, Pixel, build c6c1fe2 + kernel 3bd11c0):** all four screens work. Found and fixed on the
+phone: the error pages' buttons went to the page underneath; Servo names a bad certificate only "client error
+(Connect)" (the expiry now comes from the certificate's dates); a site opened anyway showed the lock (now Not secure);
+the shade named the network by its MAC; Servo 0.8 refused the override request itself (`chrome:allowcert`, so even its
+stock page could never override; fixed in the Servo fork).
+
+**How it's built:**
+- **Error pages:** the engine serves its own `BadCertHTML` and `NetErrorHTML` (`std/webengine/src/resources.rs`; the
+  fork's default reader registers only with its `register` feature). They have no buttons: a console line with a token
+  per engine run tells NEOWEB, which draws the page. Servo's own certificate page offered "Allow certificate
+  temporarily" whatever Settings said; that broke B10 until UI5.
+- **Site info:** the engine's own TLS handshake to the site (a shortcut: not the page's connection) and Servo's cookie
+  count; the certificate is read by `neoweb-core::safety`.
+- **Protocol 1.5:** `PageError`, `AllowCert`, `SiteInfo`, `ClearSite` ([protocol.md](protocol.md)).
+- **Servo fork (branch `neosymbian`):** the default resource reader registers only with its `register` feature, and
+  fetch lets the error page's `chrome:allowcert` through (still guarded by Servo's secret).
 
 ### UI6: media
 
