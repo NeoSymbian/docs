@@ -913,32 +913,47 @@ Direct GPL ports so far: none.
 | C5 | **done 2026-11-09**: MODEMD serves NeoModem and is started by SYSSTART; registration, operator and bars in the status bar; calls out and in through the Phone screen (silent); 3G voice-only until C5b (IPA) |
 | C5b | **done 2026-11-09** (kernel `d003355`): IPA runs (GSI firmware via PAS 15, SMMU identity context, command and LAN_RX channels); the modem stays on LTE, calls CSFB to 3G and back; the IPA QMI handshake is still half done (needed for data) |
 | C6 | **done 2026-11-09** (kernel `b12d1ba`, telephony `3f4af12`, neoui `2d55d01`): the ADSP boots (PAS 1), APR in Rust, CS35L36 x2 + RT5514 board driver; two-way call audio on the earpiece and loudspeaker, Mute / Speaker / volume / DTMF; Dev tools audio loopback test; the modem stayed on 3G after a connected call (fixed 2026-11-12, kernel `69bb4cd3`: the codec's rails were on the wrong PMIC) |
-| C7 | **merged 2026-11-12** (C7 PRs merged with main, owner's call to land before the C7 phone acceptance): IPC v2, multi-call, SIM PIN, airplane, ringtone + haptics, modem recovery (never stops the ADSP); phone acceptance of the C7 behaviours pending; wired headset deferred |
+| C7 | **merged 2026-11-12** (C7 PRs merged with main, owner's call to land before the C7 phone acceptance): IPC v2, multi-call, SIM PIN, airplane, ringtone + haptics, modem recovery (never stops the ADSP); **2026-11-21: the recovery redone the Linux way and accepted on the phone (8/8 forced faults; calls, SMS and Wi-Fi back), [below](#modem-restart-and-the-adsp-fixed-2026-11-21-kernel38-neohw14)**; wired headset deferred |
 | C8 | **done 2026-11-14**: call log, caller ID, call waiting, contacts and the blocklist; Phone + Contacts as the NEOPHONE app (NeoSymbian/phone), installed on slot a |
 | C9 | **done 2026-11-16**: SMS through QMI WMS in MODEMD, Messages in NEOPHONE (page 6), Reply with message, message blocking; sent, delivered and received on the phone; installed on slot a the same day (the final ROM with the old apps: build `27bc36b`, kernel `f0b70dff`, telephony `aec859f`, phone `7d82526`, neoui `e81d5f7`) |
 | C10–C12 | not started |
 
-## Modem restart and the ADSP (2026-11-13, open)
+## Modem restart and the ADSP (fixed 2026-11-21: kernel#38, neohw#14)
 
-**Seen on the phone** (`mss fault`, a RAM boot with `TEL_DIAGNOSTICS=1`; log `private/wifi/w7/mss3.log`):
-1. MODEMD stops the modem: AXI halt incomplete, forced MSS reset, stop acknowledged after 218 ms.
-2. The modem boots again: MBA, MPSS authenticated, QRTR up after 6.4 s.
-3. MODEMD then reads the ADSP's state as `[4, 0, 7, 3]`. Word 2 has bit 0 (FATAL) set: **the ADSP has failed too.**
-   MODEMD asks for a recovery of both (mask 3).
-4. Recovery never stops the ADSP (its TrustZone PAS shutdown froze the phone, 2026-11-12), so it restarts the modem
-   only. The ADSP stays failed, the check fires again, and after three attempts the modem goes FATAL ("SFR Init: wdog
-   or kernel error").
+The modem now restarts the way Linux does it, and Wi-Fi, calls and SMS come back by themselves.
 
-**Why the ADSP fails:** the modem is stopped without warning its peers. Linux's `qcom_sysmon` sends each other
-subsystem an SSCTL event before and after a peer shuts down or powers up (QMI service 43, the "subsystem event"
-request). The ADSP then closes its links to the modem in order. Ours drops the modem abruptly, and the ADSP's audio
-side asserts when its peer vanishes. This is a likely reading, not yet checked against the ADSP's crash reason.
+**What was wrong** (3 RAM boots × 2 forced faults, `TEL_DIAGNOSTICS=1`, image pt8, the same every time):
+- every stop forced the bus halt ("AXI port 01f65000 failed to halt"), and the next boot failed at step 7
+  ("SFR Init: wdog or kernel error");
+- a new recovery started right after a successful one (no reason logged); after 3 attempts HWHUB gave up for good;
+- the ADSP was never told about the modem going down, and an ADSP check restarted the modem in a loop;
+- Wi-Fi never came back (WIFID re-armed its "deaf" flag from an old join failure);
+- once the restart itself worked, the modem asserted 1.5 s after IPA's `INIT_DRIVER` every time:
+  `ipa_hwp_init ... didnt rx any ind frm HWP`.
 
-**Fix (next telephony stage):**
-1. Send the ADSP the sysmon/SSCTL events around a modem stop and start, as `qcom_sysmon` does.
-2. A failed ADSP after a modem-only restart is no reason to restart the modem again: report "no call audio" instead
-   of looping.
-3. Understand the PAS-shutdown hang, so that the ADSP can be restarted when it really fails.
+**The sequence now** (Linux `qcom_q6v5_mss.c`, `qcom_q6v5.c`, `qcom_sysmon.c`, `qcom_glink_ssr.c`, `ipa_qmi.c`):
+1. **One owner.** HWHUB alone restarts the modem and logs each request's reason ("modem FATAL", "MODEMD watchdog",
+   "user retry", …). For 30 s after a restart only a crash restarts it again. An ADSP fault marks the ADSP failed
+   (audio unavailable) and keeps the modem up. After 3 failed attempts it tries again every 5 minutes.
+2. **A running modem is asked first:** SSCTL `SHUTDOWN_REQ` (0x21); HWHUB waits for the ready indication, the
+   shutdown-ack bit (7) or FATAL, at most 10 s.
+3. **The ADSP is told:** SSCTL `SUBSYS_EVENT_REQ` {"modem", before shutdown / after shutdown / before power-up}, only
+   while it runs, never queued.
+4. **The kernel stops it gracefully:** unless it crashed or acknowledged the shutdown, our SMP2P `master-kernel` bit 0
+   and up to 5 s for stop-ack (bit 3), then the AXI halt and reset; after the halt the ADSP gets GLINK-SSR
+   `do_cleanup("mpss")` over its `glink_ssr` channel; the SMEM 421 crash reason is cleared.
+5. **IPA after a restart:** the modem's SMP2P clock query is answered again (its "ipa" bit is 1 in both lives, which
+   the stale-value filter hid), and `INIT_DRIVER` says `skip_uc_load = 1`: IPA kept running, its microcontroller is
+   loaded (Linux keeps `uc_ready` across a restart). That was the last assert.
+6. **Wi-Fi:** a reset clears WIFID's stored failure, no joins while the firmware is down, `WlanStart` is retried for
+   30 s; the modem fetches `wlanmdsp.mbn` again and WLFW reaches mission mode.
 
-Wi-Fi's own restart after a modem stop (wifi.md W7) waits on this: MODEMD only calls WlanStart once the modem
-recovery succeeds.
+**Result** (images pt12 and the owner's demo, 4 boots, 8 forced faults): one recovery per fault, stop-ack in
+118-299 ms, the stop done in ~450 ms, the modem running ~6 s after it, registered ~9 s after the fault, the Wi-Fi
+firmware ready ~22.5 s and Wi-Fi reconnected (same IP) ~25 s after it; the ADSP never failed. The owner then checked
+a call, an SMS and Wi-Fi internet after a restart.
+
+**Open:** one AXI port still logs "failed to halt" after a clean stop-ack (the reset handles it); the ADSP's own
+restart (its PAS shutdown hung, 2026-11-12) is still avoided; Linux's full IPA teardown on a modem stop
+(`ipa_modem_crashed`: pause and reset the modem's endpoints and tables, zero its SRAM) isn't ported: not needed
+without mobile-data endpoints, needed with C10.
