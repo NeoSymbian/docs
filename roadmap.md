@@ -27,7 +27,7 @@ The audit changed documentation only; its proposed fixes and runtime acceptance 
 | Decision | Made by | Choice |
 |---|---|---|
 | Kernel | existing | The 2010 SMP EKA2 (kernelhwsrv `201043_12`), as an ILP32 AArch64 kernel (`port-map.md`). |
-| User side | user | Keep the 2010 Symbian user side, built 32-bit ARM by Phorepoc and run unchanged at AArch32 EL0: file server, servers, eshell, old apps. |
+| User side | user | Keep the 2010 Symbian user side, run at AArch32 EL0: file server, servers, eshell, old apps. Built as ARMv8-A AArch32, soft-float calling convention, since 2026-11-22 ([user-side-smp.md](user-side-smp.md) US2 + US3; owner 2026-11-21); old ARMv5/v6 apps run unchanged. |
 | UI | user | A **new Rust UI server** replaces the old window server and UI. The system apps are written in Rust. |
 | Old apps | user (2026-11-14) | Unmodified S60 `.sis` apps run in one shared guest window server inside neoui, listed by AppArc in a native Old apps grid; runtime in NeoSymbian/legacy, Symbian fixes in their forks (`legacy.md`). On-screen key pads (Navigator, Gamepad and its landscape console, Number, Abc typing, Hidden) and multi-touch make key-only S60 apps usable (2026-11-17). |
 | Driver language | user: "a mix"; the split is **my call** | See next section. |
