@@ -66,13 +66,14 @@ flavour, 32-bit ARMv8-A; the stages below follow a Codex (`gpt-6.2-astra`) resea
 | **US0** | euser `.cia` built with `-D__CPU_CORTEX_A9__ -D__SMP__` (A8N + `__SMP__` is a `cpudefs.h` `#error`): 133 DMBs, none before | build `emitter/build_euser_device.py` (`_extra_flags_tu`), **build#41** | **Pixel 2026-11-20:** 3.5 min of browsing with no crash, against 3/3 crashes within 2 min before; a 15-min soak is pending. The UI ROM boots on Syborg |
 | **US1** | The user side's other synchronisation, audited for single-core assumptions; [list below](#us1-the-audit). Fixes: `RReadWriteLock` order and the SWP emulation's barrier (kernel), 11 P.I.P.S. races (ossrv), a barrier after a polled `TRequestStatus` (e32-rs) | kernel#32, ossrv#4, e32-rs#8 (merged 2026-11-21) | Every site fixed or marked safe; STDTEST's `smp` checks fail before and pass after on the Pixel |
 | **US6a** | CI baseline on QEMU `virt` (our kernel, 4 × Cortex-A55): C: fixture, R0–R3, the seven named `smp` checks, PASS markers. Record the US1 baseline: E32 hashes, sizes, 5 Pixel boot medians, AArch32 CRC/AES/SHA known-answer tests on both clusters. A time-boxed Syborg `-cpu max,has_el2=off` spike | build `.github/workflows/build.yml`, kernel `tools/test-fshell-qemu.py` | The US1 payload is green on `virt`; baseline numbers below |
-| **US2** | euser, efsrv, hal as ARMv8-A AArch32 (`-march=armv8-a+crc+crypto -mfloat-abi=softfp`, A9 + `__SMP__` profile), through one target setting; [three blockers first](#us2-what-to-fix-first) | build `toolchain/symcc`, `emitter/*.py`; kernel euser | Pixel RAM boot and `virt`; export/ordinal/stub/layout diff clean; TLS and nested-TRAP FP tests; R0–R3, `smp` 3/3; X-plore and Frozen Bubble; size and boot time against the baseline |
+| **US2** | euser, efsrv, hal as ARMv8-A AArch32 (`-march=armv8-a+crc+crypto -mfloat-abi=softfp`, A9 + `__SMP__` profile), through one target setting; [three blockers first](#us2-what-to-fix-first) | build `toolchain/symcc`, `emitter/*.py`; kernel euser; build#46 (**merged 2026-11-21**) | Pixel RAM boot and `virt`; export/ordinal/stub/layout diff clean; TLS and nested-TRAP FP tests; R0–R3, `smp` 3/3; X-plore and Frozen Bubble; size and boot time against the baseline |
 | **US6b** | UI CI parity: neoui's Syborg tap, gesture, app-switch and old-app assertions ported to `virt` (pointer input, 539×1079) | neoui `syborg.yml`, `symbian/taps.sh`, kernel `qemu_variant` | Same assertions and screenshots on `virt`; then the Syborg user-side jobs retire |
-| **US3** | The rest of the 2010 ROM (P.I.P.S., ESOCK, graphics, middleware, old-app providers) through the same setting; rebuild the reachable GNU runtime members | build | Fresh full build: no rejected relocations, lost ordinals or new stubs; full UI, old apps, 15-min browser soak, R0–R3, `smp`, CI |
+| **US3** | The rest of the 2010 ROM (P.I.P.S., ESOCK, graphics, middleware, old-app providers) through the same setting; rebuild the reachable GNU runtime members | build#52, ossrv#6 (**merged 2026-11-22**) | Fresh full build: no rejected relocations, lost ordinals or new stubs; full UI, old apps, 15-min browser soak, R0–R3, `smp`, CI. **Done, [results below](#us3-results-2026-11-22)** |
 | **US4** | Rust and the browser on one `armv8a-symbian-eabi.json` (`llvm-target armv8a-none-eabi`, `llvm-floatabi soft`, `max-atomic-width 64`, `+v8,+thumb2,+neon,+crc,…`, `c-enum-min-bits 32`, ARM state): real atomics, `Arc`, NEON. `e32` picks its runtime by feature, not `target_os`; `e32-sys` uses `fence(Acquire)`; NEOWB1's FP test fixed first | e32-rs, neoui, phone, files, neohw, browser | Both build-std modes; R0–R3, NEOWB1 6/6, MIXTEST 225, 64-bit atomic stress, `smp` 3/3, browser soak; neoui ns/px before/after (smooth-ui S4 exit) |
 | **US5** | Clean-up: drop the ARMv5TE paths and aliases; docs (rust-integration, port-map, CLAUDE.md ABI rules) | build, docs | One user-side ABI; phone and CI run identical user E32 hashes |
 
-US0 and US1 are done (merged 2026-11-21, installed as `2026-11-20-finchmane`). The order is US6a → US2 → US6b → US3 →
+US0 and US1 are done (merged 2026-11-21, installed as `2026-11-20-finchmane`); US2 (2026-11-21) and US3
+(2026-11-22) are merged: every 2010 C++ user-side image is ARMv8-A AArch32. The order is US6a → US2 → US6b → US3 →
 US4 → US5; about 18–32 working days. Each stage builds one user payload and boots it with `neo kernel qemu` and
 `neo kernel bonito` from the same volume (`SIS=xplore,frozenbubble`, `ROFS_CORE='\.dll$'`); budgets against the US1
 baseline: size +5 %, boot median +10 %. Later, only with a measured gain: an ARMv8 CPU profile in `cpudefs.h`
@@ -100,7 +101,40 @@ stdtest smp_printf_g smp_condvar_timeout smp_static_init smp_once smp_stdio smp_
   (`romsect.bin` 13,337,812); ROFS 48 E32 images, 41,433,068 bytes (`rofs.img` 50,278,808); `boot.img` 6,569,984.
   `euser.dll` 431,648, `efsrv.dll` 60,436, `hal.dll` 4,960. Per-image list with SHA-256: atlas task `us1`,
   `logs/baseline-e32.txt`.
-- **Still to do:** 5 Pixel RAM-boot medians; AArch32 CRC32/AES/SHA known-answer tests on both clusters.
+- **Boot time** (2026-11-22, `fastboot boot` to neoui's `boot OK`, 5 RAM boots each): `2026-11-22-tapirtail` test image
+  15.2 s median (15.2, 15.2, 15.2, 15.2, 15.5).
+- **Still to do:** AArch32 CRC32/AES/SHA known-answer tests on both clusters.
+
+## US3: results (2026-11-22)
+
+build#52 (`ad7f8807`) and ossrv#6 (`4337f805`), compared with `2026-11-22-tapirtail` (the same sources, ARMv5TE):
+
+- **One setting:** `toolchain/symcc` builds all user-side C++ as `-march=armv8-a+crc+crypto -mfloat-abi=softfp
+  -mword-relocations -mno-unaligned-access`, A9 + `__SMP__` profile: the 276 step-19 components plus efile, estart,
+  eshell and elocal. The 2010 Syborg kernel build (`symcc -k`) stays ARMv5.
+- **FP registers across a leave or `longjmp`** (d8–d15 are callee-saved; TTrap and `jmp_buf` are frozen):
+  - TRAP/TRAPD/TRAP_IGNORE: `NeoTrapFp` (US2, overlay `e32cmn.h`).
+  - `__ASSERT_ALWAYS_NO_LEAVE` (`e32std.h`, a hand-expanded TRAP; its leave path panics): overlay `e32std.h`.
+  - stlport `_STLP_TRY` (a hand-expanded TRAP; unused in the ROM today): `NeoTrapFp` under `NEO_TRAP_FP`.
+  - P.I.P.S. `setjmp`: `<setjmp.h>` wraps it in a statement that tells GCC its return clobbers d8–d15, so the caller
+    saves them in its prologue (checked in the code: `vpush {d8-d15}` / `vldm`); `jmp_marm.cia` undefines the macro.
+  - `build_mmp` prints `! VFP code calls TTrap::Trap` for any image with a hand-expanded TRAP left (none) and
+    `. calls setjmp` for setjmp callers.
+- **Build:** 276/276 ACCEPTED; per-image export counts, link stubs and the 157 panic stubs identical to tapirtail; no
+  rejected relocation. `romsect.bin` 13,176,612 bytes (−1.2 %), `rofs.img` 54,584,252 (−0.02 %).
+- **Pixel** (RAM boots): UI, LTE, Wi-Fi; `stdtest smp…` `7 ok, 0 failed` every run (4 runs); X-plore and Frozen
+  Bubble; NEOWEB browsing; an incoming call and an SMS (delivery report back). Boot median 15.1 s (15.1, 15.1, 15.2,
+  15.1, 15.2) against tapirtail's 15.2 s. CI (`build`) green.
+- **The GNU helpers stay ARMv5** (owner 2026-11-22): the links take the root libgcc/libsupc++. Measured, the C++
+  images link only the EHABI unwinder (`unwind-arm`, 279 images), `operator new/delete`, `__cxa_pure_virtual`,
+  64-bit division and int64↔double conversion (`__aeabi_l2d` etc.; ARMv8's VFP has no such instruction); 32-bit
+  division and FP arithmetic are inline. The toolchain's v8 multilib is Thumb and carries MOVW/MOVT in exactly those
+  members (`unwind-arm` 14, `new_op`/`pure`/`guard`/`eh_*`), so moving needs a GCC-source rebuild with
+  `-mword-relocations`: worth it only if a profile shows 64-bit division or the unwinder hot. Soft-float and 32-bit
+  divide helpers are linked only by the Rust EXEs (ARMv5 until US4) and by drtaeabi/dfpaeabi (they provide them to
+  RVCT-built apps).
+- **Seen, not US3:** X-plore panics `EUSRNIMP` (a legacy panic stub) after a menu tap, the same on tapirtail
+  (known-issues).
 
 ## US2: what to fix first
 

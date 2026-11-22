@@ -6,6 +6,17 @@ The register maps all the sections below, retaining the resolved slot-retry hist
 open reports. The 2026-11-09 source audit did not rerun these hardware/emulator observations.
 
 
+## Phone: X-plore closes with `EUSRNIMP` after a menu tap (2026-11-22)
+
+**Status:** open, not a regression.
+- X-plore (old S60 app) runs, then after a tap near the bottom right (a softkey/menu, 952,1636) its main thread
+  panics `EUSRNIMP 5617124`: it called one of the legacy component list's generated panic stubs; the reason is the
+  caller's address, `0x55B5E4`, in X-plore's code. Just before, it fails to create `Z:\System\Data\X-plore_temp\`
+  (read-only Z:, `-12`/`-1`).
+- Same panic, same address, on `2026-11-22-tapirtail` (ARMv5 user side) and on the US3 ARMv8 build.
+- **Next:** map `0x55B5E4` to its import (X-plore's code base + import table) and implement that function
+  ([legacy.md](legacy.md): panic stubs are a stop-gap).
+
 ## Phone: the modem crashes under CPU load at boot; restarts fail; Wi-Fi doesn't come back (2026-11-21)
 
 **Status:** fixed 2026-11-21/22 (kernel#36 #37 #38, neohw#13 #14; details in
