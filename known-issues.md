@@ -2,9 +2,51 @@
 
 For the broader legacy-kernel audit, source evidence, priorities and closure tests, see
 [kernel-issues.md](kernel-issues.md) and the [modernization roadmap](kernel-modernization.md).
-The register maps all seven sections below, retaining the resolved slot-retry history and the uncertainty of
+The register maps all the sections below, retaining the resolved slot-retry history and the uncertainty of
 open reports. The 2026-11-09 source audit did not rerun these hardware/emulator observations.
 
+
+## Phone: the modem crashes under CPU load at boot; restarts fail; Wi-Fi doesn't come back (2026-11-21)
+
+**Status:** fixed 2026-11-21/22 (kernel#36 #37 #38, neohw#13 #14; details in
+[hardware/modem.md](hardware/modem.md#modem-restart-and-the-adsp-fixed-2026-11-21-kernel38-neohw14)).
+- **Under load** (8 busy threads while the modem boots), three things went wrong:
+  - **A kernel fault in HWHUB** (L3 translation fault in `memclr`, ADSP firmware load), then IPA -14 and a 3G-only
+    modem. Cause: kernel TLB maintenance for global pages was ASID-0 only, so a user thread's walk cache kept a
+    freed page table. Fixed with VAAE1 and a flush before freeing page tables, and by making the completion
+    barrier a DSB (kernel#36).
+  - **Modem FATAL `User-PD grace timer expired for wlan_process`.** HWHUB's blocking GLINK sends and its TFTP window
+    flooded its outbox, and the modem's 3 MB `wlanmdsp.mbn` never loaded. Fixed with a try-send, best-fit intents
+    and a TFTP window that waits for the transport (kernel#37, neohw#13). 5/5 stressed boots pass.
+- **Restarts** didn't recover:
+  - every stop forced the AXI halt and the next boot failed at step 7;
+  - recovery looped, then gave up;
+  - after a restart the modem asserted `ipa_hwp_init ... didnt rx any ind frm HWP`;
+  - Wi-Fi never came back.
+- **Fix (Linux-grade SSR):** one recovery owner with reasons, an SSCTL shutdown request, stop-ack, ADSP SSCTL events
+  and GLINK-SSR cleanup, the IPA clock query answered again, `skip_uc_load = 1`, and the WIFID reset fixes
+  (kernel#38, neohw#14).
+- **Result:** 8/8 forced faults recover once each. The modem is back ~6 s after the stop and Wi-Fi ~25 s after it.
+  The owner checked a call, an SMS and Wi-Fi internet after a restart.
+- **Still open:**
+  - one AXI port logs "failed to halt" after a clean stop-ack (the reset handles it);
+  - a real ADSP restart is avoided;
+  - Linux's `ipa_modem_crashed` teardown is not ported (needed with C10 mobile data).
+
+## Phone: ESock_DIP crashes and the phone reboots (cross-thread sockets) (2026-11-20)
+
+**Status:** fixed 2026-11-21 (commsfw#1, build#49).
+- **Seen:** `stdtest smp_cross_thread_fd` (3 threads opening and closing UDP sockets while ESock starts) killed
+  ESock_DIP. The thread is critical, so the phone rebooted. Also seen on main before the SMP work.
+- **Cause:** found with a new dead-node diagnostic in `TSignatureBase::DispatchL`.
+  - The core SCPR's BindTo activity in ESock_IP kept raw pointers to its data clients while it waited for a lower
+    binder.
+  - Meanwhile the socket closed in ESock_DIP, and the client went idle → destroy → freed.
+  - `TCFDataClient::TBindTo` then hit the freed node.
+- **Fix:** the activity keeps node ids and looks each client up (present, not leaving) before every send. A client
+  that left is skipped and its binder released (`ESock: BindTo skips a data client that left`).
+- **Result:** 3/3 boots without a crash. One boot's test failed with KErrNotReady because Wi-Fi wasn't linked yet,
+  which is how sockets already behave without a bearer.
 
 ## Phone: Dev tools "Run checks" can freeze the phone (2026-11-18)
 
@@ -46,7 +88,9 @@ open reports. The 2026-11-09 source audit did not rerun these hardware/emulator 
 
 ## Phone: a modem restarted after a WLAN firmware assert crashes again (2026-11-19)
 
-**Status:** open.
+**Status:** fixed 2026-11-22 by the Linux-grade restart (kernel#38, neohw#14; [above](#phone-the-modem-crashes-under-cpu-load-at-boot-restarts-fail-wi-fi-doesnt-come-back-2026-11-21)):
+the FATAL before handover was the IPA microcontroller handshake (`skip_uc_load`), and Wi-Fi now restarts with the modem.
+History:
 - **The restart now behaves:** with the SMP2P fix, a restart after `wlan_ps_sta_health_monitor_timeout` waits for the new
   modem's own READY (`slave-kernel 00000002`) instead of the old 0x7, and QRTR comes up.
 - **But the new modem raises FATAL again before handover** (`00000003`), and HWHUB restarts it again. The re-init after
@@ -55,7 +99,9 @@ open reports. The 2026-11-09 source audit did not rerun these hardware/emulator 
 
 ## Phone: TFTP `/readwrite/` writes are kept but not readable (2026-11-19)
 
-**Status:** open, low priority.
+**Status:** fixed 2026-11-21 (neohw#13). A `/readwrite/` file the modem wrote is served back from RAM, and unwritten
+ones still get "not found". The modem's `mcfg.tmp` now goes: not found, then written, then read back (1 byte), as
+under Linux. No change to Wi-Fi or carrier config was seen. History:
 - HWHUB keeps a written `/readwrite/` file in RAM but refuses to read it back. Linux's tqftpserv maps `/readwrite/` both
   ways.
 - The modem writes `/readwrite/mcfg.tmp` (1 byte) at ~30 s and finds it unreadable. Refusing the write instead makes
@@ -65,12 +111,17 @@ open reports. The 2026-11-09 source audit did not rerun these hardware/emulator 
 
 ## Phone: the 2.4 GHz BSSID of the home AP doesn't answer unicast pings from the LAN (2026-11-19)
 
-**Status:** open, not investigated.
+**Status:** open, not investigated, now mostly avoided. Since 2026-11-21 (neohw#12, neoui#32), WIFID joins a dual-band
+network's 5 GHz AP when it is −70 dBm or better, so the home AP is joined on `…:6a` (channel 44).
 - Joined to `…:66` (2.4 GHz, channel 1), the phone's own traffic works: DHCP, DNS, TCP, the internet check.
 - But unicast pings from a wired Mac on the same subnet get no reply, though they arrive (rx counters rise).
 - On the 5 GHz BSSID `…:6a` they are answered. Possibly the AP's isolation between bands; check with another client.
 
 ## Phone: slot a runs out of retries (ABL switches to slot b); test images may die with a black screen
+
+**Update 2026-11-21:** a kernel crash on a *test* image (AUTOFASTBOOT) used to leave a black screen with a dead
+console until AUTOFASTBOOT, because the other CPUs kept petting the watchdog. Now it lands in fastboot 10 s later
+(kernel#36, `a64_reboot.cpp`).
 
 **Status:** fixed 2026-11-08 by FS5b (kernel `5b0ba6b`): the kernel marks a slot successful (`slot ok now`, or
 neoui's `ENeoHalBootOk` once that lands) and counts tries itself. Found 2026-11-07.
@@ -154,7 +205,9 @@ buffer the writer's in/out sequence really protects.
 
 ## CI: neoui's `syborg` check is red (seen 2026-11-11)
 
-**Status:** open. neoui #5 (battery UI) was merged past it by the owner.
+**Status:** obsolete. Syborg was dropped as a target (2026-11-21), and neoui's `syborg` workflow is manual only; its UI
+checks move to QEMU `virt` in US6b ([user-side-smp.md](user-side-smp.md)). History: neoui #5 (battery UI) was merged
+past it by the owner.
 - **What:** the QEMU boot test counts the Clock app's `clock: tick` lines and wants at least 2. It logs 1: the
   script taps as soon as Clock shows its surface, then goes back. Both runs of neoui #5 failed this way. Everything
   else in the run passes (boot, launcher, Terminal with `neotest` 10/0, Files, the switcher).
