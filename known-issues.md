@@ -6,6 +6,15 @@ The register maps all the sections below, retaining the resolved slot-retry hist
 open reports. The 2026-11-09 source audit did not rerun these hardware/emulator observations.
 
 
+## Phone: fshell doesn't come back after USB debugging is switched off and on (2026-11-25)
+
+**Status:** open, not a regression (the US4 image does the same).
+- Settings > USB debugging off, then on: the port comes back (`[usb] USB debugging on (2 functions)`), but fshell
+  exits `-18` (KErrNotReady) at once, every time, also while the Mac has the port open; neoui restarts it with backoff
+  (up to 32 s). Only a reboot brings it back.
+- Once, on the US4 image during this test, the phone then crashed with the debug port silent (no log).
+- **Next:** what fshell's console open returns after the ACM function is re-added (kernel `a64_usb_acm_*`).
+
 ## Phone: X-plore closes with `EUSRNIMP` after a menu tap (2026-11-22)
 
 **Status:** open, not a regression.

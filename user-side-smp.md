@@ -70,10 +70,11 @@ flavour, 32-bit ARMv8-A; the stages below follow a Codex (`gpt-6.2-astra`) resea
 | **US6b** | UI CI parity: neoui's Syborg tap, gesture, app-switch and old-app assertions ported to `virt` (pointer input, 539×1079) | neoui `syborg.yml`, `symbian/taps.sh`, kernel `qemu_variant` | Same assertions and screenshots on `virt`; then the Syborg user-side jobs retire |
 | **US3** | The rest of the 2010 ROM (P.I.P.S., ESOCK, graphics, middleware, old-app providers) through the same setting; rebuild the reachable GNU runtime members | build#52, ossrv#6 (**merged 2026-11-22**) | Fresh full build: no rejected relocations, lost ordinals or new stubs; full UI, old apps, 15-min browser soak, R0–R3, `smp`, CI. **Done, [results below](#us3-results-2026-11-22)** |
 | **US4** | Rust and the browser on one `armv8a-symbian-eabi.json` (`llvm-target armv8a-none-eabi`, `llvm-floatabi soft`, `max-atomic-width 64`, `+v8,+thumb2,+neon,+crc,…`, `c-enum-min-bits 32`, ARM state): real atomics, `Arc`, NEON. `e32` picks its runtime by feature, not `target_os`; `e32-sys` uses `fence(Acquire)`; NEOWB1's FP test fixed first | e32-rs, neoui, phone, files, neohw, browser | Both build-std modes; R0–R3, NEOWB1 6/6, MIXTEST 225, 64-bit atomic stress, `smp` 3/3, browser soak; neoui ns/px before/after (smooth-ui S4 exit). **Done 2026-11-25, [results below](#us4-results-2026-11-25)** |
-| **US5** | Clean-up: drop the ARMv5TE paths and aliases; docs (rust-integration, port-map, CLAUDE.md ABI rules) | build, docs | One user-side ABI; phone and CI run identical user E32 hashes |
+| **US5** | Clean-up: drop the ARMv5TE paths and aliases; docs (rust-integration, port-map, CLAUDE.md ABI rules) | build, docs | One user-side ABI; phone and CI run identical user E32 hashes. **Done 2026-11-25, [results below](#us5-results-2026-11-25)** |
 
 US0 and US1 are done (merged 2026-11-21, installed as `2026-11-20-finchmane`); US2 (2026-11-21), US3
-(2026-11-22) and US4 (2026-11-25) are merged: every 2010 C++ and every Rust user-side image is ARMv8-A AArch32. The order is US6a → US2 → US6b → US3 →
+(2026-11-22), US4 and US5 (2026-11-25) are merged: every 2010 C++ and every Rust user-side image is ARMv8-A AArch32,
+and CI and the phone build the same E32 bytes. The order is US6a → US2 → US6b → US3 →
 US4 → US5; about 18–32 working days. Each stage builds one user payload and boots it with `neo kernel qemu` and
 `neo kernel bonito` from the same volume (`SIS=xplore,frozenbubble`, `ROFS_CORE='\.dll$'`); budgets against the US1
 baseline: size +5 %, boot median +10 %. Later, only with a measured gain: an ARMv8 CPU profile in `cpudefs.h`
@@ -104,6 +105,36 @@ stdtest smp_printf_g smp_condvar_timeout smp_static_init smp_once smp_stdio smp_
 - **Boot time** (2026-11-22, `fastboot boot` to neoui's `boot OK`, 5 RAM boots each): `2026-11-22-tapirtail` test image
   15.2 s median (15.2, 15.2, 15.2, 15.2, 15.5).
 - **Still to do:** AArch32 CRC32/AES/SHA known-answer tests on both clusters.
+
+## US5: results (2026-11-25)
+
+build#56 #58 #59, kernel#39, legacy#7, neoui#35, neohw#16, files#13, phone#9, browser#16, NeoSymbian/mozjs#4
+(designed and reviewed with Codex `gpt-6.2-astra`):
+
+- **Same bytes, checked:** every build writes `out/e32-hashes.txt` (sha256, size, name of each E32 image) and
+  `tools/e32_hashes.py compare` checks two builds; `neo kernel` writes the board's `user/e32-manifest.txt` (each E32
+  its Z: gets, core or ROFS). A clean GitHub CI build and a clean atlas build of one commit made the same 286 images,
+  byte for byte. `fshell.exe` no longer embeds the build clock (its version names the pinned source), the one
+  difference between two builds before.
+- **ARMv5 leftovers:** the stubs, import veneers and DLL entry assemble as ARMv8-A (`USER_ASM`; the DLL entry's
+  padding is `mov r0, r0`, the ARMv5 nop word); one `GNU_ARCH` names the kept GNU helper multilib (libgcc/libsupc++
+  and the final links stay ARMv5, owner 2026-11-22); the duplicate `V8_FLAGS` and euser's `-D__MARM_ARMV7__` are gone.
+  Cold builds before and after: all 286 images identical.
+- **Syborg is gone from the build:** `neo rom` no longer builds the 2010 Syborg kernel and `minigui.rom`
+  (`scripts/build-user-manifest.sh` writes the same `.ekern-build/rombuild.args`, identical, 888 lines); deleted:
+  the Syborg kernel scripts and glue, the bootstrap translator, the whole-ROM writer, `boot.sh`, `neo boot`,
+  `neo live`, `symcc -k` (its user flags unchanged). legacy's `mif.py` takes `uid_checksum` from
+  `emitter/e32image.py` (legacy#7). neoui's Syborg tap job is kept as the US6b spec (`symbian/us6b/syborg-taps.yml`).
+- **Rust:** the "Arc needs compare-and-swap" workarounds are `Arc` now (neoui Wi-Fi and USB debugging, neohw GNSSD
+  and WIFID, Files' job slot); the browser SDK's wrappers are `armv8-symbian-*` (regenerate with
+  `tools/symbian-sdk.sh`); Settings > About says ARMv8-A.
+- **Kept on purpose:** the ARMv5 GNU helpers (and cxxrt's libstdc++ members), `ECpuArmV5` in E32 headers,
+  `__MARM_ARMV5__` (sources and frozen `.def`s), `R_ARM_V4BX`, the SWP emulation and the ARMv5 `a32test`.
+- **Pixel** (RAM boot, 27,975,680-byte image, 307 E32 images in its manifest): UI, LTE, Wi-Fi with the internet
+  check, `stdtest smp…` `7 ok, 0 failed` ×3, MIXTEST all ok (225), About, a Files copy, the browser, a call, an SMS,
+  X-plore and Frozen Bubble; no panic. CI (build#59's run) and the phone's build: the same 286 C++ E32 images; the phone adds its 20 Rust EXEs.
+- **Seen, not US5:** after USB debugging is switched off and on, fshell keeps exiting -18 (the US4 image does the
+  same; known-issues).
 
 ## US4: results (2026-11-25)
 
