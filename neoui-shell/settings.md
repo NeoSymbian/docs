@@ -534,6 +534,46 @@ Then NeoWifi 1.1 gets a directed scan and join by raw SSID, and WIFID keeps `hid
     SYSSTART and NEOSET together;
   - phone and files pin neohw through neoui, so their repins wait with phone#10 and files#15 (boot size, the owner).
 
+**SE1d plan (the Apps catalogue, `set2-apps`):**
+- **Where the lists come from:**
+  - ROM apps: the shell's `host::APPS` (key, EXE). The names and icons are in the shell's `menu.slint`, so neither
+    list is complete on its own. `APPS`' keys and names move to `neoui-proto` `apps.rs` (`APPS: &[(key, exe, name)]`):
+    the shell starts from it, NEOSET lists from it, and a test checks that every menu.slint app with an EXE is in it.
+    Icons stay with each UI (`@neoui/icons/apps/<key>.svg`).
+  - Old apps: LEGACY already sends each one to the shell as a launcher entry (`ENTRY`: id = the app's UID, a
+    caption of at most 48 bytes, a 128 px icon), and the shell keeps them by app key (`host.entries("legacy")`).
+    **No legacy PR is needed.** The entries exist only once LEGACY has run this boot (the user opened Old apps).
+- **`SETTINGS_INFO` kind 4 = `INFO_APPS`** (protocol **1.14**):
+  - `{count u8, {id u32 LE, caption length u8, caption}*}`, at most `ENTRIES_MAX` (64) × 53 bytes + 1 = 3393 bytes,
+    so one call, and `cursor` stays 0. Icons are left out: 64 × 128 px ARGB is 4 MB. The hub shows the generic
+    old-app icon (shortcut: real icons need a cache or a smaller ENTRY icon).
+  - An empty list means LEGACY hasn't run.
+- **`SETTINGS_ACTION` kind 2 = `ACTION_OPEN_ENTRY`** (1.14), `req = id u32 LE`: the shell's `open_entry("legacy",
+  id)`, the same as a tap in the Old apps grid. Only `Caller::Settings` (NEOSET's SID) may use it; any other caller
+  gets `KErrPermissionDenied`. Back from the old app goes where it does from the grid (`open_entry` doesn't record
+  who opened it).
+- **NEOSET Apps page:**
+  - "Apps": every ROM app (icon, name; Open → `app.open(key, 0, "")`). Apps with a page of their own also offer
+    "App settings": Phone → `open phone 3`, Messages → `open phone 3 "messages"`, Dev tools; this is the table
+    `settings_app::apps::SETTINGS_PAGE`.
+  - "Old apps": the kind 4 list; Open → `ACTION_OPEN_ENTRY`. With none: "Old apps are listed once Old apps has been
+    opened since the phone started" and an Open Old apps row. NEOSET doesn't start LEGACY itself (a guest window
+    server is costly to start from a settings page).
+  - **Versions:** a 1.13 shell answers kind 4 and action 2 with `KErrArgument`; NEOSET then hides the Old apps
+    section. The search table gets `apps.*` rows for the static parts.
+- **Pin ripple:** inside neoui only (the shell, neoui-proto, settings-ui, NEOSET). phone and files pin neoui, so their
+  repins wait with phone#10/files#15. legacy and neohw don't change.
+- **Tests:**
+  - neoui-proto: the kind 4 round trip, 64 entries fit, damaged input refused, 48-byte captions; the action
+    request's encoding;
+  - the shell: `apps.rs` against menu.slint; `ACTION_OPEN_ENTRY` refused for a non-Settings caller (a host
+    unit test on the access helper);
+  - settings-ui: snapshot `set2-apps` with ROM and old apps and with none, and the act log for Open and App
+    settings;
+  - virt-taps: Settings → Apps → Clock opens Clock;
+  - phone (`SIS=xplore,frozenbubble`): open Old apps once, then Settings → Apps lists X-plore and Frozen Bubble, and
+    Open starts X-plore.
+
 **Proposed order:** SE1a, then SE1b; SE1c after a research spike (does the firmware take a directed scan?); SE1d.
 
 **Questions for the owner:** none for SE1a or SE1b. SE1c-2: (a) and (b) above.
