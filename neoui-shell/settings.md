@@ -574,6 +574,17 @@ Then NeoWifi 1.1 gets a directed scan and join by raw SSID, and WIFID keeps `hid
   - phone (`SIS=xplore,frozenbubble`): open Old apps once, then Settings → Apps lists X-plore and Frozen Bubble, and
     Open starts X-plore.
 
+**SE1d as built** (neoui#44):
+- Decided by the coordinator, for the owner to overrule: old apps get the generic icon (`shortcut:`: a kind 5 that
+  returns one small icon by id is the upgrade), and NEOSET never starts LEGACY itself.
+- **Approved addition:** `total` counts the entries the shell refused (it keeps 64), so the page says "64 of N".
+- **App settings:** Dev tools goes to its own settings view; Contacts goes to Phone's settings at Contacts.
+- **For the owner:**
+  - an image with `SIS=xplore,frozenbubble` comes to 29.0 MB, past the bootloader's ~28.6 MB limit, so old apps must
+    be installed on C: (or go into the ROFS) for test images;
+  - on a no-SIS image X-plore won't start (`legacy: start app a0000bcd: -1`, from the grid too). It's probably
+    missing files on Z:; check again on an image that has the SIS.
+
 **Proposed order:** SE1a, then SE1b; SE1c after a research spike (does the firmware take a directed scan?); SE1d.
 
 **Questions for the owner:** none for SE1a or SE1b. SE1c-2: (a) and (b) above.
@@ -588,7 +599,7 @@ SE5 and SE6 follow their platform stages.
 | The design (48 boards, prototype, spec) | done, on the canvas, approved |
 | This plan | written 2026-11-25 |
 | SE0 | built and merged 2026-11-26: neoui#38 (`b19d597`), e32-rs#16 (`Message::client_sid`), neohw#17 (e32 pin). QEMU walk and three Pixel RAM-boot runs: Open apps card, Wi-Fi list and join (keyboard, wrong password, no double join), Buttons/Gestures by NEOSET's SID, the connect and reap races, keyboard resume. Two Codex reviews, findings fixed |
-| SE1 | SE1a (find) merged 2026-11-26: neoui#39 (`5055cdb`); two Codex reviews; Pixel RAM-boot run: grid, search → selected row, Back along the path, Kernel log → Dev tools Console. SE1b (zones) merged 2026-11-26: neoui#40 (`32b032a`); Codex review, findings fixed; Pixel RAM-boot run: Sydney UTC+11:00 (summer time), Dublin UTC+00:00 (no summer time), World clock Yesterday −4 h / Today +7 h. SE1c spike done. SE1c-1 (Saved networks, Forget) merged 2026-11-26: neohw#18 (`5a4f8f2`, NeoWifi 1.1), neoui#43 (`2b222c8`); two Codex reviews (WIFID's stop/save fixes); Pixel run: list, Forget→Cancel, Wi-Fi off/on (stop 121 ms), wifi.dat/left.dat byte-identical. SE1c-2 waits for the owner; SE1d after its plan additions |
+| SE1 | SE1a (find) merged 2026-11-26: neoui#39 (`5055cdb`); two Codex reviews; Pixel RAM-boot run: grid, search → selected row, Back along the path, Kernel log → Dev tools Console. SE1b (zones) merged 2026-11-26: neoui#40 (`32b032a`); Codex review, findings fixed; Pixel RAM-boot run: Sydney UTC+11:00 (summer time), Dublin UTC+00:00 (no summer time), World clock Yesterday −4 h / Today +7 h. SE1c spike done. SE1c-1 (Saved networks, Forget) merged 2026-11-26: neohw#18 (`5a4f8f2`, NeoWifi 1.1), neoui#43 (`2b222c8`); two Codex reviews (WIFID's stop/save fixes); Pixel run: list, Forget→Cancel, Wi-Fi off/on (stop 121 ms), wifi.dat/left.dat byte-identical. SE1c-2 waits for the owner. SE1d (Apps catalogue) merged 2026-11-26: neoui#44 (`eedb063`, protocol 1.14 INFO_APPS + ACTION_OPEN_ENTRY, neoui-proto `apps.rs`); Codex review, findings fixed; virt-taps walks search → Apps → Clock; Pixel run: ROM apps, the empty state, old apps listed after Old apps ran, eshell opened through Settings |
 | SE2–SE7 | not started |
 
 ## Part 1: settings store (done 2026-11-09)
