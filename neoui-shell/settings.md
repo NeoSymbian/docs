@@ -262,6 +262,17 @@ process or a shared component; or coordinated services, hardware or recovery wor
   - two apps launched at once;
   - a non-Settings app's write to `display.dark` is refused.
 
+**Known shell risks SE0 leaves open** (they predate NEOSET and hit every app, but an on-demand Settings app hits them
+more often; Codex review of neoui#38, 2026-11-26). The SE0 phone run checks the first two: open Settings right after
+boot, and close and reopen it fast.
+- **The connect race:** a session binds to "the newest launched app without one" (`host.rs` `connect`). If NEOSET starts
+  while a resident app is still connecting, the two can swap surfaces and input. NEOSET's writes then fail safe (the
+  SID check refuses them). The fix is binding by SID at `connect`: Step 0's second half (`neoui-shell.md`).
+- **The reap race:** `reap()` can report the old process's key while a fresh NEOSET is live, so a close-then-reopen
+  can jump to Home.
+- **A failed spawn** leaves a blank screen, and the `OPEN` caller still gets success.
+- **Two queued `OPEN`s** of one app share its argument slot: the second can land on the root page.
+
 #### B. Sound profiles (M, SE2)
 - **One reducer in SYSSTART** serves Settings, the shade's Silent tile and the power menu.
 - **The keys:**
