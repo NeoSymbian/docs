@@ -321,7 +321,10 @@ parked on this.
 
 ## Syborg: an odd screen width shears the picture (seen 2026-11-08)
 
-**Status:** open, for the symbian-qemu work.
+**Status:** fixed 2026-11-25. The screenshot path was the cause: QEMU's `ppm_save` (`ui/ui-qmp-cmds.c`) wrote each PPM row
+at pixman's 4-byte-rounded stride, 1620 bytes for a 1617-byte row at 539 px, so every row of the file was a pixel
+further along. The guest's frame was right all along. Found again on `virt` in US6b; fixed in NeoSymbian/neoqemu's QEMU
+(the toolchain image since build#63), and neoqemu's `ui-qemu.py` reads either form. History below.
 - **What:** neoui's ROM on symbian-qemu at `SCREEN=539x1079` (`-M syborg,width=539,height=1079`, the size neoui's
   `syborg` CI uses) shows a diagonally sheared screen. Each row is shifted a little further, as when a framebuffer is
   read with the wrong row stride.

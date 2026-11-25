@@ -200,6 +200,9 @@ Every `arm/*.cia` must be rewritten as A64. The generic `.cpp` (nkernsmp core, f
 - **Since 2026-11-08** our fork is [NeoSymbian/symbian-qemu](https://github.com/NeoSymbian/symbian-qemu): QEMU 11.1
   vendored under `qemu/` with the Syborg board rewritten in C (from CodeSourcery's MIT devices in QEMU 0.11–1.0), an
   event-driven `run-syborg`, and `symbian-qemu-0.9.1-12/` removed from `main`. It replaces `qemu-syborg`.
+- **Since 2026-11-25** symbian-qemu is archived ([retired-repos.md](retired-repos.md)): QEMU comes from
+  [NeoSymbian/neoqemu](https://github.com/NeoSymbian/neoqemu) (upstream, vendored fresh), and the build no longer reads
+  any of its sources.
 
 **Why it matters.**
 - Syborg is the simplest virtual platform, the closest analogue to `-M virt`.

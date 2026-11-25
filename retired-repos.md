@@ -131,6 +131,12 @@ Used only by Phorepoc's full Symbian^3 build (core's registry); NeoSymbian/build
 | `oss.FCL.sf.os.xmlsrv` | SymbianSource/oss.FCL.sf.os.xmlsrv | symbian-2010 `333ed3d1a8` |
 | `oss.FCL.sftools.dev.ui` | SymbianSource/oss.FCL.sftools.dev.ui | symbian-2010 `969ab3746b` |
 
+## Retired 2026-11-25
+
+| Repository | State | What it was |
+|---|---|---|
+| [`symbian-qemu`](https://github.com/NeoSymbian/symbian-qemu) | archived (read-only) | The Syborg board package (the adapt.Qemu fork): the 2010 Syborg baseport, QEMU 11.1 with the Syborg board in C, `run-syborg`. Syborg stopped being a target on 2026-11-21 (its kernel can't run the ARMv8 user side). Where its pieces went: QEMU and the run tools to [`neoqemu`](https://github.com/NeoSymbian/neoqemu), vendored fresh from upstream; the board config the phone shipped to kernel `baseport/arm64/common/user` (HAL tables with our values, the keymap), with ESTART now Symbian's generic one (kernel#41, build#61). Its images stay on `ghcr.io/neosymbian/symbian-qemu`, so older `build` commits still resolve their toolchain. |
+
 ## Retired 2026-11-08
 
 | Repository | State | What it was |

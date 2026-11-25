@@ -44,7 +44,7 @@ original projects.
 | [e32-rs](https://github.com/NeoSymbian/e32-rs) | Rust crates for the Symbian user side |
 | [neoui](https://github.com/NeoSymbian/neoui) | The Rust UI server and apps |
 | [neohw](https://github.com/NeoSymbian/neohw) | The user side of the hardware in Rust (was `telephony`, with `neolink` merged in): the modem, audio, Wi-Fi and IP daemons and their crates ([hardware.md](hardware.md)) |
-| [symbian-qemu](https://github.com/NeoSymbian/symbian-qemu) | The Syborg board package (the adapt.Qemu fork): the baseport, QEMU 11.1 with the Syborg board in C, `run-syborg` (`ghcr.io/neosymbian/symbian-qemu`) |
+| [neoqemu](https://github.com/NeoSymbian/neoqemu) | QEMU for the AArch64 kernel's `virt` runs: upstream QEMU 11.1.2 plus our fixes, `run-qemu.sh` and `ui-qemu.py` (`ghcr.io/neosymbian/neoqemu`, in the toolchain image's `/opt/neoqemu/bin`). Replaced symbian-qemu (2026-11-25, [retired](retired-repos.md)) |
 | `oss.*` | The SymbianSource packages the build pins (`build/sources.lock`), forked as they are |
 
 ## Where the port's files went

@@ -92,7 +92,7 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
       `usbc.ldd`) gives the standard `RDevUsbcClient` for usbman and MTP (roadmap L1).
     - `DComm` is shaped for a UART (characters moved from interrupt handlers), so the PDD bridges to the USB queues
       through a DFC.
-  - **QEMU:** a PDD for virt's second PL011 (`VIRT_UART1` at `0x09040000`, `symbian-qemu/qemu/hw/arm/virt.c:206`),
+  - **QEMU:** a PDD for virt's second PL011 (`VIRT_UART1` at `0x09040000`, `neoqemu/qemu/hw/arm/virt.c:206`),
     so CI can test the user side; UART0 stays the kernel console. Done in T5 (kernel `326fffc`,
     `virt_assp/a64_pl011_comm.cpp`, SPI 8): QEMU's PL011 raises TX only after a DR write and RX only when the FIFO crosses
     its trigger, so the PDD pends its own SPI (GICD_ISPENDR) to start TX and to drain leftovers.
