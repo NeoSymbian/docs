@@ -222,8 +222,8 @@ From `br2-spec-shell`; the calls are in `neoui-proto/src/ipc.rs`, protocol 1.9.
 
 ## When Servo arrives (marked 2026-11-21)
 
-- ⬜ **WB2:** the EXE moves from the ARMv5TE target to `armv7a-neosymbian-eabi` ([wb2-std.md](wb2-std.md)), with the same
-  code. Not done: NEOWEB is still built with `cargo arm` (ARMv5TE); only NEOWEBE is ARMv7. It moves with US4 (ARMv8).
+- ✅ **WB2:** the EXE leaves the ARMv5TE target ([wb2-std.md](wb2-std.md)), with the same code: done in US4 (2026-11-25),
+  NEOWEB on `armv8a-neosymbian-eabi` and NEOWEBE on its std twin (until then NEOWEB was ARMv5TE, NEOWEBE ARMv7).
 - ✅ **WB4:** `crates/neoweb-host` implements `Engine` over Servo, and `FakeEngine` stays for host tests. Pages are real
   from then on; the screens don't change. As built, Servo runs in its own process, NEOWEBE.EXE
   ([protocol.md](protocol.md)), not behind the `Engine` trait inside NEOWEB.

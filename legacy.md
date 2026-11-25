@@ -165,7 +165,7 @@ pad states, console, settings; the spec sheets "Pad keys", "Touch & hold", "Pad 
 | **L4** | Runtime SIS install. Now NeoStore ST6 ([store.md](store.md), 2026-11-18): a Rust SIS installer in NEOINST instead of the SWI engine from mw.appinstall, plus the store's install screens. | Install from C: without a ROM build; the launcher updates; uninstall and upgrade work. | Designed (store.md), not built. Packages still go in at build time (`SIS=` in build) |
 | **L5** | Breadth: screen modes and rotation, a FEP bridge to the neoui keyboard, media, a corpus of apps. | Per-app feature results published. | **Partly done.** Input: the key pads, the landscape console, multi-touch, key vibration and per-app pad memory ([Key pads](#key-pads-s60-apps-take-keys-not-touch)); text from neoui's keyboard through the Abc pad, as key events (no FEP needed). Media: sound and the WAV player's MMF plugins. Network: sockets on an `RConnection` work. Open: AknFep (multi-tap, T9), the apps' own screen modes and rotation (the console turns the canvas, the app keeps its mode), IAP records, a corpus of apps |
 
-Each step is tested on QEMU (Syborg, watched over VNC with `neo live`), then on the Pixel.
+Each step is tested on the Pixel (until 2026-11-21 first on QEMU Syborg, watched over VNC with `neo live`; both removed in US5).
 
 **Status (2026-11-20):**
 - **L0, L0.5 done; L1 largely done** (table above).

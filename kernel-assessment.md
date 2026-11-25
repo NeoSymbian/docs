@@ -46,8 +46,8 @@ phone uses the older kernel; the local kernel path can override the fetched pack
 
 ## Architecture and compatibility contract
 
-The accepted project direction remains AArch64 ILP32 kernel C++, with the 2010 AArch32 ARMv5TE soft-float user
-ABI and Rust services/UI. A kernel LP64 conversion, Rust kernel target, new filesystem, or user ABI break is a
+The accepted project direction remains AArch64 ILP32 kernel C++, with the 2010 AArch32 ARMv8-A soft-float user
+ABI (ARMv5TE until US3, 2026-11-22) and Rust services/UI. A kernel LP64 conversion, Rust kernel target, new filesystem, or user ABI break is a
 separate design decision. Modernization here means enforcing boundaries, fixing contracts, measuring bottlenecks,
 and building repeatable acceptance around that direction.
 

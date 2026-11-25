@@ -65,7 +65,7 @@ An app's private settings need neither step: it writes `<its key>.*` through `Ap
   retyped, oversize, newer version), access, and the service (save delay, retry, flush, watches).
 - **Renderer** (`neoui-render/tests/settings.rs`): the binding table against the registry; values from the store
   show in the shade; a tap on the shade's Wi-Fi tile comes back as `("radio.wifi", true)`.
-- **Still to do:** a Syborg boot check in `symbian/taps.sh`: toggle Wi-Fi, reboot, the tile stays off; 24-hour off,
+- **Still to do:** a boot check in `symbian/taps.sh` (QEMU virt, US6b): toggle Wi-Fi, reboot, the tile stays off; 24-hour off,
   the Clock app shows 12-hour time.
 
 ### Deferred to later parts
@@ -90,7 +90,7 @@ Two apps were rebuilt before Part 2 (neoui `main`, 2026-11-10). Each follows one
   and sends `AppEvent::Alarm` (kind 8, `NeoUi` 1.2).
 - **Home widget:** the `ClockWidget` on home is the first widget of Part 4. It is live, fed through the `Now` global,
   and opens Clock on a tap.
-- **Open:** a two-boot check on Syborg of every page's saved state.
+- **Open:** a two-boot check of every page's saved state (on the phone, or QEMU virt from US6b).
 
 ### Dev tools (`NEODEV.EXE`, neoui `ed9202f`)
 - **Tabs:** Home · Devices · Console · Procs · More. More opens Settings, Tools and About. Sub-views replace the

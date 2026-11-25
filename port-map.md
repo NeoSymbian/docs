@@ -178,7 +178,7 @@ The neutral `nkernsmp/*.cpp` (9.7k) + `nkern/nklib.cpp` are reused.
 - No vDSO or user-shared page (**GUESS**, confident).
 - So the ILP32 kernel lives in the same 4 GiB TTBR0 space (T0SZ=32, no TTBR1 walks). Kernel pages are EL1-only and global; process pages are nG with ASID. This is the x64 shape.
 
-**ARMv5TE user side** (Phorepoc `core/registry/components.py:2782-2789`):
+**ARMv5TE user side** (Phorepoc's 2010 build, `core/registry/components.py:2782-2789`; NeoSymbian's is ARMv8-A since US3/US4):
 - No LDREX/STREX, so user atomics go through execs.
 - The user side uses **SWP** (RFastLock, critical sections), which is UNDEF on ARMv8, so it must be emulated. Port from `ekern_seam.cpp:1162-1333`.
 - Also emulate misaligned LDRD/LDM (1220-1333) and VFP short vectors (1335-1603).

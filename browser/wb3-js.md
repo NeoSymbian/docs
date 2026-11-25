@@ -23,7 +23,7 @@ SpiderMonkey, as a NeoSymbian EXE, before Servo itself (WB4) depends on it.
 | Part | Where | What |
 |---|---|---|
 | The engine | [NeoSymbian/mozjs](https://github.com/NeoSymbian/mozjs) (mozjs#1 into `neosymbian`) | SpiderMonkey 153 (mozjs 0.26.13 / mozjs_sys 153.6.0-1, Servo 0.8.0's). Interpreter only (`--disable-jit`), no Intl (`--without-intl-api`; WB4 decides how Servo gets Intl), libz-rs. The SpiderMonkey changes are also kept as `etc/patches/0056-symbian.patch` |
-| The C/C++ SDK | browser `tools/symbian-sdk.sh` | Arm GNU 14.2.1 for macOS, the device headers (P.I.P.S., e32), and the `armv7-symbian-{gcc,g++,cpp}` wrappers that cc-rs and mozbuild call |
+| The C/C++ SDK | browser `tools/symbian-sdk.sh` | Arm GNU 14.2.1 for macOS, the device headers (P.I.P.S., e32), and the `armv8-symbian-{gcc,g++,cpp}` wrappers (named `armv7-symbian-*` until US5, 2026-11-25) that cc-rs and mozbuild call |
 | The C++ runtime | browser `std/cxxrt` | What libstdc++ and SpiderMonkey need at run time and P.I.P.S. lacks |
 | The shell | browser `std/jsshell`: `JSSHELL.EXE`, UID 0xE0007006, 6.2 MB | Rust over the `mozjs` crate (Servo's path). The test suite, `-e CODE`, script files |
 | A C++ smoke test | browser `std/cxxsmoke`: `CXXSMOKE.EXE`, UID 0xE0007007 | Static guards, `thread_local`, atomics and NEON from C++ in a Rust EXE |

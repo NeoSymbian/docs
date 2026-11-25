@@ -62,7 +62,7 @@ to ARMv8 (owner, 2026-11-21; [user-side-smp.md](user-side-smp.md)):
 | Passwords need a secure store (B11) | [wb6-services.md](browser/wb6-services.md) | WB6 |
 | The shade's Open lands on Files' home: Files has no page for a file another app opens | [ui.md](browser/ui.md#open-items) | Files |
 | The Settings app's Browser page (`set2-app-browser`) | [ui-screens.md](browser/ui-screens.md#ui4-library-and-settings) | Settings |
-| NEOWEB is still ARMv5TE; NEOWEBE ARMv7; both move to ARMv8 | [ui.md](browser/ui.md#when-servo-arrives-marked-2026-11-21) | US4 |
+| NEOWEB and NEOWEBE are ARMv8 since US4 (until 2026-11-25: ARMv5TE and ARMv7) | [ui.md](browser/ui.md#when-servo-arrives-marked-2026-11-21) | US4 |
 | CSS mask icons render black; GitHub's module scripts fail their CORS check | [wb4-servo.md](browser/wb4-servo.md) | — |
 | The No connection page can't tell no-such-site from refused or timed out: Servo reports only "client error (Connect)" (a Servo patch to keep the error's cause) | [ui-screens.md](browser/ui-screens.md#ui5-safety-and-errors) | next |
 

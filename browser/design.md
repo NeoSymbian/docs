@@ -25,17 +25,17 @@ measurements.
 ## Where the platform stood (2026-11-15)
 
 All of this is solved now except the GPU: see [architecture.md](architecture.md#platform-prerequisites).
-| Need | Today | Where |
+| Need | At design time (2026-11-16) | Where |
 |---|---|---|
 | Sockets | NeoNet (smoltcp: DHCP, DNS, TCP, UDP; IPv4) and the 2010 `RSocket` API over it (W5a) | [wifi.md](../hardware/wifi.md) W5, W5a |
 | TLS, HTTP client | **none** (only hand-written `GET /generate_204`) | `neoui/symbian/src/wifi.rs:439` |
 | Hardware FP/NEON at EL0 | **off**: the per-thread FP save/restore hooks are empty | [kernel-issues.md](../kernel-issues.md) KRN-019, [smooth-ui.md](../neoui-shell/smooth-ui.md) S4 |
-| Atomics | **none**: user code is ARMv5TE, which has no CAS, so Rust has no `Arc` | `e32-rs/crates/e32/src/cs.rs` |
+| Atomics | **none**: user code was ARMv5TE, which has no CAS, so Rust had no `Arc` (native atomics since US4, 2026-11-25) | `e32-rs/crates/e32/src/cs.rs` |
 | RAM | **~87 MB** on `main` for the kernel and the whole user side (`A64_BOOT_RAM_END`). M4.3 is in progress: kernel branch `ram-map` (`640aa2ff`, 2026-11-15) takes the RAM banks from the bootloader's DTB, below 4 GiB (`KPhysTop`) | `kernel/baseport/arm64/bonito_variant/variant.conf:8`, `kernel/kernel/eka/kernel/arm64/a64boot.cpp` |
 | Address space | ~2 GiB private VA per process (flexible model) | `kernel/kernel/eka/include/memmodel/epoc/flexible/arm64/mmboot.h` |
 | Thread stacks | **1 MiB per thread, 2 MiB per process** | `kernel/kernel/eka/memmodel/epoc/flexible/mmu/mmu.cpp:300` |
 | Executable memory | Writable+executable chunks exist (a JIT is possible later) | `kernel/kernel/eka/memmodel/epoc/flexible/mprocess.cpp` |
-| Rust `std` | **none**: all user Rust is `no_std` + alloc on `armv5te-none-eabi` | `e32-rs/rust-toolchain.toml` |
+| Rust `std` | **none**: all user Rust was `no_std` + alloc on `armv5te-none-eabi` (now `armv8a-neosymbian-eabi`; the browser's std EXEs use `armv8a-symbian-eabi`) | `e32-rs/rust-toolchain.toml` |
 | libc | P.I.P.S./Open C sources (libc, libm, libpthread), today only registered for SVG-T. **`mprotect` does nothing**; `poll` is unverified | `legacy/components.py:188`; `ossrv` `genericopenlibs/openenvcore/libc/src/mmap.cpp` |
 | Surface and input | Each app gets a shared XRGB8888 chunk + DAMAGE, and 16-byte touch/key events | `neoui/crates/neoui-proto/src/ipc.rs` |
 | Fonts and images | Slint bakes SDF glyphs (no shaping, no fallback); PNG only | `neoui/Cargo.toml` |

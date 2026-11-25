@@ -117,7 +117,7 @@ datetime/
 **CI:**
 - host: `cargo fmt/clippy/test` and the snapshots;
 - device: `cargo arm`;
-- neoui's `syborg.yml` clones datetime (as it clones files) and taps through the tabs.
+- from US6b, UI taps on QEMU virt through the tabs (neoui's Syborg job, which cloned files this way, was retired in US5).
 
 ## How it works
 
@@ -175,7 +175,7 @@ widget text now comes from `NEXT`. The shell drops the alarm check (`due()`, `Ap
 
 ## Phases
 
-Each phase ends with host tests and board snapshots in the datetime repo, then the Syborg CI and the Pixel.
+Each phase ends with host tests and board snapshots in the datetime repo, then the Pixel (and, from US6b, the UI taps on QEMU virt).
 
 | Phase | Work | Repos | Gate | Boards |
 |---|---|---|---|---|

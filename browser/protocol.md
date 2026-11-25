@@ -9,7 +9,7 @@ lists it, and the code wins where they differ.
 
 | Process | What | Built for |
 |---|---|---|
-| `NEOWEB.EXE` (ROM) | The neoui app: the Slint chrome, every screen of [ui-screens.md](ui-screens.md), the library on C: | `armv5te-none-eabi`, `no_std` |
+| `NEOWEB.EXE` (ROM) | The neoui app: the Slint chrome, every screen of [ui-screens.md](ui-screens.md), the library on C: | `armv8a-neosymbian-eabi`, `no_std` (`armv5te-none-eabi` until US4, 2026-11-25) |
 | `NEOWEBE.EXE` (C:, `drive=c`) | The engine: Servo 0.8 with SWGL, downloads (ureq + rustls) | `armv7a-symbian-eabi`, `std` |
 
 - **Transport:** NEOWEBE runs the Symbian server `NeoWebEngine`; NEOWEB starts it (`neowebe.exe --serve`) when it

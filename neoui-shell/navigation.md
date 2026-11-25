@@ -408,7 +408,7 @@ screens. The UI server feeds it touches and acts on what it returns.
 | Shell | `ui/shell.slint`, `ui/components/frame.slint` | Back arrow hidden in gesture mode (`Toolbar.no-back`; its place stays empty); `nav-back()` is the toolbar Back's path, shared with the gesture |
 | Renderer | `neoui-render/src/lib.rs` | `Renderer::gesture(Gesture)` |
 | Server | `neoui/symbian/src/lib.rs` | The recognizer before `coalesce_moves`; the hint bar (`hint_rect`, `draw_hint`) |
-| Driver | `neoui/symbian/taps.sh`, `neoui/.github/workflows/syborg.yml` | A `swipe` helper and a gesture flow |
+| Driver | `neoui/symbian/taps.sh`, `neoui/symbian/us6b/syborg-taps.yml` (was `.github/workflows/syborg.yml`) | A `swipe` helper and a gesture flow |
 
 ### Settings
 | Key | Type | Default | Meaning | Stage |
@@ -559,7 +559,7 @@ unlock and double-tap wake are kept there. The notes below are the original G6 s
   `cargo build -p neoui-proto -p neoui-render --target thumbv7em-none-eabihf`.
 - `neoui/symbian`: `cargo fmt --all --check && cargo arm --workspace`.
 - Syborg: the `syborg` CI drives the gestures with `symbian/taps.sh`'s `swipe`.
-- By hand: QEMU over VNC (`neo live`), then the phone. Check the edges with a thumb, and that taps on the toolbar and
+- By hand: the phone (RAM boot; `neo live` was removed in US5, a `virt` view is US6b). Check the edges with a thumb, and that taps on the toolbar and
   the dock never trigger a gesture.
 
 When a stage lands, mark it in the table at the top, and update [roadmap.md](../roadmap.md) U3 and the org profile's
