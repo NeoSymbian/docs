@@ -469,10 +469,25 @@ rule that changed is Dublin's, now IANA's negative-DST `IST-1GMT0,...`: summer t
 the zone's winter offset (`tz::Rule::is_summer`/`winter`), not the rule's "standard". The table is 3.4 KB. To update:
 replace `tools/tzdata` with a new release, run `tools/gen_zones.py`, and check the test diff.
 
+**SE1c spike (2026-11-26): can the firmware send a directed probe?** Yes. WMI `START_SCAN` (0x3001) takes an SSID
+array (TLV 19, `{len u32, ssid[32]}` each, `num_ssids` in the fixed part), as ath10k uses for directed probes. Our
+`ScanStart` (kernel `baseport/arm64/sdm670_assp/qcom_wcn3990.cpp:1114`) already builds the TLV, with the wildcard
+only, and every scan is passive (`:2141`; [wifi.md](../hardware/wifi.md) W3c: active scans missed 2.4 GHz here).
+A hidden network therefore needs the **kernel**:
+1. a HAL WlanScan (0x4e1e) request carrying an SSID, which runs `ScanStart(active, ssid)`; on 2.4 GHz it may miss
+   like the active scans did (a phone test decides; fallback: 2.4 GHz with longer dwell and more probes);
+2. a join that knows the SSID. The Association Request copies the scan entry's SSID (`:1720`, `:1813`), which is
+   empty for a hidden AP (`:609` logs "(hidden)"). Either the directed probe response fills it in (`:588` takes the
+   first SSID IE when none is stored), or WlanLink op 1 takes `{bssid, ssid, rsn}`.
+
+Then NeoWifi 1.1 gets a directed scan and join by raw SSID, and WIFID keeps `hidden` per saved network. So SE1c splits:
+- **SE1c-1** (Saved networks, Forget): user side only (WIFID already keeps `C:\private\e0004002\wifi.dat`). Go.
+- **SE1c-2** (Add hidden network): waits for the owner on (a) a kernel change to WlanScan/WlanLink, and (b) whether
+  5 GHz-only hidden networks are acceptable if 2.4 GHz directed scans miss.
+
 **Proposed order:** SE1a, then SE1b; SE1c after a research spike (does the firmware take a directed scan?); SE1d.
 
-**Questions for the owner:** none for SE1a or SE1b. For SE1c, if a hidden network needs a kernel change, the
-spike's report goes to the owner first.
+**Questions for the owner:** none for SE1a or SE1b. SE1c-2: (a) and (b) above.
 
 **Order:** SE0 comes first and alone, because it fixes Open apps and the dead rows. SE1–SE4 can follow in any order.
 SE5 and SE6 follow their platform stages.
