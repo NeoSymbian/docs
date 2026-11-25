@@ -5,6 +5,11 @@
 `SETTING_GET`/`SET`/`WATCH`). Moved here from `neoui-shell.md` Part 1 on 2026-11-21; the hub is [../neoui-shell.md](../neoui-shell.md).
 The keys the top panel adds (`shell.*`, `notify.*`, `island.*`, `lock.*`) are listed in [top-panel.md](top-panel.md#settings-keys).
 
+**The Settings app:** the screen that shows these keys moves out of the shell into `NEOSET.EXE`
+([../settings-app.md](../settings-app.md), 2026-11-25). The "Shown in" column below names today's shell pages; the
+table lists the Part 1 keys only, the registry (`registry.rs`) has 43 today and the canvas's `set2-spec-keys` lists
+them all with the 32 the v2 pages add.
+
 ## Part 1: settings store (done 2026-11-09)
 
 As built. It changes the first sketch: typed keys, a registry, change subscriptions per prefix, and the pure logic
@@ -51,6 +56,8 @@ key. The app reads its keys again.
 1. Add a row to `registry!` in `registry.rs`.
 2. If the shell shows it, add a property and a `changed` handler in `system-settings.slint`, and a row in
    `BINDINGS` in `neoui-render/src/settings.rs`. Tests check every binding against the registry.
+3. If the user edits it in Settings, add it to the `Caller::Settings` allowlist in `access.rs`
+   ([../settings-app.md](../settings-app.md#architecture)) and give it a row on its page.
 
 An app's private settings need neither step: it writes `<its key>.*` through `App::set_setting`.
 
@@ -79,8 +86,8 @@ Two apps were rebuilt before Part 2 (neoui `main`, 2026-11-10). Each follows one
 (`src/pages/*.rs` with `bind` and `show`, `ui/pages/*.slint`).
 
 ### Clock (`NEOCLOCK.EXE`, neoui `872e6dc`)
-- **Pages:** Clock (face, Set time), Alarms (editor: days, label, snooze), World (a catalogue of 21 cities with fixed
-  offsets; shortcut: no DST), Timer, Stopwatch.
+- **Pages:** Clock (face, Set time), Alarms (editor: days, label, snooze), World (then 21 cities with fixed offsets;
+  since replaced by 87 cities with summer-time rules: `clock/world.rs`, `clock/tz.rs`), Timer, Stopwatch.
 - **Kept state:** every page's state is kept in settings rows owned by `App("clock")`: `clock.tab`, `clock.alarms`,
   `clock.cities`, `clock.timer`, `clock.stopwatch`. The timer and stopwatch count from wall-clock UTC, so they keep
   running across app restarts and reboots.

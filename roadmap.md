@@ -232,6 +232,9 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
 - **Top panel** ([top-panel.md](neoui-shell/top-panel.md), designed 2026-11-21): the status bar v2, notification
   cards, the media session (background playback), banners and inline reply, calls and messages from the panel, the
   live island, the control centre and the lock screen, as stages TP0–TP9. TP0 (docs + canvas) is done; TP1 is next.
+- **Settings app** ([settings-app.md](settings-app.md), designed 2026-11-25): `NEOSET.EXE` replaces the shell's
+  Settings screen (so it shows in Open apps), with every page of the canvas's Settings v2, as stages SE0–SE7. SE0
+  (the app with today's pages in v2 chrome and no dead rows) is next.
 - **Navigation v2 and the neoui kit** ([navigation.md](neoui-shell/navigation.md), [kit.md](neoui-shell/kit.md); merged to main
   2026-11-17, installed into slot a the same day):
   - apps draw their header and footer with a shared kit (`neoui-kit`, `@neoui/kit.slint`) and talk to the shell
@@ -265,7 +268,7 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   - three apps that open each other (protocol 1.9): NEOPHONE and NEOMSG resident, NEOCONT the only writer of the book;
     each has its own card in Open apps, and a footer switches between them;
   - every `p2-*` board of the design canvas, the proposals included: Recents with a keypad sheet, one Settings page
-    (the system Settings app's "Calls & Messages"), Return to call, Archive / Delete with Undo, one shade entry per
+    (the system Settings app's Apps → Phone & Contacts; it was the root "Calls & Messages" row), Return to call, Archive / Delete with Undo, one shade entry per
     conversation with Reply and Call;
   - MODEMD modem-ipc 2.5 (archive, unblock sender, delete all, why a message failed);
   - the gaps left: contact photos (needs a Photos app) and Email (needs an Email app).

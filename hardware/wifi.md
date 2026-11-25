@@ -317,7 +317,7 @@ user-side Rust, so there is no crypto in kernel C++.
 | HAL `WlanLink` `0x4e1f` and the monitor's `wifi` / `wifi join N` / `wifi leave` | kernel | as above |
 | HAL `Prng` `0x4e23`: the SoC PRNG for the SNonce | kernel `qcom_telhal.cpp` | as above |
 | WPA2-PSK supplicant: PBKDF2 PMK, PTK, MIC, GTK unwrap, 4-way + group rekey, sans-I/O | neohw `crates/wpa` (was neolink) (W4b) | **done**, host-tested (IEEE Annex J and RFC 3394 vectors, a full 4-way against a test AP, wrong password, replays, RSN downgrade) |
-| Connect on the network sheet: a supplicant thread in SYSSTART (WIFID since S5) drives the HAL; the sheet shows Connecting… / Connected / Wrong password; a connected network is remembered (SSID + PMK in `C:\private\e0002001\wifi.dat`, never the password) and rejoined when seen | neoui `symbian/src/wifi.rs` (W4d) | built, host-tested (`Link`, `Saved`) |
+| Connect on the network sheet: a supplicant thread in SYSSTART (WIFID since S5) drives the HAL; the sheet shows Connecting… / Connected / Wrong password; a connected network is remembered (SSID + PMK, never the password; first in SYSSTART's `C:\private\e0002001\wifi.dat`; since S5 WIFID's `C:\private\e0004002\wifi.dat`, which imports the old file once) and rejoined when seen | neoui `symbian/src/wifi.rs` (W4d) | built, host-tested (`Link`, `Saved`) |
 
 Facts: `private/wifi/w4-join-spec.md` (ath10k, ISC; mac80211 facts only).
 
@@ -430,8 +430,9 @@ kernel  DataIn --(Ethernet II)--> rx queue --WlanLink op 8--> NEONET.EXE (smoltc
 - no UDP or listening sockets in the API;
 - frames polled every 2 ms while linked (no interrupts yet);
 - one TCP buffer size (8 KB each way; 16 sockets, 24 with UDP since API 1.1);
-- a captive portal shows as "No access";
-- the supplicant stays a SYSSTART thread.
+- a captive portal shows as "No access" (since UI5 SYSSTART detects it and the shade and Settings offer Sign in);
+- the supplicant stays a SYSSTART thread (WIFID owns it since S5; the Settings app is a NeoWifi client of its own,
+  [../settings-app.md](../settings-app.md)).
 
 ### Result: an IP address and the internet (phone RAM boot, 2026-11-12)
 

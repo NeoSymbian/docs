@@ -12,7 +12,7 @@ boards: Phone, Contacts, Messages). They used to be one process behind three ico
 
 | EXE | UID | Key | What | Resident |
 |---|---|---|---|---|
-| `NEOPHONE.EXE` | 0xE0005001 | `phone` | Recents with the keypad sheet, call details, speed dial, the call screens, the shared Settings page (the system Settings app's **Calls & Messages** row: calls, log, contacts, messages), blocked numbers, quick replies | yes: an incoming call shows at once |
+| `NEOPHONE.EXE` | 0xE0005001 | `phone` | Recents with the keypad sheet, call details, speed dial, the call screens, the shared Settings page (Settings → Apps → **Phone & Contacts**, [settings-app.md](settings-app.md); it was the root **Calls & Messages** row: calls, log, contacts, messages), blocked numbers, quick replies | yes: an incoming call shows at once |
 | `NEOCONT.EXE` | 0xE0005002 | `contacts` | the list (search, favourites, the three-script letter strip), the card, the editor, selection; the only writer of the book | no |
 | `NEOMSG.EXE` | 0xE0005003 | `messages` | the conversations (search, swipe Archive/Delete with Undo, Archived, selection), a thread (the bubble menu at the finger), a new message, blocked messages, one shade entry per conversation | yes: it posts the shade's entries |
 

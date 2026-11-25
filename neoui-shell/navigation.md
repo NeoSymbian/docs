@@ -413,13 +413,13 @@ screens. The UI server feeds it touches and acts on what it returns.
 ### Settings
 | Key | Type | Default | Meaning | Stage |
 |---|---|---|---|---|
-| `nav.mode` | Int 0..=1 | 0 | 0 Classic (the toolbar's Back), 1 Gestures | G1 |
+| `nav.mode` | Int 0..=2 | 1 | 0 Buttons, 1 Gestures (Thumb map), 2 N9 gestures (Navigation v2; G1 had 0 Classic, 1 Gestures) | G1, NV |
 | `nav.swipe_close` | Bool | off | Top edge on an app closes it; the shade then opens by tap only | G4 |
 | `nav.switcher_cols` | Int 2..=3 | 2 | Open apps columns | G3 |
 | `home.style` | Int 0..=1 | 0 | 0 Pages (Belle), 1 Lanes (N9) | G5 |
 
-All are `Owner::Shell`. Classic stays the default until gestures have been checked by hand on the phone; then the
-default may flip.
+All are `Owner::Shell`. Gestures (Thumb map) is the default since Navigation v2 (2026-11-17). The Settings page for
+these is `set2-navigation` in the Settings app ([../settings-app.md](../settings-app.md)).
 
 **Settings → Home screen & navigation** (view `navigation`, a root row after Display):
 - Navigation: Classic / Gestures. A tap steps to the other, like Screen timeout.

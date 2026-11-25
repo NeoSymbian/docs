@@ -16,6 +16,7 @@ design (settings, notifications, home pages, widgets); its parts moved into the 
 | [neoui-shell/navigation.md](neoui-shell/navigation.md) | Navigation v2: Buttons, Gestures (Thumb map), N9; the recognizer; Open apps, peek, Lanes | G1, NV1–NV12, G2–G5 | NV built 2026-11-17 |
 | [neoui-shell/keyboard.md](neoui-shell/keyboard.md) | The system keyboard (en, hy, ru, pads, terminal) and the old apps' key pads | — | built |
 | [neoui-shell/settings.md](neoui-shell/settings.md) | The settings store (Part 1) and the apps rebuilt on it | Part 1 | built 2026-11-09 |
+| [settings-app.md](settings-app.md) | The Settings app `NEOSET.EXE` (v2, out of the shell): pages, `SETTINGS_INFO`/`ACTION`, who may write what | SE0–SE7 | designed 2026-11-25 |
 | [neoui-shell/home.md](neoui-shell/home.md) | Home pages, pin and unpin, the dock, widgets (Parts 3–4) | Parts 3–4 | planned |
 | [neoui-shell/design-system.md](neoui-shell/design-system.md) | Tokens, layout, glyphs, digits, app tiles, components | — | built |
 | [neoui-shell/smooth-ui.md](neoui-shell/smooth-ui.md) | 60 fps: input pacing, layers, CPU placement, FP/NEON, DPU, GPU | S1–S6 | S1–S3 done |
@@ -92,6 +93,11 @@ Processes outside neoui (Apache-2.0, for example in `neohw`) must not link the G
 `neoui-proto` and call through `e32::ipc::Session` themselves.
 
 ## Step 0: know who is calling
+
+**Update 2026-11-25:** [settings-app.md](settings-app.md) SE0 builds the first half: `Message::client_sid()` and a
+check on `SETTING_SET`, so that only `NEOSET.EXE` (SID 0xE0002007) gets `Caller::Settings` and its allowlist of
+user-editable keys. Binding every session by SID at `connect` and `SERVICES` stay as designed below. The version
+bump below is void: NeoUi is 1.12, and minors are assigned in merge order ([protocol.md](neoui-shell/protocol.md)).
 
 **Problem.** `Host::connect` (`symbian/src/host.rs`) binds each new session to "the newest launched app without a
 session" (marked `shortcut:` there). Two things follow:
