@@ -585,6 +585,67 @@ Then NeoWifi 1.1 gets a directed scan and join by raw SSID, and WIFID keeps `hid
   - on a no-SIS image X-plore won't start (`legacy: start app a0000bcd: -1`, from the grid too). It's probably
     missing files on Z:; check again on an image that has the SIS.
 
+**SE2 plan (Sounds & profiles: `set2-sounds`, `set2-profile`, `set2-ringtone`, S05):**
+
+*What exists today:*
+- Three store keys reach MODEMD: `sound.silent`, `sound.vibrate`, `sound.ring_volume` (the shell's
+  `phone.rs sync_settings` → modem-ipc `RING_SETTINGS`).
+- MODEMD rings with AUDIOD's one synthesized ringtone (`apr::ring_pcm`). A message gets two buzzes plus the first
+  0.8 s of the ringtone.
+- The shade's Silent tile writes `sound.silent`. The power menu has Power off / Restart / Cancel.
+- Nothing has keypad tones or touch vibration.
+
+*Split into three stages, each its own PR cycle:*
+- **SE2a: profiles over today's ring (neoui only, protocol 1.15, no neohw change).**
+  - neoui-proto `sound_profile.rs` (Apache, host-tested): the built-ins General 0 / Silent 1 / Meeting 2 /
+    Outdoor 3 / Offline 4, added ones from 5; the `sound.profiles` blob (versioned, ≤ 1024 B, overrides of the
+    built-ins + added records, the last audible profile, the radios Offline turned off); and one pure reducer
+    `choose(state, id) -> (state, mirrors)`.
+  - The shell runs the reducer. It sets `sound.profile`, the blob, the three mirrors and `radio.airplane` in one
+    synchronous call, so watchers and MODEMD see only the final state. Callers:
+    - NEOSET through `SETTINGS_ACTION` kind 3 `ACTION_PROFILE` (Settings only);
+    - the shade's Silent tile (on: Silent, remembering the last audible profile; off: back to it);
+    - the power menu's new profile rows (`powermenu.slint`, Nokia style: the profiles above Power off).
+  - Offline = airplane: entering it remembers which radios were on; leaving (another profile, or airplane off
+    anywhere) restores them and the previous profile.
+  - Upgrade: no `sound.profile` yet → General takes today's volume and vibrate. If `sound.silent` was on, the active
+    profile is Silent with General as the last audible one. Nothing sounds different.
+  - Pages:
+    - Sounds & profiles: the active profile, the list, Add profile;
+    - a profile's page: ring volume, Quieter/Louder, vibrate, Rename/Delete for added ones;
+    - media volume, route, mic and the tests stay below, as today.
+  - Ringtone and message tone show as "Built-in ringtone" / "Two buzzes + the first 0.8 s", read-only until SE2b.
+    Keypad tones and Vibrate on touch are left out (D4) until H6.
+- **SE2b: tones per profile (neohw + neoui; pins).**
+  - modem-ipc `RING_SETTINGS` gains a ringtone id and a message tone id (Built-in, Beep once, Two beeps, None =
+    vibrate only), a minor bump with old clients defaulting to Built-in.
+  - AUDIOD synthesizes them next to `ring_pcm`; MODEMD plays Beep once / Two beeps once, not looped.
+  - The Ringtone page with ▶ preview (a NeoAudio test-style play at the profile's volume, stopped on Back, a call or
+    leaving the page).
+  - Pins: neohw → neoui. phone pins neohw (modem-ipc), so its repin waits with phone#10 for the owner's boot-size
+    decision.
+- **SE2c: Your sounds (WAV import).**
+  - Files' picker (`OPEN_FILE` pick) → NEOSET checks and converts the WAV to AUDIOD's format into
+    `C:\private\e0002007\tones\`, and AUDIOD plays a file tone.
+  - The largest part, and it needs AUDIOD's file path; planned after SE2b.
+
+*For the owner (these change how the phone rings or vibrates, so they're not decided here):*
+- the built-ins' values: General = today's; Silent = no ring, vibrate on; Meeting = volume 2 and vibrate (Beep once
+  needs SE2b); Outdoor = volume 10 and vibrate; Offline = General's sound with the radios off;
+- whether Meeting's ring plays once (SE2b changes MODEMD's loop);
+- whether Silent also silences the message tone and buzz (today `silent` stops the tone; the buzz stays).
+
+Until the owner answers, SE2a ships the proposed values as defaults, and each is editable per profile.
+
+*Tests:*
+- proto: the blob round trip and its limits, the upgrade mapping, the reducer (Silent remembers and restores; Offline
+  restores the radios; deleting the active added profile falls back to General);
+- settings-ui: snapshots `set2-sounds` and `set2-profile`, the act log;
+- shell: the reducer's callers (host-tested parts);
+- virt-taps: the shade's Silent tile → `sound.profile` 1 → back;
+- phone: switch General → Meeting → back and read MODEMD's ring settings in the log. No call is made; ringing a call
+  needs the owner. The original profile and values are restored at the end.
+
 **Proposed order:** SE1a, then SE1b; SE1c after a research spike (does the firmware take a directed scan?); SE1d.
 
 **Questions for the owner:** none for SE1a or SE1b. SE1c-2: (a) and (b) above.
