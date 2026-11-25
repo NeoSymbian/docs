@@ -485,6 +485,35 @@ Then NeoWifi 1.1 gets a directed scan and join by raw SSID, and WIFID keeps `hid
 - **SE1c-2** (Add hidden network): waits for the owner on (a) a kernel change to WlanScan/WlanLink, and (b) whether
   5 GHz-only hidden networks are acceptable if 2.4 GHz directed scans miss.
 
+**SE1c-1 plan (Saved networks, Forget; `set2-wifi-saved`):**
+- **NeoWifi 1.1** (neohw `crates/wifi/src/ipc.rs`, `VERSION` (1, 1, 0)):
+  - `op::SAVED = 6`, arg 0 = writable des8 of `SAVED_SIZE` (1 + 8 × 33 = 265 bytes). WIFID writes
+    `{count u8, {ssid length u8, ssid}*}`, newest first, at most `Saved::MAX` (8); the PMKs never leave WIFID. It
+    completes with the count, or `KErrOverflow` if the buffer is short.
+  - `op::FORGET = 7`, arg 0 = des8 SSID (1..=32 bytes, else `KErrArgument`). Removes it from `wifi.dat`; if it is the
+    network joined or being joined, WIFID leaves first, as `LEAVE 1` does, so it isn't rejoined. An SSID not saved
+    gives `KErrNotFound`, and nothing changes.
+  - `Saved::forget` returns whether it found the network. A `SavedNames` encode/decode lives in the host crate,
+    shared by WIFID and NEOSET.
+- **Versions:** WIFID checks only the major. An old NEOSET against a new WIFID works unchanged. A new NEOSET against
+  an old WIFID gets `KErrNotSupported` for SAVED and hides the Saved networks row. In a ROM both come from one build.
+- **NEOSET:**
+  - page `WifiSaved` = 17 (parent Wi-Fi), with a "Saved networks" row on the Wi-Fi page and a search row;
+  - one row per saved name. The subtitle is "Connected" (from LINK), or "Secured", plus "not in range" when the
+    latest scan lacks it. The board's "Open" rows don't exist: WIFID remembers only networks with a key (D4);
+  - Forget asks for confirmation first (a kit sheet, as the old pads' Reset does), then FORGET, then reloads the list;
+  - the footer reads "Stored in C:\private\e0004002\wifi.dat" (the board's path is the old one).
+- **Tests:**
+  - neohw host: SAVED encoding round trip, at most 8 networks, damaged input refused, `forget` found / not found;
+  - neoui: snapshot `set2-wifi-saved`, the act log for Forget and its confirmation, the row table's drift test;
+  - phone: back up `C:\private\e0004002\wifi.dat` with `phone.py pull`, then the list (the home network
+    Connected), Forget, the network gone and not rejoined, `wifi.dat` restored with `phone.py push`, and after a
+    reboot it rejoins.
+- **Pins:**
+  - neohw PR first, then neoui's `wifi` pin (both lines in `symbian/Cargo.toml`) at the new neohw rev, rebuilding
+    SYSSTART and NEOSET together;
+  - phone and files pin neohw through neoui, so their repins wait with phone#10 and files#15 (boot size, the owner).
+
 **Proposed order:** SE1a, then SE1b; SE1c after a research spike (does the firmware take a directed scan?); SE1d.
 
 **Questions for the owner:** none for SE1a or SE1b. SE1c-2: (a) and (b) above.
@@ -499,7 +528,7 @@ SE5 and SE6 follow their platform stages.
 | The design (48 boards, prototype, spec) | done, on the canvas, approved |
 | This plan | written 2026-11-25 |
 | SE0 | built and merged 2026-11-26: neoui#38 (`b19d597`), e32-rs#16 (`Message::client_sid`), neohw#17 (e32 pin). QEMU walk and three Pixel RAM-boot runs: Open apps card, Wi-Fi list and join (keyboard, wrong password, no double join), Buttons/Gestures by NEOSET's SID, the connect and reap races, keyboard resume. Two Codex reviews, findings fixed |
-| SE1 | SE1a (find) merged 2026-11-26: neoui#39 (`5055cdb`); two Codex reviews; Pixel RAM-boot run: grid, search → selected row, Back along the path, Kernel log → Dev tools Console. SE1b (zones) next; SE1c spike; SE1d after its plan additions |
+| SE1 | SE1a (find) merged 2026-11-26: neoui#39 (`5055cdb`); two Codex reviews; Pixel RAM-boot run: grid, search → selected row, Back along the path, Kernel log → Dev tools Console. SE1b (zones) merged 2026-11-26: neoui#40 (`32b032a`); Codex review, findings fixed; Pixel RAM-boot run: Sydney UTC+11:00 (summer time), Dublin UTC+00:00 (no summer time), World clock Yesterday −4 h / Today +7 h. SE1c spike done (SE1c-1 planned; SE1c-2 waits for the owner); SE1d after its plan additions |
 | SE2–SE7 | not started |
 
 ## Part 1: settings store (done 2026-11-09)
