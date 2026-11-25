@@ -6,7 +6,7 @@ Part of the [browser docs](../browser.md). The plan of 2026-11-15, with the plat
 **As built (WB4–WB5):** Servo runs in its own process. `NEOWEB.EXE` (the neoui app, the Slint chrome, in the ROM)
 starts `NEOWEBE.EXE` (Servo 0.8 + SWGL, Rust `std`, on C:) and talks to it over the Symbian server `NeoWebEngine`, with
 frames in a shared chunk: [protocol.md](protocol.md). The plan below put the embedder inside `NEOWEB.EXE`; as built, the
-app stays a `no_std` ARMv5TE neoui app and the engine is a separate `std` ARMv7 EXE.
+app stays a `no_std` neoui app and the engine is a separate `std` EXE (both ARMv8 since US4; ARMv5TE and ARMv7 until 2026-11-25).
 
 ## Repositories
 
@@ -99,7 +99,7 @@ Tokio → mio → P.I.P.S. sockets → ESOCK → NeoNet (Wi-Fi now, mobile data 
     patched sysroot);
   - ship a toolchain built from the fork with `x.py` and linked with `rustup toolchain link`;
   - upstream tier 3 later, which needs named maintainers.
-  - The existing `armv5te-none-eabi` `no_std` crates don't change.
+  - The existing `no_std` crates (then `armv5te-none-eabi`, now `armv8a-neosymbian-eabi`) don't change.
 - **Software GL:**
   - **SWGL first**: Firefox's software GL for WebRender, C++17, no LLVM. Unverified: whether it matches WebRender
     0.70.1 and the extra GL calls Servo makes. SWGL is not in Servo's dependency lock; Servo's own software context

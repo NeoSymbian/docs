@@ -152,7 +152,7 @@ everything Bluetooth: the controller, connections, security, profiles and stored
 | BD address | Factory address first; otherwise a provisional persistent one; BLE gets a proper random identity | Wi-Fi's `02:4e:<SoC serial>` is a MAC policy, not a Bluetooth address policy. Never derive anything from the IMEI. |
 | BLE | **Adopt TrouBLE** (`trouble-host`, MIT/Apache, `no_std`) behind an adapter, pinned | GATT and SMP are large. Gate: it must run on our executor and must not own the controller (TrouBLE sends HCI Reset and sets event masks; only bt-core may). Fallback: our own BLE. |
 | Classic | **Our own** L2CAP, RFCOMM, SDP, GAP | No `no_std` Classic stack fits. Floss (Android) is Rust + C++ on Linux infrastructure; a reference, not a base. `bt-hci` packet types where they fit. |
-| Threads | One protocol-owner thread in BTSRV, bounded queues; codec and storage workers when needed | Compatibility servers delegate to the owner. e32 mutexes and semaphores; **no CAS**, no lock-free queues. |
+| Threads | One protocol-owner thread in BTSRV, bounded queues; codec and storage workers when needed | Compatibility servers delegate to the owner. e32 mutexes and semaphores; no lock-free queues (native atomics exist since US4, but one owner thread needs none). |
 | Rails | One shared WCN3990 vote for Wi-Fi and Bluetooth | Bluetooth must not need a running modem and must not drop Wi-Fi's rails. |
 
 ### Crates (neohw)
@@ -172,7 +172,7 @@ everything Bluetooth: the controller, connections, security, profiles and stored
 - **Executor:** `e32-rs/crates/e32/src/rt.rs` polls with `Waker::noop()` and waits for kernel completions. TrouBLE's
   async code needs real software wakes and timers. A build that compiles proves nothing; it must make progress.
 - **Atomics:** e32 has a kernel-mutex `critical-section` (`e32-rs/crates/e32/src/cs.rs`). Every transitive atomic in
-  TrouBLE and its Embassy dependencies still has to be audited and linked for `armv5te-none-eabi`.
+  TrouBLE and its Embassy dependencies still has to be audited and linked for `armv8a-neosymbian-eabi`.
 
 ## The compatibility layer for old apps
 
@@ -240,7 +240,7 @@ neoui and old apps.
 ### A2DP (music)
 
 - **A2DP Source**, AVDTP signalling, SBC packetisation, AVRCP controls.
-- A **fixed-point Rust SBC encoder**, checked against test vectors and timed under ARMv5TE soft-float.
+- A **fixed-point Rust SBC encoder**, checked against test vectors and timed under ARMv8 softfp.
 - PCM comes from the mixer **before** ADSP playback, through a shared routing and focus interface. The ringtone path
   ([telephony.md](modem.md), 2026-11-14) proves playback only; a general PCM producer is new work.
 - A call suspends music; focus policy restores it afterwards.

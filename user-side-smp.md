@@ -46,7 +46,7 @@ flavour, 32-bit ARMv8-A; the stages below follow a Codex (`gpt-6.2-astra`) resea
   - **Syborg is no longer a target** (owner, 2026-11-21: "why we need syborg, ignore it"). Its 2010 ARM kernel has
     no VFP support and doesn't keep the user-side thread data, so the ARMv8 user side doesn't run there (efile dies on
     its first `vldr d16`; with VFP off, E32USER-CBase 66). build's and e32-rs's CI boot `virt` only; neoui's Syborg UI
-    job is manual until US6b ports it; `neo boot`/`neo live` (Syborg) don't run new builds until `virt` has a VNC view.
+    job is manual until US6b ports it; `neo boot`, `neo live` and `boot.sh` were removed in US5 (2026-11-25); a `virt` VNC view is US6b.
   - **32-bit, not 64-bit:** the kernel is AArch64; the user side stays AArch32. A 64-bit user side is
     [parked](#parked-a-64-bit-user-side).
 - **Calling convention: soft-float stays.**
@@ -247,7 +247,7 @@ components (as the 2010 build); the SWP emulation checks access and then accesse
 
 1. In `build/emitter/build_euser_device.py`, `_extra_flags_tu`, give the `.cia` files `-D__CPU_CORTEX_A9__ -D__SMP__`
    in place of `__CPU_CORTEX_A8N__`. Leave the C++ flags alone (`__SMP__` may change structs there; that's for US2).
-2. Rebuild euser. Check that `armv7-symbian-objdump -d euser0.elf` shows `dmb` in `RFastLock::Wait`, `RFastLock::Signal`
+2. Rebuild euser. Check that `armv8-symbian-objdump -d euser0.elf` shows `dmb` in `RFastLock::Wait`, `RFastLock::Signal`
    and `__e32_atomic_add_acq32`.
 3. Test on the Pixel, RAM boot only: a UI ROM with `ROFS=1 EMMC_C=1 USBDEBUG=1 AUTOFASTBOOT=…`.
    - Browse with NEOWEB/NEOWEBE for 15 minutes, **without** `C:\neowebe.check`. Its whole-heap check runs on every

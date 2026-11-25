@@ -330,7 +330,7 @@ open; enabling user FP/NEON before complete ownership/save/restore would be unsa
 
 **Fix/close:** define supported context/debug APIs and precise unavailable-register results; implement synchronization
 for live remote contexts. Add complete per-thread FP/NEON/FPSR/FPCR ownership and exception paths before enabling
-it, including interaction with kernel SHA instructions. Preserve ARMv5TE soft-float calling ABI.
+it, including interaction with kernel SHA instructions. Preserve the soft-float calling ABI.
 **Acceptance:** distinct register/FP patterns across preemption, migration, blocking, exceptions and thread death;
 no state leaks; C++/Rust exec, SWP/alignment and descriptor compatibility suites. Unsupported legacy VFP short
 vectors need an explicit contract or implementation and tests.

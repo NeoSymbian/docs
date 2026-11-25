@@ -51,7 +51,7 @@ Built 2026-11-06 in neoui (rust-integration.md R8: `symbian/apps/files`, model `
   `File::open`, `read_at`); `neoapp` PAGE, QUERY, NOTE, KEYBOARD, `kit_back!`.
 - **Shell:** the key `files` in `neoui/symbian/src/host.rs` `APPS`, the menu and home icons, the title in `shell.slint`.
   The shell resolves the EXE by name, so moving the code changes nothing there.
-- **CI:** neoui's `syborg.yml` clones NeoSymbian/files, builds `libneofiles.a`, then taps through drives,
+- **CI:** neoui's Syborg job (retired in US5, kept as the US6b spec `symbian/us6b/syborg-taps.yml`) cloned NeoSymbian/files, built `libneofiles.a`, then tapped through drives,
   `Z:\Sys\Bin`, `estart.txt`, makes and deletes `C:\neo\` and makes `C:\дом\`. The files repo's own CI runs the
   model's tests and snapshots today's five screens (`snapshots/files-*.png`).
 - **Speed:** the open animation averages 20.5 ms a frame, over the 16.7 ms budget ([smooth-ui.md](neoui-shell/smooth-ui.md)).
@@ -98,10 +98,10 @@ files/                       host workspace, Cargo.lock
 - **Features** choose what ships, in `symbian/app`: `decode-jpeg`, `encode-png`, `archive-write`, `edit-text`, `pdf`,
   `audio-*`… Portable crates default to little. The registry is static, so a viewer not enabled is not linked.
 - **Threads:** only the UI thread touches Slint. Workers (copy, search, thumbnails, decode) each open their own `Fs`
-  session (a session is bound to its thread) and talk through e32 mutex queues; no compare-and-swap (ARMv5TE).
+  session (a session is bound to its thread) and talk through e32 mutex queues (native atomics exist since US4, but a thread-owned session needs none).
 - **CI:** host: `cargo fmt --check`, `clippy -D warnings`, `cargo test --locked`, every board's snapshot compared
-  with its baseline (diffs uploaded); arm: `cargo arm --locked`, the EXE size and heap budget. neoui's Syborg CI clones
-  the repo as it clones phone, and keeps today's Files taps.
+  with its baseline (diffs uploaded); arm: `cargo arm --locked`, the EXE size and heap budget. The Files taps of neoui's
+  retired Syborg job move to QEMU virt with US6b.
 - **Data:** `C:\private\e0006001\` holds the recent list, the type index, the thumbnail cache and the settings;
   `X:\.trash\` on each writable drive holds deleted files and `index.dat`.
 
@@ -123,8 +123,8 @@ files/                       host workspace, Cargo.lock
 - **Memory:** the Rust heap is one 64 MB chunk (`e32/src/heap.rs`), first-fit, and it only grows. A 12 MP photo is
   36 MB as RGB, so a JPEG or WebP decodes at full size into a chunk of its own (created for it, closed after the
   shrink) and never enters the heap; documents lay out a page at a time.
-- **Speed:** the kernel saves FP/NEON for apps since WB1 (2026-11-17, KRN-019), but our Rust still builds for
-  ARMv5TE soft-float: codecs speed up with the ARMv7/NEON build (smooth-ui S4's user-side part). Each media phase
+- **Speed:** the kernel saves FP/NEON for apps since WB1 (2026-11-17, KRN-019), but our Rust built for
+  ARMv5TE soft-float until US4 (2026-11-25; now ARMv8 softfp): codecs can use NEON (smooth-ui S4's user-side part). Each media phase
   measures before it ships.
 
 ## Platform gaps
@@ -158,7 +158,7 @@ What Files needs that doesn't exist, who owns the fix, and the phase that needs 
 
 ## Phases
 
-Each phase ends with a gate: host tests and board snapshots in the files repo, then the Syborg CI and the Pixel.
+Each phase ends with a gate: host tests and board snapshots in the files repo, then the Pixel (and, from US6b, the UI taps on QEMU virt).
 
 | Phase | Work | Repos | Gate | Screens |
 |---|---|---|---|---|
@@ -287,7 +287,7 @@ about 1 month, FA3–FA8 about 2–3 months, FA9–FA12 several months each, mos
   app has no such hook.
 
 **Decided while building FA9 (M0, M1):**
-- **ARMv7 now** (owner decision): the phone's NEOFILES is built with `cargo arm7` (`symbian/targets/armv7a-neosymbian-eabi.json`, a copy of e32-rs's: VFPv3 + NEON, the softfp calling convention, so Symbian calls are unchanged). Moving to ARMv8 AArch32 later (US4) swaps the target only. Syborg's 2010 kernel switches no VFP for user threads (GCCE), so the Syborg CI builds Files with `cargo arm`; the files CI builds and lints both.
+- **ARMv7 now** (owner decision): the phone's NEOFILES is built with `cargo arm7` (`symbian/targets/armv7a-neosymbian-eabi.json`, a copy of e32-rs's: VFPv3 + NEON, the softfp calling convention, so Symbian calls are unchanged). Moving to ARMv8 AArch32 later (US4) swaps the target only. Syborg's 2010 kernel switches no VFP for user threads (GCCE), so the Syborg CI builds Files with `cargo arm`; the files CI builds and lints both. (Superseded by US4, 2026-11-25: one ARMv8 `cargo arm` build, `arm7` gone.)
 - **Duplicates hash with xxh64:** xxhash-rust's xxh3 doesn't build for 32-bit ARM with NEON (its NEON code names `core::arch::aarch64` types; the 32-bit intrinsics are unstable). The hashes are only kept in memory.
 - **The player is an FA7 viewer** (`Kind::Audio`): FA7's header (Share, ⋮ Show as hex… / Open with… / Details), Back, and the hex view with the reason for a file the decoders can't read. The folder's audio files are Next and Previous (the image viewer's folder list, now shared); shuffle and repeat (the folder, the track) stay while the player is open.
 - **Playback runs on a worker** with its own NeoAudio session per track. Each WRITE carries about 50 ms of the track (WRITE blocks while the 250 ms queue is full, so the worker keeps pace with the speaker). After each WRITE it reads INFO, because NeoAudio sends no events. PREEMPTED (a call or the ringtone has the speaker) pauses the stream; it resumes where it was after the call (owner decision). The end of a track is the queue running empty after the decoder's last frame.

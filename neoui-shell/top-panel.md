@@ -280,7 +280,7 @@ neoui (Apache, such as neohw) encode with `neoui-proto` and do not link the GPL 
 
 ## Phases
 
-Each phase ends on the Pixel, with neoui host snapshots for every new board and a Syborg step in `taps.sh`.
+Each phase ends on the Pixel, with neoui host snapshots for every new board and a step in `taps.sh` (run on QEMU virt from US6b).
 1.12 apps keep working throughout.
 
 | # | Phase | What | Protocol | Repos | Done when |

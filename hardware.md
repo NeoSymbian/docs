@@ -103,7 +103,7 @@ Stages (neohw PRs; S4/S5 with neoui #21):
 
 ## Program D0–D8 (accepted 2026-11-10)
 
-Native Rust apps first, legacy Symbian adapters later, without changing EKA2's AArch64 ILP32 kernel or the ARMv5TE
+Native Rust apps first, legacy Symbian adapters later, without changing EKA2's AArch64 ILP32 kernel or the ARMv8-A AArch32
 soft-float user ABI.
 
 ### Evidence
@@ -289,7 +289,7 @@ These come from the port's fixed decisions ([roadmap.md](roadmap.md), [port-map.
 
 | Need | Why | Effect on the list |
 |---|---|---|
-| **AArch64 cores that also run 32-bit code at EL0** | The 2010 user side runs unchanged as ARMv5TE code at AArch32 EL0 | Cortex-A53/A55/A72–A78 qualify. **Cortex-X2 and later, A715/A720 and A520 are AArch64-only** (most SoCs from 2022 on), so they are out |
+| **AArch64 cores that also run 32-bit code at EL0** | The 2010 user side runs unchanged as ARMv8-A AArch32 code at EL0 (ARMv5TE until US3, 2026-11-22) | Cortex-A53/A55/A72–A78 qualify. **Cortex-X2 and later, A715/A720 and A520 are AArch64-only** (most SoCs from 2022 on), so they are out |
 | **A bootloader we can unlock**, or none at all | We boot our own `boot.img` (`fastboot boot` / `flash boot_x`) | Carrier-locked models are out (Verizon Pixels). Xiaomi makes you wait; Fairphone may need a code |
 | **Mainline Linux support** | Mainline drivers and device trees are our register reference (read only, never copied) | The phone should be in Nura's `community` category, or in `testing` with a working device tree |
 | GICv3 interrupt controller | `nkernsmp/arm64` implements GICv3 only | GICv2 phones (Allwinner A64) need a new interrupt back end first |

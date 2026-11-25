@@ -78,7 +78,7 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
   PSCI `CPU_ON` (`NKern::BootAP`). The self-test extension passes (`XTRAP` around a data abort returns -38;
   4 × `NKern::Sleep(100)` = 404 ticks; one sleeper pinned to each CPU, 8/8 back). Build: `tools/build-ekern.sh`.
 - Status (2026-11-06, `06c3cb8`): **user mode works on QEMU and on the Pixel**. The first user process (an
-  ARMv5TE test program started by `exstart` as the ROM secondary) runs at AArch32 EL0. It makes fast and slow exec
+  ARMv5TE test program, as of then started by `exstart` as the ROM secondary) runs at AArch32 EL0. It makes fast and slow exec
   calls (with handle preprocessing), is preempted by the tick at EL0, and has its SWP and misaligned LDRD emulated by
   the kernel (`ekern/a64e_a32fix.cpp`).
 - Status (2026-11-06, `e2f9b8f`): **the real 2010 user side boots on QEMU and on the Pixel**.
@@ -203,7 +203,7 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
 
 **U1: Rust on the Symbian user side** (now on Syborg; on the Pixel after M3) = R0–R3
 - Build path:
-  - target **`armv5te-none-eabi`**, soft-float, matching the user side's `-march=armv5te` ABI. **Never `eabihf`:** it
+  - target **`armv8a-neosymbian-eabi`** (`armv5te-none-eabi` until US4, 2026-11-25), soft-float, matching the user side's ABI. **Never `eabihf`:** it
     passes floats differently and breaks calls into Symbian libraries;
   - Rust staticlib → link with symbian-2010's toolchain → its emitter (ELF → E32Image from the frozen `.def` files)
     → E32 image in the ROM.
@@ -382,5 +382,5 @@ graph LR
 | WCN3990 Wi-Fi on sdm670: firmware path and control path | P4 | Mainline sdm845 DTBs + postmarketOS notes for sargo/bonito |
 | VoLTE feasibility on the target carrier | P5 go/no-go | Carrier's 2G/3G status; postmarketOS VoLTE status on Qualcomm |
 | Sensors present on bonito | H6 | Full DTB from the bootloader / stock kernel |
-| Rust `armv5te-none-eabi` objects linking through symbian-2010's toolchain and emitter | U1 | R0 spike (`rust-integration.md`) |
+| Rust `armv5te-none-eabi` objects (the R0 spike's target) linking through symbian-2010's toolchain and emitter | U1 | R0 spike (`rust-integration.md`) |
 | Slint software renderer speed at 1080×2160 on one Kryo core | U2 | Benchmark on Linux on similar ARM hardware, or on the phone after U1 |
