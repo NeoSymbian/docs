@@ -442,6 +442,22 @@ Each stage ends with a gate:
 | **SE6** hardware pages and lock | Lock (TP8, TP9 PIN); Bluetooth B3/B6–B8; C10 mobile data; FS6 Share E:; Check for updates | neoui, neohw, kernel, build | each owner's own device gate |
 | **SE7** erase | Erase C: through recovery | kernel, build, neoui | on a disposable C: image first |
 
+#### SE1 plan (proposed 2026-11-26, for review)
+
+SE1 is split into four parts. Each ships on its own and gets its own phone run.
+
+| Part | Scope (boards) | Touches | Real data / placeholders | Gates |
+|---|---|---|---|---|
+| **SE1a Find** | Root grid (`set2-root-grid`): 3 x 14 tiles, ⋮ → View as grid / View as list, stored in `settings.root_grid` (the app's own namespace, no registry row); the grid has no Reset tile until SE4. Search (`set2-search`): the root header's 🔍 searches every row's title, its page's title and the row's live value; a result opens its page. About → Licences (the `set2-about` row): Apache-2.0 (NeoSymbian), EPL-1.0/2.0 (Symbian, changed files), GPL-3.0 (Slint and the code linking it). Developer → Kernel log / Save logs open Dev tools on its own pages (it already opens "settings", "tools", "about" by name) | neoui only: `neoui-proto/src/settings_app/rows.rs` (the row table: id, page, title, aliases), `crates/settings-ui` (grid, search results, licences), `symbian/apps/settings`, devtools (`AppEvent::Open` by page) | all real; the search index is the row table. A host test fails when a table title is missing from the `.slint` pages, so the two can't drift | host snapshots `set2-root-grid`, `set2-search`, `set2-licences`; tests: every row found by its title, the grid's tiles open their pages; virt-taps: 🔍 "time" → Date & time; phone: grid ↔ list survives a restart, search and open |
+| **SE1b Zones** | Time zone data generated at build time from a pinned IANA release (2025b) for the 87 cities: rules, the release and the years covered recorded; saved city names keep working | neoui-proto `clock/` (a generated table + its generator in `tools/`) | real | host: every city's transitions for 2026–2030 against the IANA reference; the ROM grows by under 8 KB; phone: a city on each hemisphere |
+| **SE1c Wi-Fi lists** | Saved networks (`set2-wifi-saved`: list, Forget by name), Add hidden network (`set2-wifi-hidden`) | neohw NeoWifi 1.1 (`SAVED`, `FORGET`, `CONNECT` with no BSSID = by name), WIFID; maybe the kernel (a directed probe scan) | real; Add hidden ships only if the directed scan works | neohw host tests; phone: forget a saved network, join a hidden test network |
+| **SE1d Apps catalogue** | The Apps hub lists every app (ROM apps and the old apps LEGACY lists) with Open and, where an app has its own settings page, Open app settings | `SETTINGS_INFO` kind 4 (the shell's apps and launcher entries), settings-ui, NEOSET | real. Default page and per-app notifications wait for SE4, where the shell enforces them (D4: no switch that does nothing) | host: the catalogue's encoding; phone: an old app listed and opened |
+
+**Proposed order:** SE1a, then SE1b; SE1c after a research spike (does the firmware take a directed scan?); SE1d.
+
+**Questions for the owner:** none for SE1a or SE1b. For SE1c, if a hidden network needs a kernel change, the
+spike's report goes to the owner first.
+
 **Order:** SE0 comes first and alone, because it fixes Open apps and the dead rows. SE1–SE4 can follow in any order.
 SE5 and SE6 follow their platform stages.
 
