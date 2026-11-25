@@ -65,8 +65,8 @@ work that has been designed but not built**, so that two designs can't pick the 
 | 36 | `ACTIVITY` | — | **reserved:** TP6 |
 | 37 | `TILE` | — | **reserved:** TP7 |
 | 38 / 39 | `REGISTER` / `UNREGISTER` | — | **reserved:** [../store.md](../store.md) ST4 (store.md said "1.12", which Files FA8 took) |
-| 40 | `SETTINGS_INFO` | — | **reserved:** [../settings-app.md](../settings-app.md) SE0 (`[kind, cursor, Des8 out]`: a bounded, revisioned snapshot only the shell has; kinds 1 battery history, 2 Wi-Fi IP/portal, 3 clock sync, 4 app catalogue, 5 notification channels) |
-| 41 | `SETTINGS_ACTION` | — | **reserved:** settings-app.md SE0 (`[kind, Des8 request]`: kind 1 sign in to the current network; later profile switch, reset jobs, share E:) |
+| 40 | `SETTINGS_INFO` | — | **reserved:** [settings.md](settings.md#the-settings-app-neoset) SE0 (`[kind, cursor, Des8 out]`: a bounded, revisioned snapshot only the shell has; kinds 1 battery history, 2 Wi-Fi IP/portal, 3 clock sync, 4 app catalogue, 5 notification channels) |
+| 41 | `SETTINGS_ACTION` | — | **reserved:** settings.md SE0 (`[kind, Des8 request]`: kind 1 sign in to the current network; later profile switch, reset jobs, share E:) |
 | 42 | — | — | next free |
 
 ## AppEvent kinds (shell → app)
@@ -96,7 +96,7 @@ work that has been designed but not built**, so that two designs can't pick the 
 | 24 | `NotifyReply { id }` | — | **reserved:** TP4 (the text through `REPLY_TEXT`) |
 | 25 | `ActivityTap { id, i }` | — | **reserved:** TP6 (0 = the island, 1.. = a button) |
 | 26 | `Tile { id, hold }` | — | **reserved:** TP7 |
-| 27 | `SettingsInfo { kind, rev }` | — | **reserved:** settings-app.md (a snapshot of `SETTINGS_INFO` kind changed; not used in SE0) |
+| 27 | `SettingsInfo { kind, rev }` | — | **reserved:** settings.md (a snapshot of `SETTINGS_INFO` kind changed; not used in SE0) |
 | 28 | — | — | next free |
 
 ## Older numbering, now void

@@ -419,7 +419,7 @@ screens. The UI server feeds it touches and acts on what it returns.
 | `home.style` | Int 0..=1 | 0 | 0 Pages (Belle), 1 Lanes (N9) | G5 |
 
 All are `Owner::Shell`. Gestures (Thumb map) is the default since Navigation v2 (2026-11-17). The Settings page for
-these is `set2-navigation` in the Settings app ([../settings-app.md](../settings-app.md)).
+these is `set2-navigation` in the Settings app ([settings.md](settings.md#the-settings-app-neoset)).
 
 **Settings → Home screen & navigation** (view `navigation`, a root row after Display):
 - Navigation: Classic / Gestures. A tap steps to the other, like Screen timeout.

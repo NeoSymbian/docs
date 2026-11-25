@@ -432,7 +432,7 @@ kernel  DataIn --(Ethernet II)--> rx queue --WlanLink op 8--> NEONET.EXE (smoltc
 - one TCP buffer size (8 KB each way; 16 sockets, 24 with UDP since API 1.1);
 - a captive portal shows as "No access" (since UI5 SYSSTART detects it and the shade and Settings offer Sign in);
 - the supplicant stays a SYSSTART thread (WIFID owns it since S5; the Settings app is a NeoWifi client of its own,
-  [../settings-app.md](../settings-app.md)).
+  [../neoui-shell/settings.md](../neoui-shell/settings.md#the-settings-app-neoset)).
 
 ### Result: an IP address and the internet (phone RAM boot, 2026-11-12)
 

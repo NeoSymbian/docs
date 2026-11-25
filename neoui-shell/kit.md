@@ -210,7 +210,7 @@ The modes:
 
 **The kit Menu fix.** An item's tap reports its pick before the popup closes: closing tears the item down, and before the fix no ⋮ item ran (`neoui-gallery`'s test now taps one).
 
-**Back to Settings.** An app opened from the Settings app (Apps → Phone & Contacts; it was the root Calls & Messages row) returns there on Back. Since [../settings-app.md](../settings-app.md) SE0 Settings is an app itself (`NEOSET.EXE`), so this is the ordinary DONE/Back return of protocol 1.9.
+**Back to Settings.** An app opened from the Settings app (Apps → Phone & Contacts; it was the root Calls & Messages row) returns there on Back. Since [settings.md](settings.md#the-settings-app-neoset) SE0 Settings is an app itself (`NEOSET.EXE`), so this is the ordinary DONE/Back return of protocol 1.9.
 
 **Protocol 1.12 (Files FA8, 2026-11-20).** Apps pass open files by handle (e32 `SharedFile`): the opener shares its
 file-server session (`Fs::share_protected`), the server adopts the file and hands it to the target.
