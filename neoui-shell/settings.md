@@ -468,14 +468,14 @@ spike's report goes to the owner first.
 **Order:** SE0 comes first and alone, because it fixes Open apps and the dead rows. SE1–SE4 can follow in any order.
 SE5 and SE6 follow their platform stages.
 
-### Status (2026-11-25)
+### Status (2026-11-26)
 
 | Part | State |
 |---|---|
 | The design (48 boards, prototype, spec) | done, on the canvas, approved |
 | This plan | written 2026-11-25 |
 | SE0 | built and merged 2026-11-26: neoui#38 (`b19d597`), e32-rs#16 (`Message::client_sid`), neohw#17 (e32 pin). QEMU walk and three Pixel RAM-boot runs: Open apps card, Wi-Fi list and join (keyboard, wrong password, no double join), Buttons/Gestures by NEOSET's SID, the connect and reap races, keyboard resume. Two Codex reviews, findings fixed |
-| SE1 | SE1a (find) in review (neoui#39); SE1b (zones) next; SE1c spike; SE1d after its plan additions |
+| SE1 | SE1a (find) merged 2026-11-26: neoui#39 (`5055cdb`); two Codex reviews; Pixel RAM-boot run: grid, search → selected row, Back along the path, Kernel log → Dev tools Console. SE1b (zones) next; SE1c spike; SE1d after its plan additions |
 | SE2–SE7 | not started |
 
 ## Part 1: settings store (done 2026-11-09)
