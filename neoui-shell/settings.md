@@ -453,6 +453,11 @@ SE1 is split into four parts. Each ships on its own and gets its own phone run.
 | **SE1c Wi-Fi lists** | Saved networks (`set2-wifi-saved`: list, Forget by name), Add hidden network (`set2-wifi-hidden`) | neohw NeoWifi 1.1 (`SAVED`, `FORGET`, `CONNECT` with no BSSID = by name), WIFID; maybe the kernel (a directed probe scan) | real; Add hidden ships only if the directed scan works | neohw host tests; phone: forget a saved network, join a hidden test network |
 | **SE1d Apps catalogue** | The Apps hub lists every app (ROM apps and the old apps LEGACY lists) with Open and, where an app has its own settings page, Open app settings | `SETTINGS_INFO` kind 4 (the shell's apps and launcher entries), settings-ui, NEOSET | real. Default page and per-app notifications wait for SE4, where the shell enforces them (D4: no switch that does nothing) | host: the catalogue's encoding; phone: an old app listed and opened |
 
+**SE1a as built** (neoui#39): search matches a row's title, other names, page and live value; a result opens its page
+with the row **selected**, not scrolled to (a deviation from J, approved 2026-11-26: every page is about one screen tall,
+so the selected row is in view; scroll-to-row becomes required once a page grows past one screen). The row table
+covers model-drawn rows too (navigation modes, keyboards), and the drift test compares (page, title) pairs.
+
 **Proposed order:** SE1a, then SE1b; SE1c after a research spike (does the firmware take a directed scan?); SE1d.
 
 **Questions for the owner:** none for SE1a or SE1b. For SE1c, if a hidden network needs a kernel change, the
