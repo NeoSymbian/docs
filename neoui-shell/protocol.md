@@ -31,6 +31,7 @@ work that has been designed but not built**, so that two designs can't pick the 
 | 1.10 | 2026-11-17 | haptic pulses; input reset | [../legacy.md](../legacy.md) |
 | 1.11 | 2026-11-18 | a progress bar on a shade entry | [kit.md](kit.md#status-2026-11-17) |
 | 1.12 | 2026-11-20 | files between apps by handle; the clipboard's kind | [kit.md](kit.md#protocol-19-apps-open-each-other) (its 1.12 part), [../files-app.md](../files-app.md) FA8 |
+| 1.13 | 2026-11-26 | Settings is an app (NEOSET): `SETTINGS_INFO`, `SETTINGS_ACTION`; shell keys writable by NEOSET's secure ID | [settings.md](settings.md#the-settings-app-neoset) |
 
 ## Opcodes (app → shell)
 
@@ -65,8 +66,8 @@ work that has been designed but not built**, so that two designs can't pick the 
 | 36 | `ACTIVITY` | — | **reserved:** TP6 |
 | 37 | `TILE` | — | **reserved:** TP7 |
 | 38 / 39 | `REGISTER` / `UNREGISTER` | — | **reserved:** [../store.md](../store.md) ST4 (store.md said "1.12", which Files FA8 took) |
-| 40 | `SETTINGS_INFO` | — | **reserved:** [settings.md](settings.md#the-settings-app-neoset) SE0 (`[kind, cursor, Des8 out]`: a bounded, revisioned snapshot only the shell has; kinds 1 battery history, 2 Wi-Fi IP/portal, 3 clock sync, 4 app catalogue, 5 notification channels) |
-| 41 | `SETTINGS_ACTION` | — | **reserved:** settings.md SE0 (`[kind, Des8 request]`: kind 1 sign in to the current network; later profile switch, reset jobs, share E:) |
+| 40 | `SETTINGS_INFO` | 1.13 | built (neoui#38): [settings.md](settings.md#the-settings-app-neoset) SE0 (`[kind, cursor, Des8 out]`: a bounded, revisioned snapshot only the shell has; kinds 1 battery history, 2 Wi-Fi IP/portal, 3 clock sync, 4 app catalogue, 5 notification channels) |
+| 41 | `SETTINGS_ACTION` | 1.13 | built (neoui#38): settings.md SE0 (`[kind, Des8 request]`: kind 1 sign in to the current network; later profile switch, reset jobs, share E:) |
 | 42 | — | — | next free |
 
 ## AppEvent kinds (shell → app)

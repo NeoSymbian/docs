@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Settings: the store and the Settings app
 
-**Status: the store is done 2026-11-09 (neoui `22af6ac`); the Settings app (NEOSET) is designed 2026-11-25, not built.** One store for the shell and every app (`neoui-proto::settings`,
+**Status: the store is done 2026-11-09 (neoui `22af6ac`); the Settings app (NEOSET) SE0 is built and merged 2026-11-26 (neoui#38 `b19d597`, e32-rs#16, neohw#17), SE1 in progress.** One store for the shell and every app (`neoui-proto::settings`,
 `SETTING_GET`/`SET`/`WATCH`). Moved here from `neoui-shell.md` Part 1 on 2026-11-21; the hub is [../neoui-shell.md](../neoui-shell.md).
 The keys the top panel adds (`shell.*`, `notify.*`, `island.*`, `lock.*`) are listed in [top-panel.md](top-panel.md#settings-keys).
 
@@ -467,7 +467,9 @@ SE5 and SE6 follow their platform stages.
 |---|---|
 | The design (48 boards, prototype, spec) | done, on the canvas, approved |
 | This plan | written 2026-11-25 |
-| SE0–SE7 | not started |
+| SE0 | built and merged 2026-11-26: neoui#38 (`b19d597`), e32-rs#16 (`Message::client_sid`), neohw#17 (e32 pin). QEMU walk and three Pixel RAM-boot runs: Open apps card, Wi-Fi list and join (keyboard, wrong password, no double join), Buttons/Gestures by NEOSET's SID, the connect and reap races, keyboard resume. Two Codex reviews, findings fixed |
+| SE1 | SE1a (find) in review (neoui#39); SE1b (zones) next; SE1c spike; SE1d after its plan additions |
+| SE2–SE7 | not started |
 
 ## Part 1: settings store (done 2026-11-09)
 
