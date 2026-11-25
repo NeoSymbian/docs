@@ -455,7 +455,9 @@ SE1 is split into four parts. Each ships on its own and gets its own phone run.
 
 **SE1a as built** (neoui#39): search matches a row's title, other names, page and live value; a result opens its page
 with the row **selected**, not scrolled to (a deviation from J, approved 2026-11-26: every page is about one screen tall,
-so the selected row is in view; scroll-to-row becomes required once a page grows past one screen). The row table
+so the selected row is in view; scroll-to-row becomes required once a page grows past one screen). A row that
+leads to another page (Old apps, Licences, the root's rows) opens that page with nothing selected. Back follows the
+pages the user went through (grid → Connectivity → Bluetooth → Back → Connectivity). The row table
 covers model-drawn rows too (navigation modes, keyboards), and the drift test compares (page, title) pairs.
 
 **Proposed order:** SE1a, then SE1b; SE1c after a research spike (does the firmware take a directed scan?); SE1d.
