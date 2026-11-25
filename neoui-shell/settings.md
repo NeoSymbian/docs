@@ -527,6 +527,8 @@ Then NeoWifi 1.1 gets a directed scan and join by raw SSID, and WIFID keeps `hid
     - e32's `JoinHandle::join` waits for a fresh signal, so a thread whose exit signal was already used hangs the
       joiner. WIFID works around it (EXITED); a timed join, or one that knows the thread has finished, belongs in
       e32.
+    - switch to `sys::replace_private`: the other `save_private` users (WIFID's `left.dat`, MODEMD's `calls.db`,
+      `sms.db` and `block.db`, GNSSD's `xtra.*`) still write in place, so a crash mid-save can leave them empty.
 - **Pins:**
   - neohw PR first, then neoui's `wifi` pin (both lines in `symbian/Cargo.toml`) at the new neohw rev, rebuilding
     SYSSTART and NEOSET together;
