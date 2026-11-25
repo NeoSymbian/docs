@@ -215,7 +215,7 @@ change it.
   from the kernel.
 - It renders into a RAM frame and copies the damaged rectangles to video RAM.
 - On Syborg the first frame takes about 80 ms. A QEMU-monitor tap on Phone opens the Phone screen. CI
-  (`neoui/.github/workflows/syborg.yml`) checks the log and the screen.
+  (`neoui/.github/workflows/syborg.yml`, on QEMU `virt` since US6b as `virt-taps.yml`) checks the log and the screen.
 - Slint (built on ARMv5TE then, ARMv8 since US4): it builds as-is once `e32` provides two things:
   - a `critical-section` implementation, which is a kernel mutex;
   - `__aeabi_unwind_cpp_pr0`, because Slint's EHABI tables would otherwise drag in libgcc's C++ unwinder.
@@ -249,7 +249,7 @@ Exit: launcher → demo app → back to the launcher, on Syborg.
   - On Back the server sends `Quit`. The app exits 0, and the server reaps it with `ProcessExitType`.
 - **The Clock** shows Symbian's real time (`TimeNow` and a civil-date conversion) and ticks every second.
 - **CI** (`neoui` `syborg.yml`) runs Apps menu → scroll → Clock → tap → Back through the QEMU monitor
-  (`boot.sh` `MONITOR` plus `MON_GAP`, because drags need about 0.3 s between steps; `boot.sh` was deleted in US5, the job is a spec in neoui `symbian/us6b/syborg-taps.yml`).
+  (`boot.sh` `MONITOR` plus `MON_GAP`, because drags need about 0.3 s between steps; since US6b the job is neoui's `virt-taps.yml` on QEMU `virt`, driven by the kernel's `tools/ui-qemu.py`).
 - **Found:** the design prototype's home pages can't be tapped, because a swipe `TouchArea` declared after the
   pages covers them. CI therefore opens Clock from the Apps menu. Reported to the design stream.
 - **Shortcuts:**

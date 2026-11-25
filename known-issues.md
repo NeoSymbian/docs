@@ -225,8 +225,8 @@ buffer the writer's in/out sequence really protects.
 
 ## CI: neoui's `syborg` check is red (seen 2026-11-11)
 
-**Status:** obsolete. Syborg was dropped as a target (2026-11-21), and neoui's `syborg` workflow is manual only; its UI
-checks move to QEMU `virt` in US6b ([user-side-smp.md](user-side-smp.md)). History: neoui #5 (battery UI) was merged
+**Status:** obsolete. Syborg was dropped as a target (2026-11-21); its UI checks run on QEMU `virt` since US6b
+(2026-11-25, neoui's `virt-taps` workflow, [user-side-smp.md](user-side-smp.md)). History: neoui #5 (battery UI) was merged
 past it by the owner.
 - **What:** the QEMU boot test counts the Clock app's `clock: tick` lines and wants at least 2. It logs 1: the
   script taps as soon as Clock shows its surface, then goes back. Both runs of neoui #5 failed this way. Everything
