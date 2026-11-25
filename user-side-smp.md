@@ -69,11 +69,11 @@ flavour, 32-bit ARMv8-A; the stages below follow a Codex (`gpt-6.2-astra`) resea
 | **US2** | euser, efsrv, hal as ARMv8-A AArch32 (`-march=armv8-a+crc+crypto -mfloat-abi=softfp`, A9 + `__SMP__` profile), through one target setting; [three blockers first](#us2-what-to-fix-first) | build `toolchain/symcc`, `emitter/*.py`; kernel euser; build#46 (**merged 2026-11-21**) | Pixel RAM boot and `virt`; export/ordinal/stub/layout diff clean; TLS and nested-TRAP FP tests; R0–R3, `smp` 3/3; X-plore and Frozen Bubble; size and boot time against the baseline |
 | **US6b** | UI CI parity: neoui's Syborg tap, gesture, app-switch and old-app assertions ported to `virt` (pointer input, 539×1079) | neoui `syborg.yml`, `symbian/taps.sh`, kernel `qemu_variant` | Same assertions and screenshots on `virt`; then the Syborg user-side jobs retire |
 | **US3** | The rest of the 2010 ROM (P.I.P.S., ESOCK, graphics, middleware, old-app providers) through the same setting; rebuild the reachable GNU runtime members | build#52, ossrv#6 (**merged 2026-11-22**) | Fresh full build: no rejected relocations, lost ordinals or new stubs; full UI, old apps, 15-min browser soak, R0–R3, `smp`, CI. **Done, [results below](#us3-results-2026-11-22)** |
-| **US4** | Rust and the browser on one `armv8a-symbian-eabi.json` (`llvm-target armv8a-none-eabi`, `llvm-floatabi soft`, `max-atomic-width 64`, `+v8,+thumb2,+neon,+crc,…`, `c-enum-min-bits 32`, ARM state): real atomics, `Arc`, NEON. `e32` picks its runtime by feature, not `target_os`; `e32-sys` uses `fence(Acquire)`; NEOWB1's FP test fixed first | e32-rs, neoui, phone, files, neohw, browser | Both build-std modes; R0–R3, NEOWB1 6/6, MIXTEST 225, 64-bit atomic stress, `smp` 3/3, browser soak; neoui ns/px before/after (smooth-ui S4 exit) |
+| **US4** | Rust and the browser on one `armv8a-symbian-eabi.json` (`llvm-target armv8a-none-eabi`, `llvm-floatabi soft`, `max-atomic-width 64`, `+v8,+thumb2,+neon,+crc,…`, `c-enum-min-bits 32`, ARM state): real atomics, `Arc`, NEON. `e32` picks its runtime by feature, not `target_os`; `e32-sys` uses `fence(Acquire)`; NEOWB1's FP test fixed first | e32-rs, neoui, phone, files, neohw, browser | Both build-std modes; R0–R3, NEOWB1 6/6, MIXTEST 225, 64-bit atomic stress, `smp` 3/3, browser soak; neoui ns/px before/after (smooth-ui S4 exit). **Done 2026-11-25, [results below](#us4-results-2026-11-25)** |
 | **US5** | Clean-up: drop the ARMv5TE paths and aliases; docs (rust-integration, port-map, CLAUDE.md ABI rules) | build, docs | One user-side ABI; phone and CI run identical user E32 hashes |
 
-US0 and US1 are done (merged 2026-11-21, installed as `2026-11-20-finchmane`); US2 (2026-11-21) and US3
-(2026-11-22) are merged: every 2010 C++ user-side image is ARMv8-A AArch32. The order is US6a → US2 → US6b → US3 →
+US0 and US1 are done (merged 2026-11-21, installed as `2026-11-20-finchmane`); US2 (2026-11-21), US3
+(2026-11-22) and US4 (2026-11-25) are merged: every 2010 C++ and every Rust user-side image is ARMv8-A AArch32. The order is US6a → US2 → US6b → US3 →
 US4 → US5; about 18–32 working days. Each stage builds one user payload and boots it with `neo kernel qemu` and
 `neo kernel bonito` from the same volume (`SIS=xplore,frozenbubble`, `ROFS_CORE='\.dll$'`); budgets against the US1
 baseline: size +5 %, boot median +10 %. Later, only with a measured gain: an ARMv8 CPU profile in `cpudefs.h`
@@ -104,6 +104,38 @@ stdtest smp_printf_g smp_condvar_timeout smp_static_init smp_once smp_stdio smp_
 - **Boot time** (2026-11-22, `fastboot boot` to neoui's `boot OK`, 5 RAM boots each): `2026-11-22-tapirtail` test image
   15.2 s median (15.2, 15.2, 15.2, 15.2, 15.5).
 - **Still to do:** AArch32 CRC32/AES/SHA known-answer tests on both clusters.
+
+## US4: results (2026-11-25)
+
+e32-rs#12, neohw#15, neoui#34, phone#8, files#12, browser#15, NeoSymbian/mozjs#3, build#55:
+
+- **Targets:** e32-rs `targets/armv8a-neosymbian-eabi.json` (no_std) and its std twin `armv8a-symbian-eabi.json`
+  (`os symbian`, `target-family unix`, `has-thread-local false`), identical codegen: `llvm-target armv8a-none-eabi`,
+  ARM state, `+v8,+thumb2,+neon,+fp-armv8,+d32,+crc,+aes,+sha2,-soft-float,+strict-align,+no-movt`,
+  `llvm-floatabi soft`, `c-enum-min-bits 32`, `max-atomic-width 64`. Two names, because e32 picks its runtime by
+  `target_os` and no_std dependencies (Slint's) must not see `unix`. Each repo keeps a byte-identical copy; `cargo
+  arm` builds it everywhere (`cargo clippy-arm` for clippy); the `armv5te-none-eabi` and ARMv7 `arm7` builds are gone.
+  Every EXE links one e32 (206b6c2).
+- **Checked in the output:** only R_ARM_ABS32/CALL/JUMP24/PREL31 (+ TARGET1 in `.init_array`, V4BX) relocations, no
+  GOT/TLS (NEOWEBE's second-pass ELF too); ARM-state `svc`; `ldrexd`/`strexd` for 64-bit atomics; a Rust
+  `extern "C" fn(f64, i32, f32) -> f64` takes r0:r1, r2, r3 and returns r0:r1 (GCC softfp).
+- **e32 fixes for real threads** (Codex review): the heap takes its kernel mutex before forming `&mut State` and
+  publishes its lock after init; `sync::Mutex` refuses re-entry with `Exec::MutexIsHeld` (the kernel mutex is
+  recursive) and its guard is `!Send`; `acquire_barrier` is `fence(Acquire)`. portable-atomic now uses native atomics;
+  `cs.rs` stays for `once_cell::sync`; the heap keeps one kernel-mutex round trip per alloc (a fast lock only with a
+  profile).
+- **Tests:** NEOWB1 `fp_threads` keeps fill/spin/blocking wait/dump in one asm block; neotest `atomics` (8 threads x
+  `Arc`, `AtomicU64` across 2^32, a CAS lock). e32-rs CI on QEMU `virt`: neotest 13/13, NEOWB1 6/6, NEOTRAP 4/4 (its
+  `.fpu vfpv2` had broken the nightly since US3: fixed with `general-regs-only`).
+- **Browser:** the SDK wrappers take symcc's flags (`-march=armv8-a+crc+crypto -mfloat-abi=softfp -marm`, A9 + SMP
+  defines) and headers refreshed from the US3 build (the `setjmp` fix reaches FreeType & co.); cxxrt keeps the ARMv5
+  libstdc++ pieces (MOVW/MOVT in the v8 multilib); mozjs matches any `-symbian-eabi` target.
+- **Pixel** (RAM boot, `boot.img` 26,157,056 bytes; NEOWEBE on C:): UI, LTE, Wi-Fi; STDTEST `smp…` `7 ok, 0 failed,
+  0 skipped` x6; MIXTEST `all ok` (225 layout checks; std threads → C++ TRAP → Rust); NEOGET fetched the 61.7 MB
+  engine over Wi-Fi; the owner browsed (ARMv8 NEOWEBE), took a call, sent an SMS (delivery report), opened apps.
+  Boot median 15.1 s (unchanged). **neoui's home screen (2,332,800 px) renders in 32 ms instead of 68–72 ms**
+  (13.8 vs 29–31 ns/px; the copy, ~5 ms, is unchanged).
+- **Not on the phone:** the neotest `atomics` test and NEOWB1 (not in the UI ROM; they ran on `virt`).
 
 ## US3: results (2026-11-22)
 
