@@ -78,14 +78,63 @@ and CI and the phone build the same E32 bytes; US6a and US6b (2026-11-25) put th
 checks and neoui's UI checks into CI on QEMU `virt`: every stage is done. The order was US6a → US2 → US6b → US3 →
 US4 → US5; about 18–32 working days. Each stage builds one user payload and boots it with `neo kernel qemu` and
 `neo kernel bonito` from the same volume (`SIS=xplore,frozenbubble`, `ROFS_CORE='\.dll$'`); budgets against the US1
-baseline: size +5 %, boot median +10 %. Later, only with a measured gain: an ARMv8 CPU profile in `cpudefs.h`
-(`LDA`/`STL` in `atomic_32_v6.h`/`uc_utl.cia`, `CRC32` in `Mem::Crc32`).
+baseline: size +5 %, boot median +10 %. Afterwards, only with a measured gain: an ARMv8 CPU profile in `cpudefs.h`
+(`LDA`/`STL` in `atomic_32_v6.h`/`uc_utl.cia`, `CRC32` in `Mem::Crc32`). Measured 2026-11-26: CRC32 ships, LDA/STL
+doesn't ([results below](#armv8-profile-results-2026-11-26)).
 
 The seven checks, run three times, must each print `7 ok, 0 failed` (`stdtest smp` alone selects nothing):
 
 ```text
 stdtest smp_printf_g smp_condvar_timeout smp_static_init smp_once smp_stdio smp_shared_fd smp_sem_timeout
 ```
+
+## ARMv8 profile: results (2026-11-26)
+
+kernel `armv8-profile`, build `armv8-profile`, e32-rs#15 (NEOBENCH).
+- **The profile:** `cpudefs.h` gets `__CPU_ARMV8A__`, which symcc now selects in place of `__CPU_CORTEX_A9__`. It
+  defines everything ARMv7 has, and `__CPU_ARM_HAS_CRC32` under `-march=…+crc`. `Mem::Crc32` uses `crc32b`/`crc32w`;
+  the table it replaces is the reflected IEEE polynomial with no inversion, which is exactly the instructions' update.
+- **The yardstick:** NEOBENCH.EXE (e32-rs `symbian/neobench.cpp`, merged; it runs in e32-rs's virt CI for its checks).
+  - It pins itself to each CPU and gives the median of 5 runs of: `RFastLock` Wait+Signal, `__e32_atomic_*32`, a
+    64-byte alloc+free, and `Mem::Crc32`. It also runs one thread per CPU on a shared lock and on the shared heap.
+  - It checks `Mem::Crc32` against a bitwise reference: the check value, plus every length 0–64 at every alignment.
+- **The Pixel A/B** (RAM boots of one image each from one volume, `ROFS_CORE='\.dll$|NEOBENCH'`, 5 boots each):
+  - A: main, the A9 profile;
+  - B: the ARMv8 profile with LDA/STL (load-acquire, store-release, the acquire/release RMWs and `RFastLock`) plus
+    CRC32.
+  - The bar (owner): ≥10 % on both clusters for the part's own euser function, and no regression in the boot median,
+    `smp` ×3 or MIXTEST.
+
+| ns per call (median) | A55 A | A55 B | A75 A | A75 B |
+|---|---|---|---|---|
+| `Mem::Crc32` 16 B | 80.8 | 14.2 (−82 %) | 494 | 56.7 (−89 %) |
+| `Mem::Crc32` 156 B (an E32 header) | 741 | 85.9 (−88 %) | 4700 | 444 (−91 %) |
+| `Mem::Crc32` 4 KB | 19,197 | 1,813 (−91 %) | 123,057 | 6,928 (−94 %) |
+| `RFastLock` Wait+Signal | 38.6 | 35.7 (−8 %) | 219 | 174 (−21 %) |
+| `User::Alloc`+`Free` 64 B | 183 | 175 (−4 %) | 648 | 485 (−25 %) |
+| `load_acq32` / `store_rel32` | 8.7 / 9.9 | 8.1 / 9.9 | 50.0 / 60.0 | 13.3 / 16.6 |
+| `add_acq32` / `add_rel32` / `add_rlx32` | 17.5 / 19.3 / 16.9 | 16.9 / 17.5 / 16.9 | 110 / 100 / 84.5 | 84.5 / 84.5 / 84.5 |
+| contended lock / heap, 8 threads (kops/s) | 94 / 47 | 94 / 48 | | |
+
+- **What the table shows:**
+  - On the A55, a DMB costs under 1 ns uncontended (`add_acq` against `add_rlx`). Contended, the semaphore path
+    dominates.
+  - The A75 numbers ran with the gold cluster unboosted (fa12, 2026-11-26: it sits at 300 MHz unless touched), so
+    there a DMB is 15–25 ns.
+- **Boot median** (fastboot boot to `neoui: boot OK`, 5 boots each): 14.8 s A, 14.8 s B. `smp` 7/7 three times and
+  MIXTEST all ok on both.
+- **Verdict:**
+  - **CRC32 ships**: 8–11× faster.
+  - **LDA/STL doesn't**: the lock is −8 % and the heap −4 % on the A55, under the bar. The atomics and `RFastLock`
+    stay as on main.
+  - Re-measure LDA/STL once the gold cluster has a held boost; on the A75 it gained 16–25 %.
+- **The Codex review** of the LDA/STL code (kept on the branch's history) found two contract breaks. Both were fixed
+  before the verdict, and they are recorded here for a future attempt:
+  - Symbian's `acq` orders the whole RMW, write included, before later accesses, and LDAEX orders only the read: the
+    acquire RMWs need their DMB.
+  - A release CAS whose compare fails stores nothing, so it has no STLEX: it needs its leading DMB.
+  - Only `load_acq`/`store_rel` (LDA/STL), the release RMWs that always store (STLEX) and `RFastLock` are valid
+    without DMBs.
 
 ## US6a: results so far (2026-11-21)
 
