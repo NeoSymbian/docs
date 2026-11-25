@@ -214,7 +214,7 @@ Rules:
 - A ringing alarm or call shows full screen **over** the lock screen; ending it returns to the lock screen.
 - Double-tap to wake needs the touch controller awake with the panel off (kernel `a64_touch.cpp`); later.
 - **The screen-lock PIN (TP9)** is designed but not built first: a PIN pad over the lock screen, attempts with
-  back-off, the PIN stored hashed in a shell-only key.
+  back-off, the PIN's salted verifier in the shell's private folder (not a settings key).
 
 ## Calls and messages from the panel
 
@@ -240,7 +240,9 @@ Rules:
 
 ## Settings keys
 
-Owned by the shell; the Settings app writes them. Keys are at most 16 bytes (`KEY_MAX`).
+Owned by the shell; the Settings app writes them (`NEOSET.EXE`, [settings.md](settings.md#the-settings-app-neoset), through its
+`Caller::Settings` allowlist). Setting names are at most 32 bytes (`settings::KEY_MAX`); app keys, as in `n.<app>`,
+are at most 16 (`ipc::KEY_MAX`).
 
 | Key | Value | Meaning | Phase |
 |---|---|---|---|
@@ -257,7 +259,7 @@ Owned by the shell; the Settings app writes them. Keys are at most 16 bytes (`KE
 | `island.on` | bool (on) | show live activities | TP6 |
 | `island.deny` | bytes: app keys | apps turned off for the island | TP6 |
 | `lock.on` | bool (on) | show the lock screen at screen-on | TP8 |
-| `lock.pin` | bytes (hashed) | the screen-lock PIN (shell-only) | TP9 |
+| `lock.pin_set` | bool, set by the shell only | a PIN is set; the PIN's salted verifier lives in the shell's `\private\e0002001\`, never in the store ([settings.md](settings.md#d-device-lock-and-sim-pin-l-lock-m-sim-se5se6)) | TP9 |
 
 The Settings boards (`tp-settings`, `nt-settings`, `set2-notifications`, `set2-notify-app`, `set2-lock`) draw these
 rows. `set2-notify-app` names `notify.messages.on`/`.banner`; they become `n.messages` here.

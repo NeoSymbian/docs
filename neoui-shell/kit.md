@@ -203,14 +203,14 @@ The modes:
 **The server's side (`symbian/src/host.rs`):**
 - `APPS` has `phone` (NEOPHONE), `contacts` (NEOCONT), `messages` (NEOMSG); 1.7's `ALIASES` (one process behind three icons) are gone. Open apps lists one card per app.
 - `RESIDENT` is Phone and Messages (an incoming call shows at once; Messages posts the shade's entries). They start one at a time, and only while no other app is still connecting, because `connect` binds the newest app without a session. A resident app that was never shown holds no `MAX_RUNNING` slot.
-- `neoapp` asks for the surface on the first frame drawn while the app is on screen, so a hidden resident costs no ~7 MB surface until it is first shown.
+- `neoapp` asks for the surface on the first frame drawn while the app is on screen, so a hidden resident costs no surface (1080 × 2160 × 4 = 8.9 MiB on bonito) until it is first shown.
 - The shade's "new messages" summary row hides while Messages posts its own entries.
 
 **Settings shared by apps.** A registered key's owner can be several apps (`Owner::Apps`): Phone's Settings page and a contact card both write `phone.speed` and the `contacts.*` keys. An unregistered key in an app's own namespace (`contacts.rev`) stays writable by that app alone.
 
 **The kit Menu fix.** An item's tap reports its pick before the popup closes: closing tears the item down, and before the fix no ⋮ item ran (`neoui-gallery`'s test now taps one).
 
-**Back to Settings.** An app opened from the Settings app (its Calls & Messages row) returns there on Back.
+**Back to Settings.** An app opened from the Settings app (Apps → Phone & Contacts; it was the root Calls & Messages row) returns there on Back. Since [settings.md](settings.md#the-settings-app-neoset) SE0 Settings is an app itself (`NEOSET.EXE`), so this is the ordinary DONE/Back return of protocol 1.9.
 
 **Protocol 1.12 (Files FA8, 2026-11-20).** Apps pass open files by handle (e32 `SharedFile`): the opener shares its
 file-server session (`Fs::share_protected`), the server adopts the file and hands it to the target.
