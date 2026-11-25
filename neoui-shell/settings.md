@@ -513,7 +513,12 @@ Then NeoWifi 1.1 gets a directed scan and join by raw SSID, and WIFID keeps `hid
   only networks with a key (D4), and the footer shows the real path (`e0004002`, not the board's `e0002001`).
   - The night's phone run skips forgetting the real home network: FORGET is tried on an unknown SSID, and the UI is
     taken up to the confirmation sheet and cancelled.
-  - **For the owner:** forget the home network, check it stays off, rejoin, and check a reboot rejoins it.
+  - **For the owner:** forget the home network, check it stays off, rejoin, and check a reboot rejoins it. Then
+    Disconnect and reconnect with the password (this times WIFID's new `stop()`; Disconnect writes `left.dat`, so it
+    waits for someone who has the password).
+  - **Known gap, left for the owner (not new):** after a WIFID restart, Disconnect (`LEAVE`) leaves the network joined,
+    because `stop()` leaves only when WIFID started the join. FORGET and RADIO off also call `hal::leave`.
+    Fixing LEAVE the same way would make `start()` leave first too, which changes how joins work.
 - **Pins:**
   - neohw PR first, then neoui's `wifi` pin (both lines in `symbian/Cargo.toml`) at the new neohw rev, rebuilding
     SYSSTART and NEOSET together;
