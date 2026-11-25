@@ -78,7 +78,7 @@ port, with the kernel monitor kept. This file is the work list. Do **one task at
 - **Goal:**
   - build `ECOMM.LDD` (`kernel/eka/drivers/ecomm/d_comm.cpp`);
   - write a PL011 PDD for QEMU virt's **second UART** (`VIRT_UART1` at `0x09040000`,
-    `symbian-qemu/qemu/hw/arm/virt.c:206`);
+    `neoqemu/qemu/hw/arm/virt.c:206`);
   - make `run-qemu.sh` add the second serial.
 - **Archive:** `untracked.tar` (`a64_ecomm.cpp`, `a64_pl011_comm.cpp`, `a64_pl011_io.h`, `test_pl011_io.cpp`,
   `t_a64_serial.*`) and `uncommitted.patch` (`d_comm.cpp`, `qemu_virt.cpp`, `variant.conf`, `build-ekern.sh`,

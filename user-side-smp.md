@@ -140,7 +140,8 @@ kernel#40, legacy#8, build#60, neoui#36 (the kernel diff reviewed with Codex `gp
   - `VNC=:0 neo qemu 3600` opens it on `127.0.0.1:5900`.
   - Known limit: QEMU's VNC scales X against its 16-pixel-padded surface (544), so a mouse click near the right edge
     lands up to about 5 px left. Scripted taps (QMP) hit every pixel exactly.
-- **The runner:** the kernel's `tools/ui-qemu.py` takes over from symbian-qemu's `run-syborg`. It reads the same
+- **The runner:** `ui-qemu.py` takes over from symbian-qemu's `run-syborg` (in the kernel's `tools/` at first, in
+  NeoSymbian/neoqemu with `run-qemu.sh` since 2026-11-25). It reads the same
   script language, `abs X Y` positions the tablet, and it saves a PNG.
   - An `expect` matches from where its action began, in any order: with 4 CPUs, an app's reaction and neoui's
     `tap from` line come in either order.
