@@ -519,6 +519,14 @@ Then NeoWifi 1.1 gets a directed scan and join by raw SSID, and WIFID keeps `hid
   - **Known gap, left for the owner (not new):** after a WIFID restart, Disconnect (`LEAVE`) leaves the network joined,
     because `stop()` leaves only when WIFID started the join. FORGET and RADIO off also call `hal::leave`.
     Fixing LEAVE the same way would make `start()` leave first too, which changes how joins work.
+  - **Older WIFID gaps found in review (left for the owner):**
+    - CONNECT against a link WIFID didn't start (after a restart) can fail its first join with KErrInUse, then drop
+      the old link;
+    - `LEAVE 1` (forget from the details sheet) ignores a failed save;
+    - the supplicant's `sleep()` panics if it can't create its timer;
+    - e32's `JoinHandle::join` waits for a fresh signal, so a thread whose exit signal was already used hangs the
+      joiner. WIFID works around it (EXITED); a timed join, or one that knows the thread has finished, belongs in
+      e32.
 - **Pins:**
   - neohw PR first, then neoui's `wifi` pin (both lines in `symbian/Cargo.toml`) at the new neohw rev, rebuilding
     SYSSTART and NEOSET together;
