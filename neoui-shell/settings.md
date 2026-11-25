@@ -635,7 +635,16 @@ Then NeoWifi 1.1 gets a directed scan and join by raw SSID, and WIFID keeps `hid
 - whether Meeting's ring plays once (SE2b changes MODEMD's loop);
 - whether Silent also silences the message tone and buzz (today `silent` stops the tone; the buzz stays).
 
-Until the owner answers, SE2a ships the proposed values as defaults, and each is editable per profile.
+**Owner's call, defaults until answered** (approved for SE2a by the coordinator, 2026-11-26): SE2a ships the
+proposed values as defaults, each editable per profile. The upgrade keeps today's behaviour exactly, and the other
+profiles change nothing until someone picks one. SE2b keeps MODEMD's ring loop as it is today until question 2 is
+answered.
+- **Morning list (verbatim):**
+  1. the built-ins' values: General = today's; Silent = no ring, vibrate on; Meeting = volume 2 and vibrate (Beep
+     once needs SE2b); Outdoor = volume 10 and vibrate; Offline = General's sound with the radios off;
+  2. whether Meeting's ring plays once (SE2b changes MODEMD's loop);
+  3. whether Silent also silences the message tone and buzz (today `silent` stops the tone; the buzz stays).
+- **Not selected on the phone at night:** Offline (it drops LTE and Wi-Fi). Host tests and virt cover it.
 
 *Tests:*
 - proto: the blob round trip and its limits, the upgrade mapping, the reducer (Silent remembers and restores; Offline
