@@ -460,6 +460,15 @@ leads to another page (Old apps, Licences, the root's rows) opens that page with
 pages the user went through (grid → Connectivity → Bluetooth → Back → Connectivity). The row table
 covers model-drawn rows too (navigation modes, keyboards), and the drift test compares (page, title) pairs.
 
+**SE1b as built** (neoui#40): the rules are generated **by hand and checked in**, not at build time (a deviation,
+accepted by the coordinator 2026-11-26: nothing in the build needs zic). `tools/tzdata` vendors IANA 2025b;
+`tools/gen_zones.py` compiles it with `zic -b fat` and writes `clock/zones.rs` (`TZDATA`, `YEARS_CHECKED` 2026–2030,
+each city's POSIX footer) and `clock/zones_ref.rs` (zic's transitions, for tests). neoui's `ci` runs
+`gen_zones.py --check`, so the table can't drift from the vendored data. Same 87 names in the same order. The only
+rule that changed is Dublin's, now IANA's negative-DST `IST-1GMT0,...`: summer time and the west-to-east order use
+the zone's winter offset (`tz::Rule::is_summer`/`winter`), not the rule's "standard". The table is 3.4 KB. To update:
+replace `tools/tzdata` with a new release, run `tools/gen_zones.py`, and check the test diff.
+
 **Proposed order:** SE1a, then SE1b; SE1c after a research spike (does the firmware take a directed scan?); SE1d.
 
 **Questions for the owner:** none for SE1a or SE1b. For SE1c, if a hidden network needs a kernel change, the
