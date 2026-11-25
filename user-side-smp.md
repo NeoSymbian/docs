@@ -45,8 +45,8 @@ flavour, 32-bit ARMv8-A; the stages below follow a Codex (`gpt-6.2-astra`) resea
     kernel, which boots the same user payload as the phone (US6a/US6b).
   - **Syborg is no longer a target** (owner, 2026-11-21: "why we need syborg, ignore it"). Its 2010 ARM kernel has
     no VFP support and doesn't keep the user-side thread data, so the ARMv8 user side doesn't run there (efile dies on
-    its first `vldr d16`; with VFP off, E32USER-CBase 66). build's and e32-rs's CI boot `virt` only; neoui's Syborg UI
-    job is manual until US6b ports it; `neo boot`, `neo live` and `boot.sh` were removed in US5 (2026-11-25); a `virt` VNC view is US6b.
+    its first `vldr d16`; with VFP off, E32USER-CBase 66). build's, e32-rs's, the browser's and neoui's CI boot `virt` only (neoui's UI checks since US6b);
+    `neo boot`, `neo live` and `boot.sh` were removed in US5 (2026-11-25); `VNC=:0 neo qemu` shows and drives `virt` (US6b).
   - **32-bit, not 64-bit:** the kernel is AArch64; the user side stays AArch32. A 64-bit user side is
     [parked](#parked-a-64-bit-user-side).
 - **Calling convention: soft-float stays.**
@@ -65,16 +65,17 @@ flavour, 32-bit ARMv8-A; the stages below follow a Codex (`gpt-6.2-astra`) resea
 |---|---|---|---|
 | **US0** | euser `.cia` built with `-D__CPU_CORTEX_A9__ -D__SMP__` (A8N + `__SMP__` is a `cpudefs.h` `#error`): 133 DMBs, none before | build `emitter/build_euser_device.py` (`_extra_flags_tu`), **build#41** | **Pixel 2026-11-20:** 3.5 min of browsing with no crash, against 3/3 crashes within 2 min before; a 15-min soak is pending. The UI ROM boots on Syborg |
 | **US1** | The user side's other synchronisation, audited for single-core assumptions; [list below](#us1-the-audit). Fixes: `RReadWriteLock` order and the SWP emulation's barrier (kernel), 11 P.I.P.S. races (ossrv), a barrier after a polled `TRequestStatus` (e32-rs) | kernel#32, ossrv#4, e32-rs#8 (merged 2026-11-21) | Every site fixed or marked safe; STDTEST's `smp` checks fail before and pass after on the Pixel |
-| **US6a** | CI baseline on QEMU `virt` (our kernel, 4 × Cortex-A55): C: fixture, R0–R3, the seven named `smp` checks, PASS markers. Record the US1 baseline: E32 hashes, sizes, 5 Pixel boot medians, AArch32 CRC/AES/SHA known-answer tests on both clusters. A time-boxed Syborg `-cpu max,has_el2=off` spike | build `.github/workflows/build.yml`, kernel `tools/test-fshell-qemu.py` | The US1 payload is green on `virt`; baseline numbers below |
+| **US6a** | CI baseline on QEMU `virt` (our kernel, 4 × Cortex-A55): C: fixture, R0–R3, the seven named `smp` checks, PASS markers. Record the US1 baseline: E32 hashes, sizes, 5 Pixel boot medians, AArch32 CRC/AES/SHA known-answer tests on both clusters. A time-boxed Syborg `-cpu max,has_el2=off` spike | build `.github/workflows/build.yml`, kernel `tools/test-fshell-qemu.py`, e32-rs#13, browser#17 | The US1 payload is green on `virt`; baseline numbers below. **Done 2026-11-25, [results below](#us6a-results-2026-11-25)** |
 | **US2** | euser, efsrv, hal as ARMv8-A AArch32 (`-march=armv8-a+crc+crypto -mfloat-abi=softfp`, A9 + `__SMP__` profile), through one target setting; [three blockers first](#us2-what-to-fix-first) | build `toolchain/symcc`, `emitter/*.py`; kernel euser; build#46 (**merged 2026-11-21**) | Pixel RAM boot and `virt`; export/ordinal/stub/layout diff clean; TLS and nested-TRAP FP tests; R0–R3, `smp` 3/3; X-plore and Frozen Bubble; size and boot time against the baseline |
-| **US6b** | UI CI parity: neoui's Syborg tap, gesture, app-switch and old-app assertions ported to `virt` (pointer input, 539×1079) | neoui `syborg.yml`, `symbian/taps.sh`, kernel `qemu_variant` | Same assertions and screenshots on `virt`; then the Syborg user-side jobs retire |
+| **US6b** | UI CI parity: neoui's Syborg tap, gesture, app-switch and old-app assertions ported to `virt` (pointer input, 539×1079) | neoui `syborg.yml`, `symbian/taps.sh`, kernel `qemu_variant`; kernel#40, legacy#8, build#60, neoui#36 | Same assertions and screenshots on `virt`; then the Syborg user-side jobs retire. **Done 2026-11-25, [results below](#us6b-results-2026-11-25)** |
 | **US3** | The rest of the 2010 ROM (P.I.P.S., ESOCK, graphics, middleware, old-app providers) through the same setting; rebuild the reachable GNU runtime members | build#52, ossrv#6 (**merged 2026-11-22**) | Fresh full build: no rejected relocations, lost ordinals or new stubs; full UI, old apps, 15-min browser soak, R0–R3, `smp`, CI. **Done, [results below](#us3-results-2026-11-22)** |
 | **US4** | Rust and the browser on one `armv8a-symbian-eabi.json` (`llvm-target armv8a-none-eabi`, `llvm-floatabi soft`, `max-atomic-width 64`, `+v8,+thumb2,+neon,+crc,…`, `c-enum-min-bits 32`, ARM state): real atomics, `Arc`, NEON. `e32` picks its runtime by feature, not `target_os`; `e32-sys` uses `fence(Acquire)`; NEOWB1's FP test fixed first | e32-rs, neoui, phone, files, neohw, browser | Both build-std modes; R0–R3, NEOWB1 6/6, MIXTEST 225, 64-bit atomic stress, `smp` 3/3, browser soak; neoui ns/px before/after (smooth-ui S4 exit). **Done 2026-11-25, [results below](#us4-results-2026-11-25)** |
 | **US5** | Clean-up: drop the ARMv5TE paths and aliases; docs (rust-integration, port-map, CLAUDE.md ABI rules) | build, docs | One user-side ABI; phone and CI run identical user E32 hashes. **Done 2026-11-25, [results below](#us5-results-2026-11-25)** |
 
 US0 and US1 are done (merged 2026-11-21, installed as `2026-11-20-finchmane`); US2 (2026-11-21), US3
 (2026-11-22), US4 and US5 (2026-11-25) are merged: every 2010 C++ and every Rust user-side image is ARMv8-A AArch32,
-and CI and the phone build the same E32 bytes. The order is US6a → US2 → US6b → US3 →
+and CI and the phone build the same E32 bytes; US6a and US6b (2026-11-25) put the CPU known-answer tests, the `smp`
+checks and neoui's UI checks into CI on QEMU `virt`: every stage is done. The order was US6a → US2 → US6b → US3 →
 US4 → US5; about 18–32 working days. Each stage builds one user payload and boots it with `neo kernel qemu` and
 `neo kernel bonito` from the same volume (`SIS=xplore,frozenbubble`, `ROFS_CORE='\.dll$'`); budgets against the US1
 baseline: size +5 %, boot median +10 %. Later, only with a measured gain: an ARMv8 CPU profile in `cpudefs.h`
@@ -104,7 +105,56 @@ stdtest smp_printf_g smp_condvar_timeout smp_static_init smp_once smp_stdio smp_
   `logs/baseline-e32.txt`.
 - **Boot time** (2026-11-22, `fastboot boot` to neoui's `boot OK`, 5 RAM boots each): `2026-11-22-tapirtail` test image
   15.2 s median (15.2, 15.2, 15.2, 15.2, 15.5).
-- **Still to do:** AArch32 CRC32/AES/SHA known-answer tests on both clusters.
+- **Done 2026-11-25:** the CPU known-answer tests and the `smp` checks in CI, [below](#us6a-results-2026-11-25).
+
+## US6a: results (2026-11-25)
+
+e32-rs#13 and browser#17:
+- **NEOCPU.EXE** (e32-rs `crates/neocpu`) pins its thread to each CPU in turn (`EKernelHalLockThreadToCpu`; new
+  `e32::thread::{cpu_count, lock_to_cpu, unlock_cpu}`). On each CPU it runs the AArch32 instructions through the
+  `core::arch` intrinsics and checks known answers:
+  - CRC32/CRC32C (`crc32{,c}{b,w}`, "123456789");
+  - AES-128 (FIPS-197 B and C.1, `aese`/`aesmc`/`aesd`/`aesimc`, both ways);
+  - SHA-1 and SHA-256 (FIPS 180-2 "abc" and the 448-bit message).
+
+  It prints each CPU's line while still pinned, and the console's `N:` prefix (the CPU that wrote the line) shows
+  the pin held. The same code is a host unit test on Apple silicon (AArch64).
+- **Pixel** (CPUs 0–5 A55 `0x803`, 6–7 A75 `0x802`, monitor `cpus`): `cpu 0` … `cpu 7: crc32 ok aes ok sha1 ok sha256
+  ok`, `neocpu: 8 cpus, 32 passed, 0 failed`, each line from its own CPU. On `virt` (4 × A55) it gets 16/16, and
+  e32-rs's CI checks that.
+- **The `smp` checks in CI:** browser's new `virt` workflow builds STDTEST and MIXTEST with the `neosymbian`
+  toolchain (a sparse clone of NeoSymbian/rust's `library/`, the workspace narrowed to the two crates). It runs the
+  seven checks three times (`stdtest: 7 ok, 0 failed, 0 skipped`, about 3 min each under TCG) and MIXTEST
+  (`mixtest: all ok`) on `virt`.
+- **The Pixel, same day** (the US6b kernel, US5 Rust set + NEOCPU, 26,169,344-byte RAM boot): `smp` `7 ok, 0 failed`
+  three times, UI up, LTE registered, Wi-Fi connected, no faults.
+
+## US6b: results (2026-11-25)
+
+kernel#40, legacy#8, build#60, neoui#36 (the kernel diff reviewed with Codex `gpt-6.2-astra`):
+- **`virt` has a screen, touch and keys:**
+  - The framebuffer is 539x1079 (half the Pixel), shown on QEMU's `ramfb` through fw_cfg DMA (`virt_assp/a64_ramfb.cpp`),
+    so QMP `screendump` and VNC see it.
+  - `virt_assp/virtio_input.cpp` drives the virtio tablet and keyboard. The tablet's 0..0x7fff becomes screen pixels
+    with Syborg's `v * size / 0x8000`; the events go through `Kern::AddEvent` as the Pixel's touch and keys do.
+  - `VNC=:0 neo qemu 3600` opens it on `127.0.0.1:5900`.
+  - Known limit: QEMU's VNC scales X against its 16-pixel-padded surface (544), so a mouse click near the right edge
+    lands up to about 5 px left. Scripted taps (QMP) hit every pixel exactly.
+- **The runner:** the kernel's `tools/ui-qemu.py` takes over from symbian-qemu's `run-syborg`. It reads the same
+  script language, `abs X Y` positions the tablet, and it saves a PNG.
+  - An `expect` matches from where its action began, in any order: with 4 CPUs, an app's reaction and neoui's
+    `tap from` line come in either order.
+  - QEMU 11.1's `ppm_save` pads odd-width rows to pixman's 4-byte stride (1620 for 1617 bytes); the runner reads
+    them that way.
+- **neoui's `virt-taps` CI:** the three Syborg boots with the same assertions (the screen check on `fb.png`), green on
+  atlas. The spec had drifted since it last ran on Syborg:
+  - the AArch64 kernel logs `[proc] NAME[uid]0001 starts`;
+  - neotest's `fs_share` needs NEOSRV;
+  - the legacy bridge had stopped logging `legacy: raw` with the key pads (restored, legacy#8);
+  - old apps draw their own title bar, so Back is the left-edge swipe;
+  - NEOPHONE v2 opens on its dial pad (two Backs);
+  - the Thumb map has no `menu` gesture.
+- **The eshell ROM is unaffected:** `test-fshell-qemu.py` PASS and neotest 13/13 with the new devices.
 
 ## US5: results (2026-11-25)
 

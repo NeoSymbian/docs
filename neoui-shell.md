@@ -129,8 +129,8 @@ and SMS notifications itself from modem events. Step 0 is needed for third-party
 ## Gates for every part
 - `neoui`: `cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test`, plus
   `cargo build -p neoui-proto -p neoui-render --target thumbv7em-none-eabihf`.
-- `neoui/symbian`: `cargo fmt --all --check && cargo arm --workspace`. UI steps go into `symbian/taps.sh` (the Syborg job that drove them was retired
-  in US5; they move to QEMU virt with US6b).
+- `neoui/symbian`: `cargo fmt --all --check && cargo arm --workspace`. UI steps go into `symbian/taps.sh`; neoui's `virt-taps` CI runs them on QEMU
+  `virt` (US6b; the kernel's `tools/ui-qemu.py`).
 - `e32-rs` (step 0): its gate, and its `syborg` CI (the name stayed; it runs on QEMU virt).
 - Phone, after part 1 and part 3: install via the ROFS installer path (CLAUDE.md "The phone"). Check that brightness
   changes the backlight and that the home layout survives a power cycle.
