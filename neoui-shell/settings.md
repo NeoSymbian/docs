@@ -506,9 +506,14 @@ Then NeoWifi 1.1 gets a directed scan and join by raw SSID, and WIFID keeps `hid
 - **Tests:**
   - neohw host: SAVED encoding round trip, at most 8 networks, damaged input refused, `forget` found / not found;
   - neoui: snapshot `set2-wifi-saved`, the act log for Forget and its confirmation, the row table's drift test;
-  - phone: back up `C:\private\e0004002\wifi.dat` with `phone.py pull`, then the list (the home network
-    Connected), Forget, the network gone and not rejoined, `wifi.dat` restored with `phone.py push`, and after a
-    reboot it rejoins.
+  - phone: first back up `C:\private\e0004002\wifi.dat` with `phone.py pull` (read only). Then the list shows
+    the home network as Connected, Forget is cancelled at its confirmation, and FORGET of an unknown SSID gives
+    `KErrNotFound`.
+- **Approved 2026-11-26** (coordinator), with two deviations from `set2-wifi-saved`: no "Open" rows, since WIFID keeps
+  only networks with a key (D4), and the footer shows the real path (`e0004002`, not the board's `e0002001`).
+  - The night's phone run skips forgetting the real home network: FORGET is tried on an unknown SSID, and the UI is
+    taken up to the confirmation sheet and cancelled.
+  - **For the owner:** forget the home network, check it stays off, rejoin, and check a reboot rejoins it.
 - **Pins:**
   - neohw PR first, then neoui's `wifi` pin (both lines in `symbian/Cargo.toml`) at the new neohw rev, rebuilding
     SYSSTART and NEOSET together;
