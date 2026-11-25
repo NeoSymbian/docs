@@ -312,9 +312,9 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   built 2026-11-21:** Files on ARMv7 and the audio player (WAV). **FA10 built 2026-11-21:** documents (Pixel-tested):
   docx, odt and rtf in Reflow and Page, an EPUB reader (pages, Contents, text size, themes, the place kept) and xlsx
   as a read-only grid, laid out by Rust at the widths Slint draws; pictures stream (decoded only as they scroll in).
-  **FA11 built 2026-11-25:** the PDF viewer (pages at the screen's width, thumbnails, pinch zoom with a sharp tile,
+  **FA11 merged 2026-11-25:** the PDF viewer (pages at the screen's width, thumbnails, pinch zoom with a sharp tile,
   Contents, Go to page, passwords, the place kept), drawn by our no_std fork of hayro (NeoSymbian/hayro) through
-  tiny-skia; the Pixel run is next. Next after it: FA9 M1b–M6 (more audio formats).
+  tiny-skia; merged after the Pixel run (pages in 80–360 ms). Next: FA9 M1b–M6 (more audio formats).
 - **Clock + Calendar (proposed 2026-11-17):** [datetime.md](datetime.md). A new `NeoSymbian/datetime` repo
   (UIDs 0xE0008001–3): NEOCLOCK moves out of neoui and gets a v2 UI (3 tabs); NEOCAL is new (Month, Week, Day,
   To-do, .ics); a resident DTSRV owns alarms, timers, events and to-dos and rings them, replacing clockwork's alarm
