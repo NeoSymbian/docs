@@ -214,14 +214,51 @@ Each phase ends with host tests and board snapshots in the datetime repo, then t
 - Proposed boards (`clk2-world-edit` reorder, `clk2-timer-multi`, `cal2-week-list`, Holidays calendar, Bluetooth
   share) wait for the owner's go.
 
-## Status (2026-11-17)
+## Status (2026-11-26)
 
-| Part | State |
+Built in one go on 2026-11-26, by parallel agents with a Codex review: datetime#1, neoui#59 (protocol 1.19),
+phone#11 (birthdays), files#18 (Add to Calendar), this doc.
+
+| Phase | State |
 |---|---|
-| Clock (5 tabs, alarms in clockwork) | built in neoui |
-| Calendar | shell mock only |
-| The design (55 screens, 2 prototypes, 6 spec sheets) | done, on the canvas |
-| DT0–DT7 | proposed; the repo isn't created yet |
+| DT0 move | done: NEOCLOCK is datetime's (0xE0008001); neoui dropped `apps/clock` and the clock model |
+| DT1 DTSRV | done: service (1.19), stores, plan, OPEN WAKE + cards, snooze, import of `clock.alarms`/`clock.timer`, `dtsrv.next` |
+| DT2 Clock v2 | done: every non-Proposed `clk2-*` board (23 snapshots), Ringing with a NeoAudio tone |
+| DT3 model | done: `pim-ics`, `calendar-core` (RRULE subset with DST, fuzzed), DTSRV's event and to-do stores |
+| DT4 NEOCAL | done: every non-Proposed `cal2-*` board (27 snapshots); the shell mock is gone |
+| DT5 reminders | done: Calendar's Ringing (`calendar.ring`) and cards, snooze |
+| DT6 links | done: birthdays from NEOCONT (NCT2), anniversaries, `.ics` import from Files, share/export |
+| DT7 home widgets | done: ClockWidget's next alarm and AgendaCard from `dtsrv.next` |
+
+**Pixel (RAM boots, 2026-11-26, `ROFS=ramdisk EMMC_C=1`, two images):**
+- **UI and connectivity:** UI, LTE and Wi-Fi up; DTSRV starts first and imports.
+- **Alarm:**
+  - a 21:19 alarm rang over Files: screen on, Clock's Ringing, tone on the speaker;
+  - Snooze ×2 and Dismiss by hand;
+  - a tap on DTSRV's shade card brought Ringing back.
+- **Calendar:**
+  - Files → Add to Calendar → NEOCAL's import → `dtsrv: import 1 0`;
+  - the event's 1-minute reminder rang in Calendar.
+- **After a second boot:** the alarm, the events and a running 10-min timer came back, and the timer rang on time.
+- **Birthdays:** set in NEOCONT's editor, the birthday showed at once in Calendar's agenda.
+- **Found and fixed:** two rings at the same minute (the alarm and the reminder): ending one went Home with the other
+  still ringing. DTSRV now reopens the other's Ringing page.
+
+**Open:**
+- **Rings and alarms:**
+  - a ring screen hides the shade; Back = Snooze;
+  - reminder snoozes are in memory only (lost on restart);
+  - the 60 s re-plan for a clock jump without a settings change (upgrade: an e32 `TIMER_AT` wrapper);
+  - power-off alarms (PMIC RTC).
+- **Clock:**
+  - one timer;
+  - three NeoAudio tones;
+  - no Vibrate per alarm;
+  - the time sheet has no ±5 min chips.
+- **Calendar:**
+  - forms don't ask before discarding;
+  - Phone's pages can't open on a contact id (the birthday view opens the dialer).
+- **Shade:** DTSRV's cards are headed "Clock & Calendar", not per app.
 
 ## System time (shell, built 2026-11-13)
 
