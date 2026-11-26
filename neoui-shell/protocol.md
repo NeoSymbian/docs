@@ -162,7 +162,15 @@ duplicate identity, an invalid enum, a reserved bit, trailing bytes or an overfl
 
 **Never to an older client.** The shell drops an event a client can't decode (`AppEvent::needs_minor`: 20 for 27, 29
 and the ticketed 28; 18 for `NotifyGone`) before it queues it, so a 1.19 app never sees one. Owner wakes and hints go
-only to the authenticated session they are for: the shell checks the recipient's session when it delivers.
+only to the authenticated session they are for: the shell checks the recipient's session when it delivers. 1.20's
+event words are exact: reserved words are 0, a revision is never 0, a ticket is `1..=i32::MAX`, and `[28, 0, 0, 0]`
+is the only 1.17 clear; anything else is no event.
+
+**A connection is its own process's.** Since the 1.20 fixes a new session is bound to its app at its first message, by
+the kernel's secure ID of the process that sent it: the newest started app without a session whose EXE has that SID
+(`apps::sid_fits`; the legacy bridge by its shared 0xE0002006). Two hidden starts at once (an owner's cold start and an
+`OPEN_FILE`) can't swap sessions, files or settings. A session that fits no started app is refused
+(`KErrNotSupported`). The kit and the bridge share a SID: while both are starting, the newer takes the connection.
 
 ### Paging
 
@@ -181,7 +189,9 @@ in the caller's descriptor (at most 4,096 bytes); a descriptor that can't hold t
 `KErrOverflow` and gets nothing. Success completes with the page's length.
 
 The client (`wire::Traversal`, `App::settings_records`) checks the header, the progress, the counts and that every
-byte was read, keeps the pages to itself, and hands over one generation when the last page came. On `KErrNotReady` it
+byte was read (a `count` its bytes can't hold is refused before anything is reserved; a page without records is only
+the first page of an empty collection; `first + count` never reaches or passes `0xffffffff`), keeps the pages to
+itself, and hands over one generation when the last page came. On `KErrNotReady` it
 drops the traversal and starts again at 0, once; a second change returns `KErrNotReady`, and the app keeps its last
 complete result marked stale and reads again from its loop. One traversal is capped at 4,096 records and 1 MiB.
 
@@ -203,7 +213,9 @@ All are Settings only (its key and SID).
 | **10 `VOLUME_STATE`** · D17 | `drive:b, state:b, supported:b, debug_state:b, mount_generation:w, last_error:i`. State 0 unknown, 1 mounted, 2 busy, 3 dismounting, 4 dismounted, 5 exported, 6 remounting, 7 failed. Support bits 0 dismount, 1 remount, 2 export. Debug state 0 unknown, 1 off, 2 on, 3 suspended for export. The acknowledged owner state | reserved |
 | **11 `UPDATE_STATUS`** · D18 | Singleton `state:b, valid:b, reserved:h, last_attempt_utc:t, last_success_utc:t, last_error:i, installed_build:s64, available_build:s64`. State 0 no configured service, 1 idle, 2 checking, 3 current, 4 update available, 5 failed. Valid bits 0 attempt, 1 success. A failed check keeps the previous success; a failed read shows "Unknown" | reserved |
 | **12 `TILES`** · TP7 | `global_id:h, owner:s16, local_id:b, kind:b, state_flags:b, glyph:h, page:h, order:h, label:s16, subtitle:s24`. An empty owner is the shell. `order = 0xffff`: offered, not placed. Flags bits 0 on, 1 backed/available, 2 wide. The placed order first, then the offers sorted by `(owner, local_id)` | reserved (1.21) |
-| **13 `JOBS`** · D4/D7/D17/D18 | `ticket:w, action:b, state:b, reserved:h, subject:optional-app, requested_scope:w, committed_scope:w, result:i, finished_utc:t`. State 0 queued, 1 running, 2 committed, 3 partial, 4 failed, 5 interrupted. `result` 0 on a committed success, a negative error on failure. The unfinished jobs (at most 16) and the latest 32 receipts, oldest first; `committed_scope ⊆ requested_scope` | built (`wire::Job`, `jobs::Jobs::records`) |
+| **13 `JOBS`** · D4/D7/D17/D18 | `ticket:w, action:b, state:b, reserved:h, subject:optional-app, requested_scope:w, committed_scope:w, result:i, finished_utc:t`. State 0 queued, 1 running, 2 committed, 3 partial, 4 failed, 5 interrupted. `result` 0 on a committed success, a negative error on failure. The unfinished jobs (at most 16), then the latest 32 receipts in the order they finished. A record agrees with
+itself: queued and running have no result, committed scope or time; committed has `result = 0` and all that was asked;
+failed `result < 0`; partial and interrupted `result ≤ 0`; `committed_scope ⊆ requested_scope` | built (`wire::Job`, `jobs::Jobs::records`) |
 | **14 `FEATURES`** · common | Singleton `server_major:b, server_minor:b, reserved:h, info_bits:q, action_bits:q, opcode_bits:q`. Bit `n` is number `n`, for the caller. It says what is implemented; per-app `clear_scope`, volume support and feed state say what is available now. Probe it once per connection | built: 1.20 advertises INFO 1–6, 13, 14; actions 1–7; opcodes 1–10, 13–30, 32, 40–43 (`wire::Features::SHELL`) |
 | **15 `ENERGY_SHARES`** · D16 | `category:b, quality:b, basis_points:h, model_version:w, cycle_start_utc:t`. Categories 0 Screen, 1 Mobile network, 2 Phone & Contacts, 3 Browser, 4 System, 5 Wi-Fi, 6 Messages, 7 Clock, 8 Unassigned. Quality 1 calibrated estimate, 2 partial calibrated estimate. One model and cycle per traversal, the residual included, 10,000 basis points in all. Advertised only after the measurement and calibration gate | reserved |
 
@@ -241,31 +253,44 @@ downloads/documents, contacts, trash contents and imported birthdays have no imp
 `neoui_proto::settings_app::jobs`):
 - **Mode 0, register:** `[0, 0, DesC8, 0]` with `1:b, capabilities:b` (bit 0 measure, bit 1 confirmed clear; at
   least one, no other) → 0. Only from a 1.20 client whose kernel SID is its catalogue SID (`apps::sid`); the kit and
-  the legacy bridge are refused (they share SID 0xE0002006 until their UIDs are separated). A new session replaces the
-  old registration; register again after every connect.
+  the legacy bridge are refused (they share SID 0xE0002006 until their UIDs are separated). A new registration replaces
+  the app's last one: what it was woken for is woken again (on this session, with the capability), and work another
+  session of it claimed is **interrupted**. Register again after every connect.
 - **Mode 1, claim:** `[1, ticket, Des8 out, 0]` → the length of `1:b, work:b, subject:app, scope:w` (work 0 measure,
-  1 clear; `wire::OwnerWork`). The out buffer must hold 24 bytes (`KErrOverflow` before the job is taken). Claiming
-  again on the same session answers the same work.
+  1 clear; `wire::OwnerWork`). The reply is copied to the owner first and only then is the job taken and saved; a
+  buffer too short answers `KErrOverflow`, a claim that doesn't save answers its error (the job stays queued, the
+  owner does nothing). Claiming again on the same session answers the same work.
 - **Mode 2, finish:** `[2, ticket, DesC8, 0]` with `1:b, state:b, committed_scope:w, result:i, coverage:b,
   measured_utc:t, version:s64, drive_count:b, drive_tuple*` (INFO 8's tuple; `wire::OwnerReport`) → 0 once the
   receipt is saved. States 2–5 only. Committed: `result = 0` and, for a clear, `committed_scope` = what was asked.
   Failed: `result < 0`. Partial, interrupted: `result ≤ 0`. `committed_scope` is never more than was asked. The
-  same report again answers 0 (and retries the save); a different one on a finished ticket `KErrAlreadyExists`. The
-  owner can't name its own SID, capabilities or another app: the shell knows those.
+  owner needs the capability it has **now** (registered again without it: `KErrPermissionDenied`). The same report
+  again answers 0 (and retries a save still due), after a restart too: the table keeps a fingerprint of each accepted
+  report (`jobs::fingerprint`, FNV-1a 64). A different one on a finished ticket answers `KErrAlreadyExists`. The owner
+  can't name its own SID, capabilities or another app: the shell knows those.
 
 Claim and finish check the owner's key, its kernel SID, its current session, its declared capability and the pending
 ticket (`KErrPermissionDenied`; `KErrNotFound` for a ticket that isn't pending; `KErrArgument` for a finish before the
 claim). **A wake alone authorises nothing:** the owner deletes only after its claim answered. The flow:
-1. Settings asks (6 or 7); the job is queued and the table saved to `C:\private\e0002001\jobs.dat` **before** any
-   wake. A table that didn't save wakes nobody; the shell retries the save once a second.
+1. Settings asks (6 or 7); the job is queued and the table saved **before** any wake. A save writes
+   `C:\private\e0002001\jobs.tmp`, flushes and closes it, then replaces `jobs.dat` with it in one file-server
+   operation, so a failed save leaves the last table whole. **A change a request makes stands only once saved:** a
+   failed save puts the table back and the request answers the error, with no ticket (and no nonce remembered), no
+   claim, no acknowledged report. INFO 13 shows the table as last saved. A change nobody asked for (an owner gone, a
+   job expired) is kept and saved again every second until it is. A table that couldn't be read at boot (other than
+   "not there") is read again every second, and until then the 1.20 requests and owner reports answer `KErrNotReady`
+   and nothing overwrites it.
 2. A registered owner with the capability gets `OwnerWork` / `ClearTicket` on its session. A cold owner is started
-   hidden, one start at a time, and woken when it registers.
-3. A job not claimed within 20 s fails: `KErrNotSupported` when its app never registered (a 1.19 app, or not an
+   hidden, at most one start a second: the first app of a queued job that isn't running (a running app that never
+   registers, a 1.19 one, doesn't hold up the others). It is woken when it registers.
+3. A job not claimed within 20 s fails (the millisecond counter wraps: a time before the job's start restarts its
+   wait): `KErrNotSupported` when its app never registered (a 1.19 app, or not an
    owner), `KErrTimedOut` (-33) when it was woken.
 4. The owner claims (running), works, and finishes; the receipt is saved **before** the 0, and INFO 13's revision
    moves on (event 27) after it.
 5. An owner that goes away with a claimed job leaves it **interrupted** (`KErrDied`, -13); one only woken is woken
-   again once it registers again. After a restart every unfinished job is **interrupted**: nothing resumes on its own,
+   again once it registers again. After a restart every unfinished job is **interrupted** (and finishes then, after the receipts already
+   there): nothing resumes on its own,
    and an ambiguous partial clear needs a new confirmation before newly created data is deleted. The latest
    measurement report per app is kept in RAM for INFO 8's producer (`Jobs::measured`).
 
