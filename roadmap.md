@@ -61,6 +61,12 @@ The display is OLED: panel brightness/blanking needs a DSI path, not an assumed
 WLED backlight. Haptics uses TI DRV2624; PM660 haptics is disabled in the supplied
 DTB. Wi-Fi is present as WCN3990 in the current private DTB.
 
+**A second SoC (2026-11-26):** the OnePlus 6T (fajita, SDM845) RAM-boots our kernel and the neoui launcher, with the
+USB console, keys, touch, CPU clocks and temperatures working (stages OP0–OP5 in [fajita.md](fajita.md)). The 6T's
+bootloader leaves the USB PHY down and USB's SMMU stream unmatched, and unpacks at most ~49.5 MB of kernel, so its
+image is trimmed until Z: can come from a ramdisk or UFS (OP6/OP13). Ubuntu Touch stays on that phone; nothing is
+flashed.
+
 ## Tracks and stages
 
 Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel.

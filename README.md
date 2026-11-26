@@ -4,6 +4,7 @@ NeoSymbian brings the open-source 2010 Symbian (EKA2, the Symbian^3 release) bac
 
 - **First target:** the Google Pixel 3a XL (bonito, Qualcomm SDM670).
 - **Second device:** the Pixel 3a (sargo, the same SoC), a community port since 2026-11-16 ([hardware.md, devices](hardware.md#devices-where-neosymbian-can-go-next)).
+- **Second SoC:** the OnePlus 6T (fajita, Qualcomm SDM845), port started 2026-11-26 ([fajita.md](fajita.md)).
 - **Kernel:** ported to AArch64 with 32-bit pointers (ILP32).
 - **User side:** the 2010 Symbian user side runs unchanged in 32-bit mode at AArch32 EL0.
 - **UI:** a new touch UI written in Rust.
@@ -14,6 +15,7 @@ NeoSymbian brings the open-source 2010 Symbian (EKA2, the Symbian^3 release) bac
 |---|---|
 | [roadmap.md](roadmap.md) | Plan and status: kernel (K), hardware (H), UI (U) and phone (P) tracks |
 | [hardware.md](hardware.md) | **Hardware and drivers hub:** every driver's status (kernel + neohw), the neohw processes and their IPC, milestones D0–D8, and which phones could be next (the device shortlist). Details in `hardware/`: [modem](hardware/modem.md) (C0–C12), [audio](hardware/audio.md) (A0–A8), [wifi](hardware/wifi.md) (W0–W7), [bluetooth](hardware/bluetooth.md) (B0–), [battery](hardware/battery.md) |
+| [fajita.md](fajita.md) | The OnePlus 6T (fajita, SDM845) port: facts read from the phone, decisions, stages OP0–OP13 |
 | [kernel-assessment.md](kernel-assessment.md) | Source audit: legacy architecture, existing defenses, reviewed baseline, coverage and limits |
 | [kernel-issues.md](kernel-issues.md) | Evidence-based kernel/reliability/security register, with all existing known issues mapped |
 | [kernel-modernization.md](kernel-modernization.md) | Phases KM0–KM6: fixes, owners, dependencies, tests and supported-release gates |
@@ -22,7 +24,6 @@ NeoSymbian brings the open-source 2010 Symbian (EKA2, the Symbian^3 release) bac
 | [neoui-shell.md](neoui-shell.md) | **neoui shell hub:** what the shell draws and serves, every stage and the canvas map. Details in `neoui-shell/`: [top panel](neoui-shell/top-panel.md) (status bar, notifications, media, calls/messages, live island, control centre, lock screen; TP0–TP9), [protocol](neoui-shell/protocol.md), [kit](neoui-shell/kit.md), [navigation](neoui-shell/navigation.md), [keyboard](neoui-shell/keyboard.md), [settings](neoui-shell/settings.md), [home](neoui-shell/home.md), [design system](neoui-shell/design-system.md), [smooth UI](neoui-shell/smooth-ui.md) (S1–S6) |
 | [phone-apps.md](phone-apps.md) | Phone, Contacts and Messages v2: three apps that open each other; shared data; missing platform functions |
 | [files-app.md](files-app.md) | Files: the new files repo, every canvas screen, platform gaps, phases FA0–FA13 |
-| [video-sync.md](video-sync.md) | Video sync: how Android and the Linux players keep picture and sound together, and the FA12b plan |
 | [store.md](store.md) | NeoStore: the Go store server, the phone app, the `.npk` format, the on-phone installer for `.npk` and `.sis`, phases ST0–ST11 |
 | [browser.md](browser.md) | **Web browser hub:** the tracker of every stage (WB0–WB7), UI phase and screen, and the open items. Details in `browser/`: [design](browser/design.md) (why Servo), [architecture](browser/architecture.md), [protocol](browser/protocol.md), [UI spec](browser/ui.md) and [screens](browser/ui-screens.md), one file per stage (WB0–WB7) |
 | [port-map.md](port-map.md) | How EKA2 maps onto AArch64: what was reused, adapted and written new |

@@ -350,58 +350,6 @@ on the phone; `a64_sha256.S`, self-tested at boot, the C one as fallback), so th
 
 **Exit:** a PC sees `E:` and copies files while the phone keeps running.
 
-### FS7: installing a big system area (Z:)
-
-**Status 2026-11-26: researched, the plan chosen; not started.**
-
-**The problem.** The installer is a RAM-booted image that carries the whole ROFS (`ROFS=1 ROFS_INSTALL=1`,
-`a64_medrofs.cpp` `Install()`). The Pixel refuses RAM boots over about 28.6 MB of compressed `boot.img`. The ROFS
-itself has been bigger (53 MB on 2026-11-22; the image is gzipped), but that installer was already 27.8 MB. Files with
-video and PDF (NEOFILES, 17.5 MB; 12.75 MB built for size) would push it over, and every app will keep growing.
-
-**How others do it** (Codex for Android, a Claude agent for the Linux phones, 2026-11-26):
-- **Nobody RAM-boots an installer that carries the system.** Boot images hold only a kernel and a small starter.
-- **First install: the host flashes the system image with fastboot.** Fastboot splits an image bigger than the
-  bootloader's `max-download-size` into sparse pieces and writes them one after another to the same partition, so the
-  size doesn't matter (AOSP `fastboot.cpp` `load_sparse_files`). This is how Pixel factory images work (`flash-all.sh`
-  → `fastboot update`), and how Ubuntu Touch, Droidian and postmarketOS install on this same phone.
-- **Updates: the running system writes the other slot.** It verifies the slot, switches to it, marks it good after
-  boot, and the bootloader rolls back otherwise. Examples are Android A/B `update_engine` (streamed payload, REPLACE /
-  SOURCE_COPY / diff operations), RAUC, SWUpdate and Mender. RAUC's adaptive updates keep a SHA-256 per 4 KB block and
-  fetch only the changed ones, the same shape as our FS5a hashes.
-- **Big privileged apps:**
-  - Android keeps them in the system image (`/system/priv-app`); updates land in `/data`, signature-checked.
-  - Linux phones put apps on the writable partition, with permissions from a signed manifest checked at install.
-- **Size:** compressed read-only file systems (EROFS, SquashFS). Our E32 images are stored uncompressed
-  (`build/emitter/e32image.py`), though the 2010 loader reads deflate and bytepair images. NEOFILES gzips from
-  17.5 to 7.4 MB.
-
-**Our facts:**
-- **Flashing was refused.** `fastboot flash system_a` was refused by ABL ("should be flashed in fastbootd"), and
-  fastbootd is gone on our layout. Android documents a force mode of `fastboot flash` for retrofit devices; it is
-  untested here.
-- **The eMMC allow-list already permits `system_a/b` writes** (`qcom_sdhci.cpp`). The monitor's `blk put` takes only
-  `vendor_*`.
-
-**Plan:**
-1. **NEOFILES stays in Z:**, as Android keeps privileged apps in the system image. No loader or capability change.
-2. **Fastboot first.** On the inactive slot only, with the owner's OK:
-   - `fastboot getvar max-download-size` and `partition-size:system_b`;
-   - `fastboot flash system_b rofs.img`, then its force mode if refused;
-   - read it back and compare the hash, then RAM-boot a `ROFS=flash` core on b.
-   - If ABL takes it, `neo` gets an install step (`boot_x` + `system_x`) and the installer no longer carries the ROFS.
-3. **Otherwise, the writer moves into the running system.** A TCB updater writes the inactive `system_x` from
-   `rofs.img` on E: (fetched over Wi-Fi), with the 64 KB chunk writer and read-back. It sets the slot with
-   `qcom_bootctrl`, and neoui's boot-OK mark gives the rollback. The RAM-booted installer reads the same file from E:
-   for first install and recovery. This is also the base of over-the-air updates.
-4. **Size, beside it:**
-   - Files builds for size except its hot code (files `files-size`: 12.75 MB; merged once the Pixel shows no
-     slowdown).
-   - Compressed E32 images (bytepair), measured on NEOFILES.
-
-**Exit:** a ROFS over 60 MB is installed on the inactive slot without a RAM-booted image carrying it, and the phone
-boots it with Files from Z:.
-
 ## Later (daily-phone stage)
 
 | Item | Plan | When |

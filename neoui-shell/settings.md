@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Settings: the store and the Settings app
 
-**Status: the store is done 2026-11-09 (neoui `22af6ac`); the Settings app (NEOSET) SE0–SE3 parts and SE4a are built and merged 2026-11-26 (the [Status](#status-2026-11-26) table lists each); the notification pages come with the top panel's TP4.** One store for the shell and every app (`neoui-proto::settings`,
+**Status: the store is done 2026-11-09 (neoui `22af6ac`); the Settings app (NEOSET) SE0 is built and merged 2026-11-26 (neoui#38 `b19d597`, e32-rs#16, neohw#17), SE1 in progress.** One store for the shell and every app (`neoui-proto::settings`,
 `SETTING_GET`/`SET`/`WATCH`). Moved here from `neoui-shell.md` Part 1 on 2026-11-21; the hub is [../neoui-shell.md](../neoui-shell.md).
 The keys the top panel adds (`shell.*`, `notify.*`, `island.*`, `lock.*`) are listed in [top-panel.md](top-panel.md#settings-keys).
 
@@ -18,7 +18,7 @@ Written 2026-11-25. This is the implementation plan for the Settings app:
 - the platform work it needs;
 - the stages SE0–SE7.
 
-What is built is in the [Status](#status-2026-11-26) table. [The app today](#the-app-today) describes the shell's Settings screen that NEOSET replaced.
+Nothing of it is built yet. Today's Settings is a screen inside the UI server; see [The app today]](#the-app-today).
 
 **The design:** the canvas's Settings page, https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#page-009b5da44490
 - 48 `set2-*` boards, decisions S01–S07, published 2026-11-17;
@@ -584,7 +584,7 @@ Then NeoWifi 1.1 gets a directed scan and join by raw SSID, and WIFID keeps `hid
 - **Approved addition:** `total` counts the entries the shell refused (it keeps 64), so the page says "64 of N".
 - **App settings:** Dev tools goes to its own settings view; Contacts goes to Phone's settings at Contacts.
 - **For the owner:**
-  - an image with `SIS=xplore,frozenbubble` comes to 29.0 MB, past the bootloader's RAM-boot limit (see [Board parity](#board-parity-owner-2026-11-26)), so old apps must
+  - an image with `SIS=xplore,frozenbubble` comes to 29.0 MB, past the bootloader's ~28.6 MB limit, so old apps must
     be installed on C: (or go into the ROFS) for test images;
   - on a no-SIS image X-plore won't start (`legacy: start app a0000bcd: -1`, from the grid too). It's probably
     missing files on Z:; check again on an image that has the SIS.
@@ -921,58 +921,6 @@ saved. Messages and Phone (no Stop row: residents) and both resets: question sho
 deleted or reset in the log. `settings.dat` pushed back; it and `clock.dat`, both `wifi.dat` and `left.dat` matched
 their hashes from before. Seen there and fixed: "Messages's data" → "Delete Messages data?" (neoui `e33c77c`).
 
-#### Board parity (owner, 2026-11-26)
-The owner saw that the app and the `set2-*` boards differ. An audit set every board beside its snapshot (neoui
-`tools/board_check.py`): the pages, rows, switches and sheets are there and do the real thing, but the look is behind
-and many boards show data nothing produces yet. Each stage had been checked for what it does, never against its board.
-The owner's decisions:
-- **Visual first**, before TP2b: the kit's shared parts, then every existing page to its board.
-- **Keep NeoSans**: match the canvas's sizes, weights, colours, icons and copy, not Inter's letter shapes.
-- **Build to the board with real data**: what a board shows that the phone can't produce yet gets a data stage,
-  D1–D19 in [settings-data.md](settings-data.md). A row whose data doesn't exist stays out until its stage passes;
-  where the hardware can't give it, the board is changed to the honest substitute.
-- **The board check is a gate** for every stage from now on: the PR lists its pairs and any accepted difference.
-
-What differs in the shared parts (V1):
-
-| # | Board | App today |
-|---|---|---|
-| A1 | row titles medium (500) | the root's `SettingRow` at regular |
-| A2 | a trailing value 14 dp in `text-secondary` | `text-dim` at 13.5 dp |
-| A3 | a root row with a switch shows its value as a subtitle (Wi-Fi "Home-5G") | the value on the right |
-| A4 | choice sheets: title at the start, radio first, a description line per option | title centred, radio last, no description |
-| A5 | detail sheets: title at the start | centred |
-| A6 | destructive rows in red (Clear data, Stop app, Erase C:, Reset remembered pads) | white |
-| A7 | pill buttons in rows (Forget) | plain dim text |
-| A8 | a leading icon or tile on drive, profile, saved-network, search and app rows | missing on many |
-| A9 | a section header with text beside its action ("Searching… ⟳") | the icon only |
-
-Richer parts per page (V2), with data that exists: the active-profile card (`set2-sounds`), the three mode cards
-with phone drawings (`set2-navigation`), drive tiles with bars (`set2-storage`), the result count, path, highlighted
-match and icon (`set2-search`), the app header with icon and EXE line and red actions (`set2-app-browser`), Ringtone
-and Time zone as pages rather than sheets, the grid's Notifications/Storage/Security tiles and the root's names and
-order (`set2-root-*`), the brightness slider's sun icons, status icons on saved networks.
-
-**The RAM-boot limit (measured 2026-11-26).** A test image (`ROFS=1`) carries Z: inside the kernel, and the
-Pixel's bootloader refuses `fastboot boot` when the unpacked kernel passes about 71.6–72.2 MB ("Error verifying the
-received boot.img: Volume Corrupt"): 71,608,864 bytes boot, 72,186,784 don't. boot.img's size (about 27.8 MB) is only
-a stand-in for it. Installed phones read Z: from `system_x` and aren't limited. Until Z: rides as the boot.img's
-ramdisk (a kernel/build change, to plan with the kernel stream), Settings test images leave `NEOFILES` out.
-
-Boards that are wrong about what is built get fixed on the canvas (V3): the `wifi.dat` path (`e0004002`), the user
-side (ARMv8-A, not ARMv5TE), Reset under About. Boards still without a page: `bt-device`, `bt-pair`, `fontsize`,
-`lock`, `lock-pin`, `notifications`, `notify-app`, `sim-lock`, `storage-drive`, `wallpaper`, `wifi-hidden` (their D
-stages), `reset-query` (the shell's QUERY dialog, already built).
-
-| Stage | What |
-|---|---|
-| V0 | `tools/board_check.py` in neoui (Chromium draws each board at 360×720, set beside the snapshot); this section; [settings-data.md](settings-data.md) |
-| V1 | the kit parts A1–A9 as opt-in properties (other apps keep their look), Settings opts in; kit snapshots re-shot |
-| V2 | every existing page to its board, in four batches: root + search; Wi-Fi + Connectivity + Mobile + Bluetooth; Display, Navigation, Sounds, Profile, Ringtone, Time zone, formats; Battery, Storage, Apps, App detail, Reset, About, Developer, Privacy, Language, Old apps |
-| V3 | the canvas: fixes above, AS BUILT marks where a board now matches |
-| D1–D8 | the data available now, in the order D1 → D2 → D3 → D5 → D4 → D6 → D7 → D8 |
-| then | TP2b → TP4 with D9 → TP7; D10 → D11 → D18; the large ones (D12–D17, D19) one by one, the owner choosing the order |
-
 ### Status (2026-11-26)
 
 | Part | State |
@@ -983,8 +931,7 @@ stages), `reset-query` (the shell's QUERY dialog, already built).
 | SE1 | SE1a (find) merged 2026-11-26: neoui#39 (`5055cdb`); two Codex reviews; Pixel RAM-boot run: grid, search → selected row, Back along the path, Kernel log → Dev tools Console. SE1b (zones) merged 2026-11-26: neoui#40 (`32b032a`); Codex review, findings fixed; Pixel RAM-boot run: Sydney UTC+11:00 (summer time), Dublin UTC+00:00 (no summer time), World clock Yesterday −4 h / Today +7 h. SE1c spike done. SE1c-1 (Saved networks, Forget) merged 2026-11-26: neohw#18 (`5a4f8f2`, NeoWifi 1.1), neoui#43 (`2b222c8`); two Codex reviews (WIFID's stop/save fixes); Pixel run: list, Forget→Cancel, Wi-Fi off/on (stop 121 ms), wifi.dat/left.dat byte-identical. SE1c-2 waits for the owner. SE1d (Apps catalogue) merged 2026-11-26: neoui#44 (`eedb063`, protocol 1.14 INFO_APPS + ACTION_OPEN_ENTRY, neoui-proto `apps.rs`); Codex review, findings fixed; virt-taps walks search → Apps → Clock; Pixel run: ROM apps, the empty state, old apps listed after Old apps ran, eshell opened through Settings |
 | SE2 | SE2a (profiles) merged 2026-11-26: neoui#45 (`079ce68`, protocol 1.15 ACTION_PROFILE); two Codex passes (UiMirror's stale edits, writes in one frame, ring before airplane), virt walks Offline and back, Pixel run: Meeting, the shade's Silent, brightness and Wi-Fi checks, all restored. SE2b (tones) merged 2026-11-26: neohw#19 (`5964dfb`, modem-ipc 2.7), neoui#46 (`fa84c0f`, main merged in, CI green); two Codex passes, findings fixed; Pixel run without a call passed and restored; the owner tested calls and asked for the merge. SE2c (Your sounds) is next |
 | SE3 | planned 2026-11-26 (SE3a–SE3d). SE3a (battery saver, show percentage, battery usage, show touches, keypress vibration) merged 2026-11-26: neoui#47 (`85364a1`, protocol 1.16), Codex xhigh review fixed, Pixel run on the final head passed and restored. SE3b (Storage) merged 2026-11-26: neoui#48 (`3f5927c`), Codex review fixed, Pixel run on the final head passed (read-only). SE3c waits for the phone/files repins; SE3d colours not started |
-| SE4 | SE4a (Stop, Clear data, Reset network settings, Reset settings) merged 2026-11-26: neohw#20 (`4163f92`, NeoWifi 1.2 `RESET`, MODEMD's bulk deletes by SID), neoui#49 (`fca5a1b`, protocol 1.17), docs#68; Codex xhigh review, findings fixed; virt ran both resets; Pixel run on image 29 passed and restored (below). Then the top panel: TP1 merged (neoui#50), TP2a merged (neoui#51, protocol 1.18); next TP2b → TP4 (with SE4's notification pages) → TP7 ([top-panel.md](top-panel.md#phases)) |
-| Board parity | decided 2026-11-26 ([above](#board-parity-owner-2026-11-26)). V0 merged (neoui#53, docs#74); V1 kit parts merged (neoui#54 `a2e4d37`); V2 batch 1 root, grid, search merged (neoui#55 `68a4fb2`); each with the board check, a Codex xhigh review and a Pixel run on the final head. Next: V2 batch 2 (Wi-Fi, Connectivity, Mobile, Bluetooth) |
+| SE4 | SE4a (Stop, Clear data, Reset network settings, Reset settings) merged 2026-11-26: neohw#20 (`4163f92`, NeoWifi 1.2 `RESET`, MODEMD's bulk deletes by SID), neoui#49 (`fca5a1b`, protocol 1.17), docs#68; Codex xhigh review, findings fixed; virt ran both resets; Pixel run on image 29 passed and restored (below). Next: TP1 → TP2 → TP4 (with SE4's notification pages) → TP7 |
 | SE5–SE7 | not started |
 
 ## Part 1: settings store (done 2026-11-09)
