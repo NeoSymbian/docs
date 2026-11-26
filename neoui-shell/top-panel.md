@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Top panel: status bar, shade, notifications, media, calls and messages, live island, control centre, lock screen
 
-**Status: designed 2026-11-21; TP0 done (docs + canvas), nothing of TP1–TP9 built.** The design comes from the canvas page **Top panel &
+**Status: designed 2026-11-21; TP0 done (docs + canvas); TP1 built 2026-11-26 (neoui#50); TP2a built 2026-11-26 (neoui#51); TP2b–TP9 not built.** The design comes from the canvas page **Top panel &
 notifications** (18 boards) plus the related boards on the Shell, Navigation, Phone, Messages, Clock, Files, Store,
 Browser and Settings pages. The screen map is at the [end](#screen-map). It replaces `neoui-shell.md` Part 2 (the
 2026-11-09 notification sketch, whose opcode numbers are void) and Navigation's G6 lock screen. The hub is
@@ -290,7 +290,7 @@ Each phase ends on the Pixel, with neoui host snapshots for every new board and 
 | **TP0** | Docs + canvas | This folder; [protocol.md](protocol.md). On the canvas: renumber `api-notify-protocol`/`api-notify-model`; fix `set2-notifications`/`set2-notify-app` ("neoui-shell Part 2" → TP stages) and `store-shade` ("no progress field": 1.11 has one); **draw the missing boards** ([below](#boards-drawn-in-tp0)) | — | docs, canvas | every board on the five pages is in the screen map; the link check passes |
 | **TP1** | Status bar v2 + the first stop | Left: the clock + app glyphs (≤ 3, then +n). Centre: the island slot (empty). Right: silent/vibrate, alarm set, DND, headset, airplane, No SIM / SOS / roaming, charging. The shade's first stop as `tp-shade` (date header, the 4-tile row, the media slot, cards, "Pull for all controls"). A pull down from the status bar anywhere. `Visible(false)` when the screen goes off. `shell.tap`, `shell.swipehome` | — | neoui | the 11 `tp-statusbar` states render on the phone; the shade opens by tap and pull |
 | **TP2** | Cards | NOTIFY grows; BLOB, NOTIFY_CLEAR, NotifyGone; sections, swipe to dismiss, Clear all, groups, history; 24 per app. **NEOPHONE** posts missed calls and the ongoing-call card, and the shell's three rows go. **NEOMSG** posts Conversation cards with Mark read. **Files** moves its job to Progress style | 31, 32 / 22 | neoui-proto, neoui, phone, files | a missed call, an SMS and a Files copy show as `nt-shade` cards; a swipe dismisses and the app hears NotifyGone |
-| **TP3** | Media session | MEDIA + Media events; the shade's media card; the home Media card goes live; the volume HUD. **Files FA9 M1b:** Files posts the session, keeps playing in the background, and its footer "Stops when you leave Files." changes | 33 / 23 | neoui-proto, neoui, files | a WAV started in Files plays on with Files in the background; pause, next and seek work from the shade and from home |
+| **TP3** | Media session | MEDIA + Media events; the shade's media card; the home Media card goes live; the volume HUD; `Visible(false)` when the screen goes off (moved from TP1). **Files FA9 M1b:** Files posts the session, keeps playing in the background, and its footer "Stops when you leave Files." changes | 33 / 23 | neoui-proto, neoui, files | a WAV started in Files plays on with Files in the background; pause, next and seek work from the shade and from home |
 | **TP4** | Channels, banners, reply, DND | CHANNEL, importances, the user's override; the heads-up banner (never over a full-screen call or the keyboard's field); inline reply with the shell keyboard; the rate limit; Do not disturb; tone and vibration per importance (`sound.rs`, haptics); Settings pages and the `notify.*`/`n.<app>` keys. **Messages:** Reply, Mark read and Call from the banner and the shade | 34, 35 / 24 | neoui-proto, neoui, phone | an SMS arrives as a banner while Files is open; Reply sends it and Files stays in front; DND holds the banner |
 | **TP5** | Calls in the panel | NEOPHONE posts the incoming call as a sticky banner while the phone is in use; full screen when the screen is off, locked or on home. Answer and Reject from the banner; Reply with message | (uses TP2/TP4) | phone, neoui | a call rings over Files as a banner; Answer connects; a call to a locked phone is full screen |
 | **TP6** | Live island | ACTIVITY; compact, two, expanded; transient alerts; the order and permission rules; `island.*`. **Producers:** NEOPHONE (the call, `di-call`), the media session (derived), Files (copies), later Clock/DTSRV timers and Browser downloads | 36 / 25 | neoui-proto, neoui, phone, files | in a call, Files shows the green island; a hold gives Mute/Speaker/End; music shows as the circle |
@@ -306,6 +306,131 @@ TP7 and TP8 can swap.
 - NeoStore ST5 (install progress: built in 1.11, Progress style in TP2);
 - Browser WB5 (download done: TP2; downloads in the island: TP6);
 - Files FA9 M1b (TP3).
+
+### TP1 plan (2026-11-26)
+
+From `tp-statusbar`, `tp-shade` and `tp-shade-buttons`; neoui only, no protocol change. **Only what something
+backs is drawn** (D4); the rest of the 11 states come with the phase that feeds them.
+
+**Status bar** (`ui/components/frame.slint` `StatusBar`, 25 dp):
+- **Left:** the clock, then up to 3 **app glyphs** (14 dp, `text-secondary`), then "+n". One glyph per app with
+  cards in the shade, newest first: a small table by app key (`messages` → message, `phone` → missed_call,
+  `files` → folder, `clock` → alarm, anything else → bell). The shell's own rows count too (missed calls → phone,
+  unread SMS → messages, while Messages posts no cards of its own). The C9 unread envelope goes: it is this glyph now.
+- **Centre:** an empty island slot (TP6).
+- **Right, in the boards' order:** the mode icons (ring off: vibrate, or silent when vibration is off too;
+  alarm when an alarm is on, from `clock.alarms`), then the network (RAT + bars, R when roaming; **No SIM** when
+  the SIM is absent, **No service** otherwise; no "SOS" while emergency calls can't be placed; a plane instead of all
+  of it in airplane mode), Wi-Fi,
+  the battery (the bolt while charging; **amber fill** while the battery saver is on).
+- **The operator's name leaves the bar** (the boards don't show it); Settings → Mobile network keeps it.
+- **Not in TP1:** privacy dots and screen recording (no source yet), the island (TP6), DND's moon (TP4), headset
+  (no jack detection yet: a gap for AUDIOD).
+
+**The shade's first stop** (`ui/components/shade.slint`), under the status bar, which stays visible:
+- **Header:** the time (30 dp, light), the date (if `shade.date`), then ⚙ (opens Settings; Panel & notifications
+  once TP4 adds it) and ⏻ (the power menu). ✎ comes with the control centre (TP7).
+- **Tiles:** the 4 as today, drawn as the board's 74 dp tiles (radius 14, accent when on, icon over label).
+- **Brightness** as today; the **media slot** stays empty until TP3.
+- **NOTIFICATIONS** and the cards as today (TP2 brings sections, See all, swipe and Clear all).
+- **Shape:** bottom corners 22 dp, the scrim over the rest. "Pull for all controls" comes with TP7.
+- **Buttons mode** (`tp-shade-buttons`): the same panel above the key row, whose Back closes it.
+
+**Opening it:**
+- a tap, or a pull of more than 24 dp, anywhere on the status bar (as today), over home and over apps;
+- **`shell.swipehome`** (bool, on): a swipe down on home opens it too. A press on the home pages that first moves
+  steeply down (more than twice as far down as sideways) is a pull: the widget under it gets no click and the page
+  doesn't turn, and the shade opens past 48 dp, only while home is still in front. Other drags stay page swipes. Its Settings row arrives with `tp-settings` in TP4. `shell.tap` waits for TP7, where it has a choice.
+
+**`Visible(false)` when the screen goes off moves to TP3.** Files stops its audio on `Visible(false)` ("Stops when
+you leave Files"), so sending it at screen-off before background play exists would cut music at every screen
+timeout. TP3 sends it together with the media session, once Files keeps playing in the background.
+
+**Checks:**
+- **host:** `tp1-statusbar-pixel.png` (idle, apps waiting with +n, ring off with an alarm, silent, charging with
+  the saver, airplane, No SIM, No service, roaming) and the shade snapshots (`shade-*`); a test for the glyph table
+  and the +n count;
+- **virt-taps:** swipe down on home → the shade; ⚙ → Settings;
+- **Pixel:** the bar with real Wi-Fi, LTE, battery and charging; ring off and vibrate; an alarm set (then put back);
+  the shade by tap, by pull and from home; ⚙ and ⏻ from the shade. Airplane mode is not switched
+  on the phone (never Offline); its state is checked on virt.
+- **boot.img measured** (27.56 MB now, the limit about 28.6 MB).
+
+**TP1 runs (2026-11-26):**
+- **virt (image 32/33):** a swipe down on home → the shade; ⚙ → Settings; ⏻ → the Power menu; a short pull on a
+  favourite opens nothing; a sideways swipe still turns the page.
+- **Pixel, image 33 (`tp1-boot33.img`, 27,566,080 bytes):**
+  - the bar with real LTE (4 bars), 5 GHz Wi-Fi and the battery full on USB, no operator name;
+  - the shade's Silent tile → the vibrate glyph in the bar, then back to the Outdoor profile;
+  - the shade by a tap on the bar, a pull from the bar and a swipe down on home; ⚙ → Settings; ⏻ → the Power menu
+    (Cancel);
+  - home's long press still opens Edit home · Wallpaper; a page swipe and the home pull no longer do;
+  - `settings.dat`, both `wifi.dat` and `left.dat` byte-identical before and after.
+- **Found on the Pixel (image 32) and fixed:** the swipe down opened the shade, and half a second later home's long
+  press menu over it. The UI server's takeover (`cancel_touch`) left Slint's press held, so home's 500 ms timer ran
+  on; page slides did the same before TP1. `cancel_touch` and the start of a pull now stop it until the next press
+  (neoui `8135960`, test `home_hold.rs`).
+- Not tried on the phone: the alarm glyph (host snapshot only), airplane mode (never switched on the owner's phone),
+  No SIM.
+
+### TP2 plan (2026-11-26)
+
+From `nt-shade` and `nt-anatomy`. Three parts, so the phone repin is measured on its own:
+
+**TP2a: the cards (neoui, protocol 1.18).**
+- **NOTIFY grows**, compatible with 1.12's record (the shell still reads old records). After `progress` (now 255 =
+  none when more follows) come: `flags` (ONGOING 1, SILENT_UPDATE 2, PRIVATE 4), `style` (Basic 0, BigText 1,
+  Progress 2, Conversation 3, Call 4, Chrono 5), `channel` (u8, 0 until TP4's CHANNEL), `group` (≤ 16 B; "" = none),
+  `when` (unix ms, 0 = now), and a kind per action (Button 0, Reply 1, Danger 2). Up to **3** actions (from 2).
+- **32 `NOTIFY_CLEAR`:** every card of the caller's app goes. **Event 22 `NotifyGone { id, why }`:** 0 the user
+  swiped it, 1 Clear all, 2 the app was turned off (TP4).
+- **The shell's model:** posting the same id replaces the card in place (it keeps its place: no jump to the top);
+  24 cards per app (from 16; older ones beyond go, oldest first, instead of refusing the post); the order is by
+  section, then newest first: **Live** (ONGOING), **Conversations** (style Conversation), **Alerts** (the rest).
+  The Silent fold comes with importances (TP4).
+- **Step 0, the caller check:** NOTIFY, NOTIFY_CLEAR and BADGE answer `KErrPermissionDenied` when the session's
+  process isn't its app's EXE (the SID from `exes.txt`, kept in `neoui-proto::apps`); apps outside the table (old
+  apps' bridge) keep today's binding. TP4's per-app switch relies on it.
+- **The shade (`nt-shade`):**
+  - the first stop shows the first 2 cards and "See all N"; See all opens the list: the compact header (time, date,
+    ⚙), the sections with their labels, then **Clear all** (ONGOING cards stay);
+  - a card: the app's glyph and name, "· now / 2 min / 10:24" from `when` (the app's `time` for old records), the
+    group's count and ▾, the avatar (initials on a tint), title, two lines, progress, up to 3 actions (Reply drawn
+    as the main one, Danger in red; In place (3) for Mark read);
+  - a **group** (same app and `group`) shows its newest card with the count; ▾ opens the rest under it;
+  - **swipe** left or right past a third of the width dismisses a card (not ONGOING ones): the app hears
+    `NotifyGone { id, 0 }`.
+- **neoapp:** `notify` takes the grown record, `clear_notify()`, `AppEvent::NotifyGone`.
+- **A producer for virt:** NEOKIT (the kit gallery and new-app template) gets a Notifications demo row that posts a
+  conversation, an ongoing call-style card, a progress card and a 3-card group, so `virt-taps` can check sections,
+  a swipe and Clear all.
+- **Not in TP2a (they have no producer or no screen yet):** BLOB (31) and Picture style (no app has images to post),
+  the 24 h history (no view shows it), slow-swipe Snooze and the hold sheet (channels, TP4), the Silent fold (TP4).
+
+**TP2a as built (2026-11-26, neoui#51):** as planned, plus action kind 3 **IN_PLACE** (Mark read): the app hears
+`Notified` without coming to the front (started hidden if it isn't running), and the shade stays open. Codex xhigh
+review fixed: taps and swipes go by (app, id), not a place in the list; `NotifyGone` only to apps that connected at
+1.18 or later (the 1.12 Browser would end on it); the shell's Wi-Fi login card under Browser survives the Browser's
+NOTIFY_CLEAR; a tap keeps an ongoing card; a group spanning sections is one stack; swipe or scroll by the dominant
+axis. Open: Kit and the old apps' bridge share SID 0xE0002006, so the SID check can't tell them apart (one of them
+needs another UID). Runs:
+- **virt (images 41–43):** NEOKIT posts 6 cards (SID check passed), See all, a swipe → `NotifyGone(0)`, Clear all
+  takes 4 and keeps the ongoing one, Mark read in place → `Notified(5, 2)`;
+- **Pixel (images 42, 43):** the same, plus scrolling the list, the group's ▾ opening the list (found on image 42:
+  ▾ on the first stop did nothing visible; fixed), NOTIFY_CLEAR from the kit; Wi-Fi files byte-identical
+  (`settings.dat` changed only by the owner's brightness while using the phone).
+
+**TP2b: Phone and Messages post their own cards (phone repo, neoui).** NEOPHONE: "N missed calls · names" with Call
+back · Message, and an ONGOING Call-style card during a call (End). NEOMSG: one Conversation card per unread
+thread with Reply · Mark read · Call, grouped under Messages. The shell's three rows (call in progress, missed
+calls, new messages) go in the same change. This needs phone's repin to neoui's TP2a rev (it waits today with
+phone#10): **boot.img is measured first; past ~28.6 MB, stop and ask the owner.**
+
+**TP2c: Files' copy job as Progress style** with its Cancel, when files repins (waits with files#15).
+
+**Checks (each part):** host snapshots of the shade (first stop with See all, the list with every section, a group
+open, a swipe in progress), round-trip and limit tests for the record and its old form, the section order and the
+24-per-app rule; virt-taps with NEOKIT's demo; a Pixel run on the final head; boot.img measured.
 
 ## Boards drawn in TP0
 

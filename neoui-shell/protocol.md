@@ -32,6 +32,11 @@ work that has been designed but not built**, so that two designs can't pick the 
 | 1.11 | 2026-11-18 | a progress bar on a shade entry | [kit.md](kit.md#status-2026-11-17) |
 | 1.12 | 2026-11-20 | files between apps by handle; the clipboard's kind | [kit.md](kit.md#protocol-19-apps-open-each-other) (its 1.12 part), [../files-app.md](../files-app.md) FA8 |
 | 1.13 | 2026-11-26 | Settings is an app (NEOSET): `SETTINGS_INFO`, `SETTINGS_ACTION`; shell keys writable by NEOSET's secure ID | [settings.md](settings.md#the-settings-app-neoset) |
+| 1.14 | 2026-11-26 | `INFO_APPS` (the old apps), `ACTION_OPEN_ENTRY` (SE1d) | settings.md |
+| 1.15 | 2026-11-26 | `ACTION_PROFILE`: the sound profiles through the shell's reducer (SE2a) | settings.md |
+| 1.16 | 2026-11-26 | `INFO_BATTERY_USAGE` (SE3a) | settings.md |
+| 1.17 | 2026-11-26 | `INFO_RUNNING`, `ACTION_STOP`, `ACTION_RESET`, `ACTION_CLEAR`, event `ClearData` (SE4a) | settings.md SE4a |
+| 1.18 | 2026-11-26 | `NOTIFY` grows (flags, style, channel, group, when, ≤ 3 actions with kinds: button, reply, danger, in place), `NOTIFY_CLEAR`, event `NotifyGone` (only to 1.18 clients); NOTIFY / NOTIFY_CLEAR / BADGE only from the app's own EXE (TP2a) | top-panel.md TP2a |
 
 ## Opcodes (app → shell)
 
@@ -51,23 +56,23 @@ work that has been designed but not built**, so that two designs can't pick the 
 | 15 | `PAGE` | 1.7 | built (reduced in 1.8) |
 | 16 | `QUERY` | 1.7 | built |
 | 17 | `NOTE` | 1.8 | built |
-| 18 | `NOTIFY` | 1.8 (actions 1.9, progress 1.11) | built; grows in TP2 |
+| 18 | `NOTIFY` | 1.8 (actions 1.9, progress 1.11, card fields 1.18) | built; 1.18: progress 255 = none when the 1.18 fields follow; 24 per app (the oldest goes) |
 | 19 | `BADGE` | 1.8 | built |
 | 20 / 21 | `CLIP_SET` / `CLIP_GET` | 1.8 (kind 1.12) | built |
 | 22 / 23 / 24 | `OPEN` / `ARG` / `DONE` | 1.9 | built |
 | 25 | `HAPTIC` | 1.10 | built |
 | 26 / 27 / 28 / 29 | `OPEN_FILE` / `ARG_FILE` / `DONE_FILE` / `RESULT_FILE` | 1.12 | built |
 | 30 | `CLIP_KIND` | 1.12 | built |
-| 31 | `BLOB` | — | **reserved:** [top-panel.md](top-panel.md) TP2 |
-| 32 | `NOTIFY_CLEAR` | — | **reserved:** TP2 |
+| 31 | `BLOB` | — | **reserved:** [top-panel.md](top-panel.md) (moved out of TP2a: no producer yet) |
+| 32 | `NOTIFY_CLEAR` | 1.18 | built: every card of the caller |
 | 33 | `MEDIA` | — | **reserved:** TP3 |
 | 34 | `CHANNEL` | — | **reserved:** TP4 |
 | 35 | `REPLY_TEXT` | — | **reserved:** TP4 |
 | 36 | `ACTIVITY` | — | **reserved:** TP6 |
 | 37 | `TILE` | — | **reserved:** TP7 |
 | 38 / 39 | `REGISTER` / `UNREGISTER` | — | **reserved:** [../store.md](../store.md) ST4 (store.md said "1.12", which Files FA8 took) |
-| 40 | `SETTINGS_INFO` | 1.13 | built (neoui#38): [settings.md](settings.md#the-settings-app-neoset) SE0 (`[kind, cursor, Des8 out]`: a bounded, revisioned snapshot only the shell has; kinds 1 battery history, 2 Wi-Fi IP/portal, 3 clock sync, 4 app catalogue, 5 notification channels) |
-| 41 | `SETTINGS_ACTION` | 1.13 | built (neoui#38): settings.md SE0 (`[kind, Des8 request]`: kind 1 sign in to the current network; later profile switch, reset jobs, share E:) |
+| 40 | `SETTINGS_INFO` | 1.13 | built (neoui#38): [settings.md](settings.md#the-settings-app-neoset) SE0 (`[kind, cursor, Des8 out]`: a bounded, revisioned snapshot only the shell has; kinds 1 battery history, 2 Wi-Fi IP/portal, 3 clock sync, 4 old apps (1.14), 5 battery usage (1.16), 6 running apps (1.17, Settings only); TP4's channels take the next kind) |
+| 41 | `SETTINGS_ACTION` | 1.13 | built (neoui#38): settings.md SE0 (`[kind, Des8 request]`: 1 sign in to the current network, 2 open an old app (1.14), 3 sound profile (1.15), 4 stop an app, 5 reset (0 network, 1 settings), 6 clear an app's data (1.17); later share E:) |
 | 42 | — | — | next free |
 
 ## AppEvent kinds (shell → app)
@@ -92,13 +97,14 @@ work that has been designed but not built**, so that two designs can't pick the 
 | 19 | `Open { page }` | 1.9 | built |
 | 20 | `Notified { id, action }` | 1.9 | built: 0 = the card, `i + 1` = its action `i` |
 | 21 | `InputReset` | 1.10 | built |
-| 22 | `NotifyGone { id, why }` | — | **reserved:** TP2 (why: 0 swiped, 1 cleared all, 2 channel off, 3 expired) |
+| 22 | `NotifyGone { id, why }` | 1.18 | built: why 0 swiped, 1 cleared all; 2 channel off (TP4), 3 expired (later); only to a running app |
 | 23 | `Media { cmd, arg }` | — | **reserved:** TP3 (PLAY 1, PAUSE 2, NEXT 3, PREV 4, SEEK 5 = arg ms, SHUFFLE 6, REPEAT 7) |
 | 24 | `NotifyReply { id }` | — | **reserved:** TP4 (the text through `REPLY_TEXT`) |
 | 25 | `ActivityTap { id, i }` | — | **reserved:** TP6 (0 = the island, 1.. = a button) |
 | 26 | `Tile { id, hold }` | — | **reserved:** TP7 |
 | 27 | `SettingsInfo { kind, rev }` | — | **reserved:** settings.md (a snapshot of `SETTINGS_INFO` kind changed; not used in SE0) |
-| 28 | — | — | next free |
+| 28 | `ClearData` | 1.17 | built: Settings → Apps → an app → Clear data; the app deletes its own data and quits (SE4a) |
+| 29 | — | — | next free |
 
 ## Older numbering, now void
 
