@@ -320,7 +320,8 @@ backs is drawn** (D4); the rest of the 11 states come with the phase that feeds 
 - **Centre:** an empty island slot (TP6).
 - **Right, in the boards' order:** the mode icons (ring off: vibrate, or silent when vibration is off too;
   alarm when an alarm is on, from `clock.alarms`), then the network (RAT + bars, R when roaming; **No SIM** when
-  the SIM is absent, **SOS** when registration is denied; a plane instead of all of it in airplane mode), Wi-Fi,
+  the SIM is absent, **No service** otherwise; no "SOS" while emergency calls can't be placed; a plane instead of all
+  of it in airplane mode), Wi-Fi,
   the battery (the bolt while charging; **amber fill** while the battery saver is on).
 - **The operator's name leaves the bar** (the boards don't show it); Settings → Mobile network keeps it.
 - **Not in TP1:** privacy dots and screen recording (no source yet), the island (TP6), DND's moon (TP4), headset
@@ -333,20 +334,21 @@ backs is drawn** (D4); the rest of the 11 states come with the phase that feeds 
 - **Brightness** as today; the **media slot** stays empty until TP3.
 - **NOTIFICATIONS** and the cards as today (TP2 brings sections, See all, swipe and Clear all).
 - **Shape:** bottom corners 22 dp, the scrim over the rest. "Pull for all controls" comes with TP7.
-- **Buttons mode** (`tp-shade-buttons`): the same panel above the key row.
+- **Buttons mode** (`tp-shade-buttons`): the same panel above the key row, whose Back closes it.
 
 **Opening it:**
 - a tap, or a pull of more than 24 dp, anywhere on the status bar (as today), over home and over apps;
-- **`shell.swipehome`** (bool, on): a swipe down on home opens it too (more vertical than sideways, past 48 dp, not
-  on the dock). Its Settings row arrives with `tp-settings` in TP4. `shell.tap` waits for TP7, where it has a choice.
+- **`shell.swipehome`** (bool, on): a swipe down on home opens it too. A press on the home pages that first moves
+  steeply down (more than twice as far down as sideways) is a pull: the widget under it gets no click and the page
+  doesn't turn, and the shade opens past 48 dp, only while home is still in front. Other drags stay page swipes. Its Settings row arrives with `tp-settings` in TP4. `shell.tap` waits for TP7, where it has a choice.
 
 **`Visible(false)` when the screen goes off moves to TP3.** Files stops its audio on `Visible(false)` ("Stops when
 you leave Files"), so sending it at screen-off before background play exists would cut music at every screen
 timeout. TP3 sends it together with the media session, once Files keeps playing in the background.
 
 **Checks:**
-- **host:** snapshots for each built state (`tp1-statusbar-*`: idle, apps waiting with +n, modes, charging with
-  the saver, airplane, No SIM, SOS) and the shade (`tp1-shade`, `tp1-shade-buttons`); a test for the glyph table
+- **host:** `tp1-statusbar-pixel.png` (idle, apps waiting with +n, ring off with an alarm, silent, charging with
+  the saver, airplane, No SIM, No service, roaming) and the shade snapshots (`shade-*`); a test for the glyph table
   and the +n count;
 - **virt-taps:** swipe down on home → the shade; ⚙ → Settings;
 - **Pixel:** the bar with real Wi-Fi, LTE, battery and charging; ring off and vibrate; an alarm set (then put back);
