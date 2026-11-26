@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Top panel: status bar, shade, notifications, media, calls and messages, live island, control centre, lock screen
 
-**Status: designed 2026-11-21; TP0 done (docs + canvas); TP1 built 2026-11-26 (neoui#50); TP2–TP9 not built.** The design comes from the canvas page **Top panel &
+**Status: designed 2026-11-21; TP0 done (docs + canvas); TP1 built 2026-11-26 (neoui#50); TP2a built 2026-11-26 (neoui#51); TP2b–TP9 not built.** The design comes from the canvas page **Top panel &
 notifications** (18 boards) plus the related boards on the Shell, Navigation, Phone, Messages, Clock, Files, Store,
 Browser and Settings pages. The screen map is at the [end](#screen-map). It replaces `neoui-shell.md` Part 2 (the
 2026-11-09 notification sketch, whose opcode numbers are void) and Navigation's G6 lock screen. The hub is
@@ -372,6 +372,65 @@ timeout. TP3 sends it together with the media session, once Files keeps playing 
   (neoui `8135960`, test `home_hold.rs`).
 - Not tried on the phone: the alarm glyph (host snapshot only), airplane mode (never switched on the owner's phone),
   No SIM.
+
+### TP2 plan (2026-11-26)
+
+From `nt-shade` and `nt-anatomy`. Three parts, so the phone repin is measured on its own:
+
+**TP2a: the cards (neoui, protocol 1.18).**
+- **NOTIFY grows**, compatible with 1.12's record (the shell still reads old records). After `progress` (now 255 =
+  none when more follows) come: `flags` (ONGOING 1, SILENT_UPDATE 2, PRIVATE 4), `style` (Basic 0, BigText 1,
+  Progress 2, Conversation 3, Call 4, Chrono 5), `channel` (u8, 0 until TP4's CHANNEL), `group` (≤ 16 B; "" = none),
+  `when` (unix ms, 0 = now), and a kind per action (Button 0, Reply 1, Danger 2). Up to **3** actions (from 2).
+- **32 `NOTIFY_CLEAR`:** every card of the caller's app goes. **Event 22 `NotifyGone { id, why }`:** 0 the user
+  swiped it, 1 Clear all, 2 the app was turned off (TP4).
+- **The shell's model:** posting the same id replaces the card in place (it keeps its place: no jump to the top);
+  24 cards per app (from 16; older ones beyond go, oldest first, instead of refusing the post); the order is by
+  section, then newest first: **Live** (ONGOING), **Conversations** (style Conversation), **Alerts** (the rest).
+  The Silent fold comes with importances (TP4).
+- **Step 0, the caller check:** NOTIFY, NOTIFY_CLEAR and BADGE answer `KErrPermissionDenied` when the session's
+  process isn't its app's EXE (the SID from `exes.txt`, kept in `neoui-proto::apps`); apps outside the table (old
+  apps' bridge) keep today's binding. TP4's per-app switch relies on it.
+- **The shade (`nt-shade`):**
+  - the first stop shows the first 2 cards and "See all N"; See all opens the list: the compact header (time, date,
+    ⚙), the sections with their labels, then **Clear all** (ONGOING cards stay);
+  - a card: the app's glyph and name, "· now / 2 min / 10:24" from `when` (the app's `time` for old records), the
+    group's count and ▾, the avatar (initials on a tint), title, two lines, progress, up to 3 actions (Reply drawn
+    as the main one, Danger in red; In place (3) for Mark read);
+  - a **group** (same app and `group`) shows its newest card with the count; ▾ opens the rest under it;
+  - **swipe** left or right past a third of the width dismisses a card (not ONGOING ones): the app hears
+    `NotifyGone { id, 0 }`.
+- **neoapp:** `notify` takes the grown record, `clear_notify()`, `AppEvent::NotifyGone`.
+- **A producer for virt:** NEOKIT (the kit gallery and new-app template) gets a Notifications demo row that posts a
+  conversation, an ongoing call-style card, a progress card and a 3-card group, so `virt-taps` can check sections,
+  a swipe and Clear all.
+- **Not in TP2a (they have no producer or no screen yet):** BLOB (31) and Picture style (no app has images to post),
+  the 24 h history (no view shows it), slow-swipe Snooze and the hold sheet (channels, TP4), the Silent fold (TP4).
+
+**TP2a as built (2026-11-26, neoui#51):** as planned, plus action kind 3 **IN_PLACE** (Mark read): the app hears
+`Notified` without coming to the front (started hidden if it isn't running), and the shade stays open. Codex xhigh
+review fixed: taps and swipes go by (app, id), not a place in the list; `NotifyGone` only to apps that connected at
+1.18 or later (the 1.12 Browser would end on it); the shell's Wi-Fi login card under Browser survives the Browser's
+NOTIFY_CLEAR; a tap keeps an ongoing card; a group spanning sections is one stack; swipe or scroll by the dominant
+axis. Open: Kit and the old apps' bridge share SID 0xE0002006, so the SID check can't tell them apart (one of them
+needs another UID). Runs:
+- **virt (images 41–43):** NEOKIT posts 6 cards (SID check passed), See all, a swipe → `NotifyGone(0)`, Clear all
+  takes 4 and keeps the ongoing one, Mark read in place → `Notified(5, 2)`;
+- **Pixel (images 42, 43):** the same, plus scrolling the list, the group's ▾ opening the list (found on image 42:
+  ▾ on the first stop did nothing visible; fixed), NOTIFY_CLEAR from the kit; Wi-Fi files byte-identical
+  (`settings.dat` changed only by the owner's brightness while using the phone).
+
+**TP2b: Phone and Messages post their own cards (phone repo, neoui).** NEOPHONE: "N missed calls · names" with Call
+back · Message, and an ONGOING Call-style card during a call (End). NEOMSG: one Conversation card per unread
+thread with Reply · Mark read · Call, grouped under Messages. The shell's three rows (call in progress, missed
+calls, new messages) go in the same change. This needs phone's repin to neoui's TP2a rev (it waits today with
+phone#10): **boot.img is measured first; past ~28.6 MB, stop and ask the owner.**
+
+**TP2c: Files' copy job as Progress style** with its Cancel, when files repins (waits with files#15).
+
+**Checks (each part):** host snapshots of the shade (first stop with See all, the list with every section, a group
+open, a swipe in progress), round-trip and limit tests for the record and its old form, the section order and the
+24-per-app rule; virt-taps with NEOKIT's demo; a Pixel run on the final head; boot.img measured.
 
 ## Boards drawn in TP0
 
