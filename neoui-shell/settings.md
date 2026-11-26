@@ -734,6 +734,12 @@ with `EMMC_C=1`, so the eMMC C: is the real one.
   at the end, every new key back at its default. Image 21's shell (no SE2b) dropped SE2b's empty `sound.tones` key
   from `settings.dat` on its first save; that key was inert there.
 
+- SE3b's runs (images 24–26) wrote nothing: `settings.dat` `07e10b2c…` throughout.
+- **fshell note:** on image 24 (flags `ROFS=1 ROFS_CORE='\.dll$' EMMC_C=1 USBDEBUG=1 AUTOFASTBOOT=1500`),
+  `phone.py sh "ls -h"` and `sh "ls --help"` printed `sh: serial read timed out; remote completion is unknown; no
+  replay`. On images 25 and 26 (same flags) `echo`, `ls` and `ls -l -r` answered, and `pull` worked on all three. So
+  it's fshell's `ls` help option, not those boots or tonight's changes.
+
 **SE2b waits for the owner (not merged, coordinator 2026-11-26):** on image 20, a real incoming call, an SMS that
 arrives just before a call, and a call during media playback; then merge. PRs neohw#19 (`1430041`) and neoui#46
 (`02ff31a`, pins neohw `1430041`). Image: `boot20.img` (27,402,240 bytes, sha256 `8e6b6861…`), on the Mac at
@@ -834,6 +840,19 @@ Files, From Photos), `set2-storage`.
   **Pixel run:** the drive rows against fshell's `drive` output and the scan's totals against `du`-style sums of a
   folder, with nothing written (C: hashed before and after: `settings.dat` and the scanned folders' listings).
 
+**SE3b as built** (neoui#48, 2026-11-26; coordinator's notes: low priority, only on the page and shown, a kept
+count with Recount, Other clamped, unreadable folders counted, Files' units):
+- The scan lists 32 folders on the Pixel in 24–39 ms. That is too short to see in the monitor's `cpus`, so it's
+  measured by its own log line.
+- Codex xhigh review: leaving mid-scan stuck on "Counting…"; a superseded scan writing over a newer one; a wide tree's
+  memory (now 4096 folders waiting at most); scanning while hidden; a file-server failure kept as a count; the bar
+  mixing the kept count with live totals. All fixed. The Pixel run found a drive without `\sys\bin` counted as
+  unreadable and the ROFS Z: shown as "0 B". Both fixed.
+- Read-only on the Pixel: `ls -l -r` of E:\ and C:\Data and `settings.dat` byte-identical before and after; the
+  drives' free bytes unchanged (a cluster-granularity check only).
+- **For the owner:** Storage isn't in the root grid (the board's 12 tiles are full); "Open in Files" at a drive
+  waits for a Files page and Files' repin.
+
 **SE3a as built** (neoui#47, merged 2026-11-26 as `85364a1`; coordinator's conditions: every default as before, the saver by hand only
 with a named cap, show touches drawing only and measured, usage only from what the history holds):
 - `neoui_proto::effects` holds the saver's cap (`SAVER_CAP_PERCENT` 40, a `shortcut:`) and the key pulse (12 ms at
@@ -862,7 +881,7 @@ with a named cap, show touches drawing only and measured, usage only from what t
 | SE0 | built and merged 2026-11-26: neoui#38 (`b19d597`), e32-rs#16 (`Message::client_sid`), neohw#17 (e32 pin). QEMU walk and three Pixel RAM-boot runs: Open apps card, Wi-Fi list and join (keyboard, wrong password, no double join), Buttons/Gestures by NEOSET's SID, the connect and reap races, keyboard resume. Two Codex reviews, findings fixed |
 | SE1 | SE1a (find) merged 2026-11-26: neoui#39 (`5055cdb`); two Codex reviews; Pixel RAM-boot run: grid, search → selected row, Back along the path, Kernel log → Dev tools Console. SE1b (zones) merged 2026-11-26: neoui#40 (`32b032a`); Codex review, findings fixed; Pixel RAM-boot run: Sydney UTC+11:00 (summer time), Dublin UTC+00:00 (no summer time), World clock Yesterday −4 h / Today +7 h. SE1c spike done. SE1c-1 (Saved networks, Forget) merged 2026-11-26: neohw#18 (`5a4f8f2`, NeoWifi 1.1), neoui#43 (`2b222c8`); two Codex reviews (WIFID's stop/save fixes); Pixel run: list, Forget→Cancel, Wi-Fi off/on (stop 121 ms), wifi.dat/left.dat byte-identical. SE1c-2 waits for the owner. SE1d (Apps catalogue) merged 2026-11-26: neoui#44 (`eedb063`, protocol 1.14 INFO_APPS + ACTION_OPEN_ENTRY, neoui-proto `apps.rs`); Codex review, findings fixed; virt-taps walks search → Apps → Clock; Pixel run: ROM apps, the empty state, old apps listed after Old apps ran, eshell opened through Settings |
 | SE2 | SE2a (profiles) merged 2026-11-26: neoui#45 (`079ce68`, protocol 1.15 ACTION_PROFILE); two Codex passes (UiMirror's stale edits, writes in one frame, ring before airplane), virt walks Offline and back, Pixel run: Meeting, the shade's Silent, brightness and Wi-Fi checks, all restored. SE2b (tones) built: neohw#19 (`1430041`, modem-ipc 2.7), neoui#46 (`02ff31a`); two Codex passes, findings fixed; Pixel run without a call passed and restored; waits for the owner's call test before merging. SE2c after it |
-| SE3 | planned 2026-11-26 (SE3a–SE3d). SE3a (battery saver, show percentage, battery usage, show touches, keypress vibration) merged 2026-11-26: neoui#47 (`85364a1`, protocol 1.16), Codex xhigh review fixed, Pixel run on the final head passed and restored. SE3b (Storage) in progress: neoui#48 |
+| SE3 | planned 2026-11-26 (SE3a–SE3d). SE3a (battery saver, show percentage, battery usage, show touches, keypress vibration) merged 2026-11-26: neoui#47 (`85364a1`, protocol 1.16), Codex xhigh review fixed, Pixel run on the final head passed and restored. SE3b (Storage): neoui#48, Codex review fixed, Pixel run on the final head passed (read-only); merges on green CI |
 | SE4–SE7 | not started |
 
 ## Part 1: settings store (done 2026-11-09)
