@@ -272,6 +272,9 @@ boot, and close and reopen it fast.
   can jump to Home.
 - **A failed spawn** leaves a blank screen, and the `OPEN` caller still gets success.
 - **Two queued `OPEN`s** of one app share its argument slot: the second can land on the root page.
+- **Taps during a sheet's opening animation hit the row under the finger** (seen on SE2b's Pixel run, 2026-11-26:
+  "Two beeps" was tapped while the sheet slid up, and Beep was picked). This is the kit's or the shell's behaviour, not
+  SE2b's. It may deserve an input lock while a sheet animates; that's the owner's call.
 
 #### B. Sound profiles (M, SE2)
 - **One reducer in SYSSTART** serves Settings, the shade's Silent tile and the power menu.
@@ -635,6 +638,47 @@ Then NeoWifi 1.1 gets a directed scan and join by raw SSID, and WIFID keeps `hid
 - whether Meeting's ring plays once (SE2b changes MODEMD's loop);
 - whether Silent also silences the message tone and buzz (today `silent` stops the tone; the buzz stays).
 
+**SE2c plan (Your sounds, WAV import; proposed 2026-11-26, stacked on SE2b, no code until SE2b merges):**
+
+*What exists (research, 2026-11-26):*
+- **Picking a file works end to end.** `open(files::KEY, files::PICK, "wav")` opens Files' picker; Files returns a
+  read-only handle (`DONE_FILE`); the caller adopts it with `result_file()` (neoapp; the kit app is the example).
+  NEOSET doesn't use it yet.
+- **The ring buffer holds 2 s.** AUDIOD copies one 192,000-byte period (48 kHz mono s16, `apr::RING_BYTES`) into the
+  kernel's audio memory, and the ADSP loops it. That memory is `KAudioBytes = 0x40000` (kernel `qcom_telhal.cpp`),
+  shared with media (`MEDIA_OFFSET 0x30000`) and recording. So a file tone longer than ~2 s needs a kernel change.
+- **A WAV decoder exists, but in files** (`neo-format-media` `wav.rs`; files pins neoui, so neoui can't pin it back).
+  NeoAudio's linear resampler is private.
+- **AUDIOD can read another app's `\private`:** ROM EXEs get every capability (KRN-001). neohw's
+  `sys::load_private` reads a file and falls back to its `.new`.
+
+*Split into two stages:*
+- **SE2c-1: short sounds within today's buffer (neohw + neoui; pins).**
+  - **neoaudio** (Apache, host-tested) gains `tones::from_wav(bytes) -> Result<[u8; BYTES], WavError>`. It reads PCM
+    8/16/24-bit mono or stereo at 8–48 kHz, mixes to mono, resamples to 48 kHz (the resampler made public), trims
+    leading silence, cuts at 2 s with a 50 ms fade, and pads with silence. Float, A-law and µ-law are refused with a
+    clear error ("Use a 16-bit PCM WAV"). Tests: each format, rates, too short, too long, damaged headers.
+  - **Tone ids 4–15 are your sounds** (the tones byte has 4 bits each). modem-ipc 2.8: `tone::apply` accepts them;
+    an older MODEMD treats them as Unknown → Built-in, so it keeps ringing.
+  - **NEOSET:** Ringtone sheet → "Add from Files…" → the picker (filter `wav`), then `result_file()`. The file is
+    read up to 16 MB, converted with `from_wav`, and written to `C:\private\e0002007\tones\<id>.pcm` (exactly
+    192,000 bytes, through `.new` + rename). The name comes from the WAV's INFO name, else the file name, else
+    "Sound N". It's kept in a new Bytes key `sound.your_tones` (`[id][len][name]`*, ≤ 512 B, Settings-owned).
+    Preview plays the converted file. Rename and Delete are on a long-press. Deleting a sound in use moves those
+    profiles back to Built-in in the same store call (the SE2a reducer).
+  - **AUDIOD:** for a tone ≥ 4, `prepare_ring` loads that file (exactly `RING_BYTES`, else Built-in; a missing or
+    damaged file must still ring). It scales it to the ring volume, as for the synthesized tones. `prepared` is keyed
+    by (tone, volume, the file's modified time), so a replaced file is picked up.
+  - **MODEMD:** no change beyond the pin; it passes the ids through.
+  - **Gates:** host tests; a Pixel run imports a WAV from E: (pushed for the test, deleted after), previews it, sets
+    it as ringtone, deletes it, and checks the profile is back on Built-in. MODEMD's `settings.bin` is checked
+    byte-identical at the end. A real call with a file tone is for the owner, like SE2b's.
+- **SE2c-2: long ringtones (kernel + neohw; the owner's call).** Either grow `KAudioBytes` (a 30 s loop is
+  2.88 MB of contiguous physical RAM) and move media and recording past it, or stream the ring through the media path.
+  Not planned until the owner picks.
+
+*For the owner:* is a 2 s looped clip acceptable as a first "your sounds", or should SE2c wait for SE2c-2?
+
 **SE2b's file rules (coordinator and review, 2026-11-26):**
 - MODEMD's `C:\private\e0003001\settings.bin` stays C8: the old writer's 9 bytes while both tones are Built-in, and
   the same 9 bytes plus a 10th, the tones, once a tone is chosen. An older MODEMD reads the file into 9 bytes, so it
@@ -701,6 +745,70 @@ byte-identical. No call was made.
 **Order:** SE0 comes first and alone, because it fixes Open apps and the dead rows. SE1–SE4 can follow in any order.
 SE5 and SE6 follow their platform stages.
 
+#### SE3 plan (proposed 2026-11-26, for review)
+
+*From the boards:* `set2-battery` (Battery saver "Dims the screen", Show percentage "In the status bar", Battery
+usage), `set2-battery-usage`, `set2-developer` (Show touches "A dot under each finger"), `set2-language` (Keypress
+vibration), `set2-fontsize` (87.5 / 100 / 112.5 / 125 %), `set2-display` and `set2-wallpaper` (eight colours, From
+Files, From Photos), `set2-storage`.
+
+*What exists (research, 2026-11-26):*
+- **Battery:** the status bar draws the percent inside the battery icon while on battery (`frame.slint`). The shell
+  sets the panel brightness from `display.brightness` in one place (`symbian/src/lib.rs` `panel_level` →
+  `set_brightness`), with the battery level at hand in the same loop. The recorder keeps 24 h of one-minute
+  `Snapshot`s (level, voltage, charge state), but `SETTINGS_INFO` kind 1 sends only the levels. Screen-on time isn't
+  recorded.
+- **Touches:** every pointer event passes through the shell loop before it's routed. The gesture hint
+  (`draw_hint`) is the pattern for drawing over app surfaces. Nothing draws touches today.
+- **Vibration:** the shell has `haptic(ms, amp)` (HAL 0x4e27, the old apps' pads use it through `HAPTIC`). The
+  on-screen keyboard doesn't use it. `keyboard.vibrate` isn't registered.
+- **Fonts:** Theme has five text tokens (`font-status 13`, `font-label 13.5`, `font-body 16`, `font-title 19`,
+  `font-clock-large 56`). Literal sizes: about 38 in neoui `ui/`, 12 in neoui's apps, 0 in settings-ui, about 90 in
+  phone and about 165 in files.
+- **Wallpaper:** home's background is a fixed gradient (`home.slint`). The ROM has no runtime image decoder (Slint
+  is built without decoders); files' `neo-format-image` has one.
+- **Storage:** e32 `Fs::drives`/`volume` give totals. Files keeps a per-kind index (`files-ops` `Index::groups`),
+  but neoui can't pin files.
+
+*Split into four slices, each its own PR cycle; neoui only unless noted:*
+- **SE3a: battery and input (proposed first, tonight).**
+  - New keys (shell-owned, Settings-writable, `registry.rs`):
+    - `battery.show_percent` (Bool, default on = today's icon). Off draws the icon with no number.
+    - `battery.saver` (Bool, default off). On caps the effective panel level at 40 % of the panel's max, without
+      moving the slider (`min(level, cap)` at the one `panel_level` call). The shade's brightness slider keeps
+      showing the setting.
+    - `developer.show_touches` (Bool, default off). On, the shell draws a 24 dp ring under each finger over
+      whatever is on screen (the `draw_hint` path, erased on up), for touches it routes and ones it keeps.
+    - `keyboard.vibrate` (Bool, default off). On, every key press of the shell's keyboard gives a 12 ms pulse through
+      `haptic`, like the pads.
+  - **Battery usage** (no per-app shares, D4): neoui-proto `battery::usage(&History) -> Usage` (host-tested) gives
+    the window (since the last full charge seen, else the history's start), start and end level, time on battery,
+    and the gaps ("Off for 6 h, not counted"). The shell sends it as `SETTINGS_INFO` kind 5 `INFO_BATTERY_USAGE`
+    (protocol 1.16). The page shows those lines and a note: "Per-app use needs accounting that doesn't exist yet."
+  - Pages: Battery gains Saving (two switches) and the Battery usage row; Developer gains Show touches; Language &
+    keyboard gains Keypress vibration. Snapshots `set2-battery`, `set2-battery-usage`, `set2-developer`,
+    `set2-language`.
+  - **Pixel run:** toggle each, check the panel level in the log with the saver on and off, read the status bar in
+    a screenshot, take a screenshot with a finger down (show touches), and type in Settings' search (vibration in
+    the log). At the end every key goes back to its value at boot.
+- **SE3b: Storage.** Drive rows from `drives`/`volume` (E:, C:, D:, Z: with read-only notes), at once. "C: and E: by
+  kind" comes from NEOSET's own cancellable worker scan (Images, Video, Audio, Documents, Apps = `\sys\bin` + the
+  SIS store, Other), skipping `\private`, `\sys`, `\resource`. "Open in Files" goes to that drive. App data by owner
+  moves to SE4, next to Clear data, so nothing sizes `\private\<uid>` blindly. Share E: stays FS6.
+- **SE3c: Font size.** `display.font_size` 0–3. The kit's Theme gets `font-scale`, and its four text tokens multiply
+  by it (`font-status` and the clock stay fixed). One neoapp helper sets it at start, on change and on resume; SYSSTART
+  mirrors it for shell screens. Literal sizes in neoui's `ui/` and apps move to tokens. phone and files follow in
+  their own PRs after their neoui repin, which waits with phone#10 and files#15 for the owner's boot-size decision.
+  Gate: switch sizes with Phone and Files open.
+- **SE3d: Wallpaper colours.** `display.wallpaper` is a palette name (Night = today's gradient, the default; Black,
+  Graphite, Blue, Green, Plum, Amber, Dusk as gradients on the kit's tokens). Home reads it. A tap applies it.
+  **Pictures (From Files)** need a runtime JPEG/PNG decoder in the ROM (about +300–500 KB). That waits for the
+  owner's boot-size decision, then decodes with `zune-jpeg`/`zune-png` on a worker to a 540 × 1080 cache. "From
+  Photos" waits for Photos.
+
+*For the owner:* the saver's cap (40 %) and whether it switches on by itself at 15 %; the colours' exact gradients
+(from the board); picture wallpapers and the decoder's ROM cost.
+
 ### Status (2026-11-26)
 
 | Part | State |
@@ -710,7 +818,8 @@ SE5 and SE6 follow their platform stages.
 | SE0 | built and merged 2026-11-26: neoui#38 (`b19d597`), e32-rs#16 (`Message::client_sid`), neohw#17 (e32 pin). QEMU walk and three Pixel RAM-boot runs: Open apps card, Wi-Fi list and join (keyboard, wrong password, no double join), Buttons/Gestures by NEOSET's SID, the connect and reap races, keyboard resume. Two Codex reviews, findings fixed |
 | SE1 | SE1a (find) merged 2026-11-26: neoui#39 (`5055cdb`); two Codex reviews; Pixel RAM-boot run: grid, search → selected row, Back along the path, Kernel log → Dev tools Console. SE1b (zones) merged 2026-11-26: neoui#40 (`32b032a`); Codex review, findings fixed; Pixel RAM-boot run: Sydney UTC+11:00 (summer time), Dublin UTC+00:00 (no summer time), World clock Yesterday −4 h / Today +7 h. SE1c spike done. SE1c-1 (Saved networks, Forget) merged 2026-11-26: neohw#18 (`5a4f8f2`, NeoWifi 1.1), neoui#43 (`2b222c8`); two Codex reviews (WIFID's stop/save fixes); Pixel run: list, Forget→Cancel, Wi-Fi off/on (stop 121 ms), wifi.dat/left.dat byte-identical. SE1c-2 waits for the owner. SE1d (Apps catalogue) merged 2026-11-26: neoui#44 (`eedb063`, protocol 1.14 INFO_APPS + ACTION_OPEN_ENTRY, neoui-proto `apps.rs`); Codex review, findings fixed; virt-taps walks search → Apps → Clock; Pixel run: ROM apps, the empty state, old apps listed after Old apps ran, eshell opened through Settings |
 | SE2 | SE2a (profiles) merged 2026-11-26: neoui#45 (`079ce68`, protocol 1.15 ACTION_PROFILE); two Codex passes (UiMirror's stale edits, writes in one frame, ring before airplane), virt walks Offline and back, Pixel run: Meeting, the shade's Silent, brightness and Wi-Fi checks, all restored. SE2b (tones) built: neohw#19 (`1430041`, modem-ipc 2.7), neoui#46 (`02ff31a`); two Codex passes, findings fixed; Pixel run without a call passed and restored; waits for the owner's call test before merging. SE2c after it |
-| SE3–SE7 | not started |
+| SE3 | planned 2026-11-26 (SE3a–SE3d); SE3a first |
+| SE4–SE7 | not started |
 
 ## Part 1: settings store (done 2026-11-09)
 
