@@ -147,7 +147,7 @@ What Files needs that doesn't exist, who owns the fix, and the phase that needs 
 | Copy and paste files | done (FA8): CLIP's kind (paths to copy or move) | — | neoui | FA8 |
 | Audio out | done: NeoAudio in AUDIOD.EXE ([hardware/audio.md](hardware/audio.md) A0–A8): S16LE streams at 8–96 kHz, mixed to mono; FA9's player is a client | events (no end-of-stream or call notice: the player polls INFO), a media session for the shade (M1b) | neohw, neoui | FA9 |
 | FP/NEON for apps | the kernel part done (WB1, 2026-11-17: Q0–Q15 saved per thread); Files builds for ARMv7 since FA9 (`cargo arm7`) | the rest of the Rust user side on ARMv8 AArch32 ([user-side-smp.md](user-side-smp.md) US4); Syborg's kernel switches no VFP (US6) | e32-rs, neoui, build | FA9–FA12 |
-| Video | nothing | a decoder on the NEON build | files | FA12 |
+| Video | the FA12 player: pure-Rust decoders on the A75s, conversion on its own thread (2026-11-26) | A/V after key frames, VP9 720p and 1080p (FA12b, `video-sync.md`) | files | FA12 |
 | Share E: over USB, Eject | FS6 researched, not started | E: removable (`a64_medblk.cpp`), a DWC3 PSL, mass storage in the ROM, USB power on cold boot, dismount in e32 | kernel, build, e32-rs | FA13 |
 | Send via Bluetooth | — | OBEX, hardware/bluetooth.md B5 | neohw | FA13 |
 | Send by MMS | SMS only | MMS, hardware/modem.md C10 | neohw, phone | FA13 |
@@ -200,7 +200,8 @@ about 1 month, FA3–FA8 about 2–3 months, FA9–FA12 several months each, mos
 | FA9 M0 + M1 | built 2026-11-21: files#10. Files builds for ARMv7 on the phone (`cargo arm7`: VFPv3 + NEON, softfp; Syborg keeps `cargo arm`). The player plays WAV (8/16/24/32-bit PCM, float, A-law, µ-law, extensible). Pixel (muted): ARMv7 Files runs; 44.1/48/22.05/8 kHz WAVs play; next, previous, end-of-track advance, seek and pause work; one underrun per track (the end); a broken file is skipped; music goes on with the screen off. **Not done yet:** the incoming-call test on the Pixel, Syborg CI with the branch, the decoder choices (before M2), M1b |
 | FA10 | built 2026-11-21, merged (files#11): docx, odt and rtf in Reflow and Page; the EPUB reader; xlsx as a grid. Host: every reader on its fixtures and on broken copies (no panic), the layout's widths equal Slint's, snapshots `files2-view-docx(-page)`, `files2-view-epub(-controls, -contents)`, `files2-view-xlsx(-chart)`. **Pixel** (RAM boot): the board's Armenian docx in Reflow and Page; the 311-page EPUB (a page turn is one ~3.4 ms app frame plus ≤ 7.3 ms of rendering; 12 chapters counted in ~250 ms; the place, size and theme kept over a reboot); the xlsx grid (E7's formula and sum, a row's sum, sideways scroll, the chartsheet); a docx with three 12 MP photos: each decoded on the worker only as it scrolls in (4000×3000 → 800×600 in 1.2–1.4 s); every broken copy in `C:\Data\fa10\` opens as hex (or, a cut rtf, partly), no crash. The run found pages laid out 264 px short (measured before the reader's frame): the viewers now lay out again when their area changes size. **Not tried:** the pinch (the debug monitor injects one finger) |
 | FA11 | merged 2026-11-25 (files `fa11`; Pixel-tested except pinch): PDFs open in a viewer like the board (`files2-view-pdf`): pages at the screen's width on grey, the "Page 1 / 2" pill (a tap goes to a page), the strip of thumbnails with the size and page count, pinch zoom 1–4× (the pages stretch, then a sharp tile of the view is drawn), Contents from the outline, Go to page, a password ask, the place kept per file. Host: the board's boarding pass (our fixture, `make_pdf.py`) draws every QR module where it belongs, its embedded subset fonts (Armenian too) and its JPEG; a 100-page book (unembedded Helvetica, object streams, an outline); RC4 with a password; macOS Quartz's own PDF; forms 200 deep, a page tree that loops, a broken xref, a 3e9-wide tiling cell, 40 nested soft masks, cuts and bit flips: errors or partial pages, no panic. Snapshots `files2-view-pdf(-zoom, -page, -password, -book, -contents)`. **Pixel (2026-11-25, ARMv8 image from us5c + `test-files`):** the boarding pass sharp (opened in 3 ms, pages in 78/95 ms); book-100 opens in 19 ms, pages 200–360 ms (about 270) at 984 px, placeholders fill in about 3 s after a fast flick; the pill, thumbnails, Contents (current chapter marked), Go to page, the password (wrong one said, 1234 opens) and the place (page 77 kept) work; deep/loop/tiling/masks draw partial pages, broken-xref is repaired, the broken copies open as hex with the reason; quartz.pdf and a downloaded `dummy.pdf` draw. Fixed from the run: enlarged photos are smoothed (only 1-bit images keep hard pixels), the keyboard goes with the ask card, a jump moves the view at once. Not checked: pinch (two fingers, by hand), the worker's stack high-water mark (1 MB holds the deepest fixture) |
-| FA9 M1b–M6, FA12–FA13 | proposed; next: the decoder choices, then M2 (MP3); M1b with the top panel's media session ([top-panel.md](neoui-shell/top-panel.md) TP3: Files posts MEDIA and keeps playing in the background, owner 2026-11-21) |
+| FA12 | merged as it stands (2026-11-26: neoui#52, files#16 and this docs PR; the open issues below go to FA12b, the A/V research to `video-sync.md`, to be written): videos play in a player like the board (`files2-view-video`): MP4, MOV, 3GP and Matroska/WebM; H.264 (Baseline to High), VP8 and VP9 pictures; AAC, Vorbis and Opus sound; ±10 s, the seek bar, pause, speed 0.5–2×, mute, rotate, full screen, the place kept per clip, the controls hiding after 3 s. All pure Rust and no_std (NeoSymbian forks of rust_h264, vp8-decoder, rusty_vp9 and symphonia; `shiguredo_mp4`; our Matroska reader); every fixture's pictures equal ffmpeg's bit for bit on the host. **Pixel (720p30 H.264 High + AAC, 2026-11-26):** portrait 28.5–30 fps shown with the conversion on its own thread (CPU 6; the UI thread 0–2 ms a picture), controls up 29.7 fps, landscape 23–27 fps (conversion 21–22 ms, split with a helper on an A55), the clip's end and rotating after it right, over 720p refused with a plain card; from the earlier runs MKV H.264, VP8+Vorbis and VP9 480p + Opus play and H.263 shows the error card. **Open (FA12b):** see *Known issues* under the FA12 decisions |
+| FA9 M1b–M6, FA13 | proposed; next: the decoder choices, then M2 (MP3); M1b with the top panel's media session ([top-panel.md](neoui-shell/top-panel.md) TP3: Files posts MEDIA and keeps playing in the background, owner 2026-11-21) |
 
 **Decided while building FA1–FA8:**
 - **Settings** `files.*` (sort, ascending, folders first, grid, hidden, wrap) are unregistered keys in the app's own
@@ -296,6 +297,47 @@ about 1 month, FA3–FA8 about 2–3 months, FA9–FA12 several months each, mos
 - **What a file is** comes from its first bytes (`neo_format_media::probe`), not its name; `.aac` is an alias of the M4A row (the board's 55 types stay).
 - **Accented tags draw:** Slint bakes only the glyphs its literals use (plus ASCII and the keyboard's alphabets), so the player carries the Latin-1 and Latin Extended-A letters ("Café", "Tunç").
 - **Test images play muted** (`test-files`: the stream's own gain at 0, the media volume untouched); generated WAVs go to `C:\Data\fa9\`.
+
+**Decided while building FA12 (2026-11-25/26):**
+- **Decoders, all pure Rust and no_std** (owner: rust_h264, FFmpeg only as the fallback): our forks
+  [rust_h264](https://github.com/NeoSymbian/rust_h264) (a no_std leak fixed: the boxed OnceLock never freed, about 1 MB a
+  frame; NEON motion compensation on 32-bit ARM, checked bit-exact on the Pixel against the Mac with Baseline, Main/High
+  and deblocked 1080p clips), [vp8](https://github.com/NeoSymbian/vp8) and
+  [rusty_vp9](https://github.com/NeoSymbian/rusty_vp9) (no_std), and [Symphonia](https://github.com/NeoSymbian/Symphonia)
+  (PR #553's no_std branch, hashbrown 0.16 for build-std) for AAC and Vorbis; `opus-rs` (built in place: 175 KB);
+  `shiguredo_mp4` (the canary, for its edit list: B-frame delay and AAC priming); our own Matroska reader.
+- **Speed on the Pixel (one A75 at 2 GHz):** H.264 720p 48–64 fps on typical clips, 21 fps on a noisy 8 Mbps one; 1080p
+  about 23; VP8 720p 65; VP9 720p 18.5. The gold cluster sits at 300 MHz unless touched, so the kernel got a media boost
+  (HAL `ENeoHalCpuBoost` 0x4e29, kernel#44; the player asks every second) and the decoder runs pinned to CPU 7.
+- **Frames go straight into the app's surface** (owner): neoapp `App::raw` and `App::set_landscape` (neoui `fa12-raw`);
+  Slint draws the frame only while the controls show. The sound is the clock (NeoAudio's frames less 160 ms); the sound
+  and the clock wait until 4 pictures are decoded; a picture is dropped when a newer one is due already; the decoded queue is bounded (8).
+- **The screen stays on while a clip plays:** a page flag (`Page.awake`, neoui `fa12-raw`) the server honours as for a call.
+- **Test-only layout (2026-11-26):** with the decoders NEOFILES is about 17.5 MB and a core-ROM test image passes the
+  Pixel's RAM-boot limit (about 28 MB), so test images left NEOFILES out and it was pushed to `C:\sys\bin` (all
+  capabilities), removed after each run. Not a release layout: big Rust EXEs need the ROFS or a bigger core (owner).
+- **Conversion off the UI thread** (owner, 2026-11-26): a converter thread pinned to CPU 6 writes each picture
+  straight into the surface (neoapp `App::raw_target`), and the UI thread only sends the DAMAGE at the picture's time
+  (`App::damage`); with the controls up it fills a Slint image (two buffers reused: a new 2–6 MB one per picture
+  fragmented the first-fit heap until one failed). Landscape (2 MP) is split with a helper thread on CPU 5 (owner:
+  split across cores; `yuv::draw_rows`, the same bytes). The turned conversion works in bands of 32 rows so the
+  compiler vectorizes it (37 → 28 ms on one A75). Watchdogs: a converter or worker silent for 2 s shows the error card.
+- **Over 720p is refused for now** ("Files can't play videos over 720p yet"): 1080p ran the worker out of the 64 MB heap.
+  It comes back with e32-rs#17 (256 MB) and rust_h264's threaded decoder.
+- **1 ms waits:** `RTimer::After` rounds to the 1/64 s tick on this kernel (`stimer.cpp`), so the player's 2 ms waits were
+  15–31 ms; Files has its own `TimerHighRes` delay until e32 gets `time::delay_high_res`.
+- **Known issues (FA12b, measured on the Pixel 2026-11-26):**
+  - **Pictures late after each key frame:** rust_h264's `OrderedDecoder::new()` holds up to 16 pictures until the next
+    key frame: no picture for ~780 ms every 2 s, then 50–100 ms late (worst A/V ~100 ms, 1–5 % dropped). The fix (the
+    depth from the SPS's `max_num_reorder_frames`, files `fb90512`) passes on the host and is not yet run on the Pixel.
+    How other players keep sync is the subject of `video-sync.md` (next).
+  - **Landscape 23–27 fps,** not 30: the split conversion takes 21–22 ms, on the edge of the 33 ms a picture has.
+  - **VP9 720p 18.5 fps** (single thread); 480p plays at 30.
+  - **Memory not measured** (step 3); a thread that panics leaves what it held allocated (no unwinding).
+  - **Without kernel#44** (the media boost) the A75s sit at 300 MHz and decoding is slower; kernel#44 and e32-rs#17 are
+    still open.
+  - **Not done:** V5 thumbnails, the review (V6), the 206 ms jump after resume, and the release layout (NEOFILES is
+    17.5 MB: the ROFS, owner's decision).
 
 **Decided while building FA11 (2026-11-25):**
 - **The engine is hayro, made no_std in our fork** (owner): [NeoSymbian/hayro](https://github.com/NeoSymbian/hayro),
