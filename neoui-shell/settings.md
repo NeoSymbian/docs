@@ -635,6 +635,13 @@ Then NeoWifi 1.1 gets a directed scan and join by raw SSID, and WIFID keeps `hid
 - whether Meeting's ring plays once (SE2b changes MODEMD's loop);
 - whether Silent also silences the message tone and buzz (today `silent` stops the tone; the buzz stays).
 
+**SE2b's file rule (coordinator, 2026-11-26):** MODEMD's `C:\private\e0003001\settings.bin` stays C8 (9 bytes,
+the old writer's bytes) while both tones are Built-in, and becomes C9 (10 bytes, + the tones) only once a tone is
+chosen. A normal boot of this build never changes the format. A downgrade to an older MODEMD loses only the tones,
+and only for someone who chose one: an older MODEMD can't read C9 and falls back to its defaults (ring volume 7,
+caller ID and the log's days too). **Also for the owner:** is a fully silent ring (ringtone None with vibrate off)
+ever allowed? For now a ringing profile with ringtone None keeps vibrate on.
+
 **Owner's call, defaults until answered** (approved for SE2a by the coordinator, 2026-11-26): SE2a ships the
 proposed values as defaults, each editable per profile. The upgrade keeps today's behaviour exactly, and the other
 profiles change nothing until someone picks one. SE2b keeps MODEMD's ring loop as it is today until question 2 is
