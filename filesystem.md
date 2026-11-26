@@ -352,12 +352,30 @@ on the phone; `a64_sha256.S`, self-tested at boot, the C one as fallback), so th
 
 ### FS7: installing a big system area (Z:)
 
-**Status 2026-11-26: researched, the plan chosen; not started.**
+**Status 2026-11-26: step 0 (Z: as the ramdisk) works on the Pixel; the rest of the plan is not started.**
 
-**The problem.** The installer is a RAM-booted image that carries the whole ROFS (`ROFS=1 ROFS_INSTALL=1`,
-`a64_medrofs.cpp` `Install()`). The Pixel refuses RAM boots over about 28.6 MB of compressed `boot.img`. The ROFS
-itself has been bigger (53 MB on 2026-11-22; the image is gzipped), but that installer was already 27.8 MB. Files with
-video and PDF (NEOFILES, 17.5 MB; 12.75 MB built for size) would push it over, and every app will keep growing.
+**The problem.** Test images and the installer carry the whole ROFS (Z:) *inside the kernel* (`ROFS=1`, and
+`ROFS_INSTALL=1` for `a64_medrofs.cpp` `Install()`). The Pixel's bootloader refuses `fastboot boot` once the *unpacked*
+kernel passes about 71.6–72.2 MB ("Volume Corrupt"; measured by the Settings session, [settings.md](neoui-shell/settings.md#board-parity-owner-2026-11-26)).
+The ~28.6 MB `boot.img` figure used before was only the gzipped stand-in for it. About 15.6 MB of kernel and core ROM
+plus a 52 MB ROFS was at the limit, so Files with video and PDF (NEOFILES, 17.5 MB; 12.75 MB built for size) didn't
+fit, and every app will keep growing.
+
+**Step 0, done: Z: as the boot image's ramdisk (`ROFS=ramdisk`, kernel `rofs-ramdisk`).**
+- The kernel carries only the ROFS's first 4 KB and its per-block hashes, as `ROFS=flash` does. `rofs.img` becomes
+  the `boot.img` ramdisk (`mkboot.py`).
+- ABL copies the ramdisk raw and names it in the DTB's `/chosen` `linux,initrd-start/end`. The bootstrap
+  (`a64boot.cpp` `ParseDtb`) keeps that range out of the RAM banks and passes it in the super page (`iReserved[0..1]`).
+- `a64_medrofs.cpp` maps it read-only and serves Z: from it when it starts with the carried header. The hash layer
+  (FS5a) checks every block against the hashes in the kernel, so the ramdisk is as trusted as `boot.img`.
+  `ROFS_INSTALL` copies from it.
+- **The ramdisk doesn't count against the kernel limit.** The tp2a test kernel (71.6 MB unpacked) plus a 60 MB
+  ramdisk booted. A 16.8 MB kernel plus a 64 MB Z: (Files, X-plore and Frozen Bubble in it) booted with "ROFS from
+  the ramdisk (62500 KB): this build's" and every hash matching (2026-11-26).
+- `fastboot boot` takes up to `max-download-size` = 0x10000000 (256 MB) on bonito. The C1 Linux test RAM-booted a
+  91 MB ramdisk on this phone before.
+- Test images: `ROFS=ramdisk ROFS_CORE='\.dll$' EMMC_C=1 … neo kernel bonito`. Installers can use
+  `ROFS=ramdisk ROFS_INSTALL=1` (not tried yet; it writes `system_x`, the owner's call).
 
 **How others do it** (Codex for Android, a Claude agent for the Linux phones, 2026-11-26):
 - **Nobody RAM-boots an installer that carries the system.** Boot images hold only a kernel and a small starter.
@@ -399,8 +417,10 @@ video and PDF (NEOFILES, 17.5 MB; 12.75 MB built for size) would push it over, a
      slowdown).
    - Compressed E32 images (bytepair), measured on NEOFILES.
 
-**Exit:** a ROFS over 60 MB is installed on the inactive slot without a RAM-booted image carrying it, and the phone
-boots it with Files from Z:.
+With step 0 the RAM-booted installer is no longer size-bound (up to the 256 MB download limit), so steps 2–3 are
+about updates from the running system rather than a blocker.
+
+**Exit:** a ROFS over 60 MB is installed on the inactive slot, and the phone boots it with Files from Z:.
 
 ## Later (daily-phone stage)
 
