@@ -36,7 +36,7 @@ work that has been designed but not built**, so that two designs can't pick the 
 | 1.15 | 2026-11-26 | `ACTION_PROFILE`: the sound profiles through the shell's reducer (SE2a) | settings.md |
 | 1.16 | 2026-11-26 | `INFO_BATTERY_USAGE` (SE3a) | settings.md |
 | 1.17 | 2026-11-26 | `INFO_RUNNING`, `ACTION_STOP`, `ACTION_RESET`, `ACTION_CLEAR`, event `ClearData` (SE4a) | settings.md SE4a |
-| 1.18 | 2026-11-26 | `NOTIFY` grows (flags, style, channel, group, when, ≤ 3 actions with kinds), `NOTIFY_CLEAR`, event `NotifyGone`; NOTIFY / NOTIFY_CLEAR / BADGE only from the app's own EXE (TP2a) | top-panel.md TP2a |
+| 1.18 | 2026-11-26 | `NOTIFY` grows (flags, style, channel, group, when, ≤ 3 actions with kinds: button, reply, danger, in place), `NOTIFY_CLEAR`, event `NotifyGone` (only to 1.18 clients); NOTIFY / NOTIFY_CLEAR / BADGE only from the app's own EXE (TP2a) | top-panel.md TP2a |
 
 ## Opcodes (app → shell)
 
