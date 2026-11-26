@@ -658,6 +658,21 @@ answered.
 - phone: switch General → Meeting → back and read MODEMD's ring settings in the log. No call is made; ringing a call
   needs the owner. The original profile and values are restored at the end.
 
+**What the night's phone runs (2026-11-26) changed on the Pixel's C: (owner's morning list):** all were RAM boots
+with `EMMC_C=1`, so the eMMC C: is the real one.
+- `C:\private\e0002001\settings.dat` (the shell's store):
+  - it now holds `sound.profile` (0, General) and `sound.profiles` (General's volume 1 as an override), written by
+    SE2a's upgrade. The installed build drops unknown keys on load, so they're inert there.
+  - `display.brightness` is 205/206 after the shade check. The earlier value wasn't logged; it's within a step.
+  - `settings.root_grid`: set to grid in the SE1a run, set back to list at the end of the SE2a run.
+  - `time.zone` / `time.auto_zone`: set to Sydney and Dublin in the SE1b run, back to Tbilisi with automatic on.
+  - `clock.cities`: two cities added and removed in the SE1b run; it is now an empty list (2 bytes).
+  - `sound.silent/vibrate/ring_volume`: back to volume 1, not silent, vibrate on (as at boot).
+  - `nav.mode`: switched Buttons ↔ Gestures by NEOSET in the SE0 runs (before these notes); not re-checked tonight.
+- `C:\private\e0004002\wifi.dat` and `left.dat`: byte-identical before and after SE1c-1's run (`63af15d5…`, empty).
+  A rejoin re-saved `wifi.dat` through the new `replace_private`, with the same bytes and no `.new` left over.
+- No files were added to `C:\sys\bin` or `C:\Data` by these runs (fa12's test files were deleted by fa12).
+
 **Proposed order:** SE1a, then SE1b; SE1c after a research spike (does the firmware take a directed scan?); SE1d.
 
 **Questions for the owner:** none for SE1a or SE1b. SE1c-2: (a) and (b) above.
