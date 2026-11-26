@@ -354,7 +354,7 @@ timeout. TP3 sends it together with the media session, once Files keeps playing 
 - **Pixel:** the bar with real Wi-Fi, LTE, battery and charging; ring off and vibrate; an alarm set (then put back);
   the shade by tap, by pull and from home; ⚙ and ⏻ from the shade. Airplane mode is not switched
   on the phone (never Offline); its state is checked on virt.
-- **boot.img measured** (27.56 MB now, the limit about 28.6 MB).
+- **boot.img measured** (27.56 MB then; the real limit is on the unpacked kernel, about 71.6–72.2 MB, which boot.img near 27.8 MB stands for: [settings.md](settings.md#board-parity-owner-2026-11-26)).
 
 **TP1 runs (2026-11-26):**
 - **virt (image 32/33):** a swipe down on home → the shade; ⚙ → Settings; ⏻ → the Power menu; a short pull on a
@@ -424,7 +424,7 @@ needs another UID). Runs:
 back · Message, and an ONGOING Call-style card during a call (End). NEOMSG: one Conversation card per unread
 thread with Reply · Mark read · Call, grouped under Messages. The shell's three rows (call in progress, missed
 calls, new messages) go in the same change. This needs phone's repin to neoui's TP2a rev (it waits today with
-phone#10): **boot.img is measured first; past ~28.6 MB, stop and ask the owner.**
+phone#10): **boot.img is measured first; near the limit (an unpacked kernel past ~71.6 MB, boot.img near 27.8 MB), stop and ask the owner.**
 
 **TP2c: Files' copy job as Progress style** with its Cancel, when files repins (waits with files#15).
 

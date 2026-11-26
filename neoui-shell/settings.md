@@ -584,7 +584,7 @@ Then NeoWifi 1.1 gets a directed scan and join by raw SSID, and WIFID keeps `hid
 - **Approved addition:** `total` counts the entries the shell refused (it keeps 64), so the page says "64 of N".
 - **App settings:** Dev tools goes to its own settings view; Contacts goes to Phone's settings at Contacts.
 - **For the owner:**
-  - an image with `SIS=xplore,frozenbubble` comes to 29.0 MB, past the bootloader's ~28.6 MB limit, so old apps must
+  - an image with `SIS=xplore,frozenbubble` comes to 29.0 MB, past the bootloader's RAM-boot limit (see [Board parity](#board-parity-owner-2026-11-26)), so old apps must
     be installed on C: (or go into the ROFS) for test images;
   - on a no-SIS image X-plore won't start (`legacy: start app a0000bcd: -1`, from the grid too). It's probably
     missing files on Z:; check again on an image that has the SIS.
@@ -953,6 +953,12 @@ match and icon (`set2-search`), the app header with icon and EXE line and red ac
 and Time zone as pages rather than sheets, the grid's Notifications/Storage/Security tiles and the root's names and
 order (`set2-root-*`), the brightness slider's sun icons, status icons on saved networks.
 
+**The RAM-boot limit (measured 2026-11-26).** A test image (`ROFS=1`) carries Z: inside the kernel, and the
+Pixel's bootloader refuses `fastboot boot` when the unpacked kernel passes about 71.6–72.2 MB ("Error verifying the
+received boot.img: Volume Corrupt"): 71,608,864 bytes boot, 72,186,784 don't. boot.img's size (about 27.8 MB) is only
+a stand-in for it. Installed phones read Z: from `system_x` and aren't limited. Until Z: rides as the boot.img's
+ramdisk (a kernel/build change, to plan with the kernel stream), Settings test images leave `NEOFILES` out.
+
 Boards that are wrong about what is built get fixed on the canvas (V3): the `wifi.dat` path (`e0004002`), the user
 side (ARMv8-A, not ARMv5TE), Reset under About. Boards still without a page: `bt-device`, `bt-pair`, `fontsize`,
 `lock`, `lock-pin`, `notifications`, `notify-app`, `sim-lock`, `storage-drive`, `wallpaper`, `wifi-hidden` (their D
@@ -978,7 +984,7 @@ stages), `reset-query` (the shell's QUERY dialog, already built).
 | SE2 | SE2a (profiles) merged 2026-11-26: neoui#45 (`079ce68`, protocol 1.15 ACTION_PROFILE); two Codex passes (UiMirror's stale edits, writes in one frame, ring before airplane), virt walks Offline and back, Pixel run: Meeting, the shade's Silent, brightness and Wi-Fi checks, all restored. SE2b (tones) merged 2026-11-26: neohw#19 (`5964dfb`, modem-ipc 2.7), neoui#46 (`fa84c0f`, main merged in, CI green); two Codex passes, findings fixed; Pixel run without a call passed and restored; the owner tested calls and asked for the merge. SE2c (Your sounds) is next |
 | SE3 | planned 2026-11-26 (SE3a–SE3d). SE3a (battery saver, show percentage, battery usage, show touches, keypress vibration) merged 2026-11-26: neoui#47 (`85364a1`, protocol 1.16), Codex xhigh review fixed, Pixel run on the final head passed and restored. SE3b (Storage) merged 2026-11-26: neoui#48 (`3f5927c`), Codex review fixed, Pixel run on the final head passed (read-only). SE3c waits for the phone/files repins; SE3d colours not started |
 | SE4 | SE4a (Stop, Clear data, Reset network settings, Reset settings) merged 2026-11-26: neohw#20 (`4163f92`, NeoWifi 1.2 `RESET`, MODEMD's bulk deletes by SID), neoui#49 (`fca5a1b`, protocol 1.17), docs#68; Codex xhigh review, findings fixed; virt ran both resets; Pixel run on image 29 passed and restored (below). Then the top panel: TP1 merged (neoui#50), TP2a merged (neoui#51, protocol 1.18); next TP2b → TP4 (with SE4's notification pages) → TP7 ([top-panel.md](top-panel.md#phases)) |
-| Board parity | decided 2026-11-26 ([above](#board-parity-owner-2026-11-26)); V0 in progress |
+| Board parity | decided 2026-11-26 ([above](#board-parity-owner-2026-11-26)). V0 merged (neoui#53, docs#74); V1 kit parts merged (neoui#54 `a2e4d37`); V2 batch 1 root, grid, search merged (neoui#55 `68a4fb2`); each with the board check, a Codex xhigh review and a Pixel run on the final head. Next: V2 batch 2 (Wi-Fi, Connectivity, Mobile, Bluetooth) |
 | SE5–SE7 | not started |
 
 ## Part 1: settings store (done 2026-11-09)
