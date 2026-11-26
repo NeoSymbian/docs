@@ -37,6 +37,7 @@ work that has been designed but not built**, so that two designs can't pick the 
 | 1.16 | 2026-11-26 | `INFO_BATTERY_USAGE` (SE3a) | settings.md |
 | 1.17 | 2026-11-26 | `INFO_RUNNING`, `ACTION_STOP`, `ACTION_RESET`, `ACTION_CLEAR`, event `ClearData` (SE4a) | settings.md SE4a |
 | 1.18 | 2026-11-26 | `NOTIFY` grows (flags, style, channel, group, when, ≤ 3 actions with kinds: button, reply, danger, in place), `NOTIFY_CLEAR`, event `NotifyGone` (only to 1.18 clients); NOTIFY / NOTIFY_CLEAR / BADGE only from the app's own EXE (TP2a) | top-panel.md TP2a |
+| 1.19 | 2026-11-26 | services: an `APPS` entry with no screen (`dtsrv` = DTSRV.EXE, datetime DT1) started at boot and kept alive; `OPEN` grows `flags` (slot 3, `OPEN_WAKE` 1: screen on, shade closed; only from a service); a service's card taps and actions all arrive in place; `AppEvent::Alarm` retired (Clock gets `Open { page }` + `arg`) | [services](#services-119) |
 
 ## Opcodes (app → shell)
 
@@ -59,7 +60,7 @@ work that has been designed but not built**, so that two designs can't pick the 
 | 18 | `NOTIFY` | 1.8 (actions 1.9, progress 1.11, card fields 1.18) | built; 1.18: progress 255 = none when the 1.18 fields follow; 24 per app (the oldest goes) |
 | 19 | `BADGE` | 1.8 | built |
 | 20 / 21 | `CLIP_SET` / `CLIP_GET` | 1.8 (kind 1.12) | built |
-| 22 / 23 / 24 | `OPEN` / `ARG` / `DONE` | 1.9 | built |
+| 22 / 23 / 24 | `OPEN` / `ARG` / `DONE` | 1.9 (flags 1.19) | built |
 | 25 | `HAPTIC` | 1.10 | built |
 | 26 / 27 / 28 / 29 | `OPEN_FILE` / `ARG_FILE` / `DONE_FILE` / `RESULT_FILE` | 1.12 | built |
 | 30 | `CLIP_KIND` | 1.12 | built |
@@ -85,7 +86,7 @@ work that has been designed but not built**, so that two designs can't pick the 
 | 5 | `Options` | 1.0 | kept for LEGACY.EXE only |
 | 6 | `Visible(bool)` | 1.0 | built; TP1 also sends `Visible(false)` when the screen goes off |
 | 7 | `Settings { seq }` | 1.1 | built |
-| 8 | `Alarm { id }` | 1.2 | built |
+| 8 | `Alarm { id }` | 1.2 | **retired** in 1.19 (DTSRV opens Clock on its ring page instead); the number stays taken |
 | 9 | `Keyboard { h }` | 1.3 | built |
 | 10 | `Page { page }` | 1.4 | built |
 | 11 | `Action` | 1.4 | **retired** |
@@ -105,6 +106,26 @@ work that has been designed but not built**, so that two designs can't pick the 
 | 27 | `SettingsInfo { kind, rev }` | — | **reserved:** settings.md (a snapshot of `SETTINGS_INFO` kind changed; not used in SE0) |
 | 28 | `ClearData` | 1.17 | built: Settings → Apps → an app → Clear data; the app deletes its own data and quits (SE4a) |
 | 29 | — | — | next free |
+
+## Services (1.19)
+
+A **service** is an app with no screen: an `APPS` entry with `service: true` (`neoui_proto::apps`). The first is
+`dtsrv` (DTSRV.EXE 0xE0008003, NeoSymbian/datetime, [../datetime.md](../datetime.md)). It owns the alarms, timers,
+events and to-dos and rings them.
+- **Start:** the shell starts it hidden at boot, like a [`RESIDENT`] app, and starts it again when it exits. It is never
+  closed for room, never the screen, and never listed in the Apps menu or in Settings → Apps.
+- **Connects** like any app (`connect`, then `SETTING_GET` / `SETTING_SET` / `SETTING_WATCH`, `NEXT_EVENT`). It never
+  sends `SURFACE`, `GEOMETRY` or `DAMAGE`. `FRONT` from a service answers `KErrNotSupported`.
+- **`OPEN` with flags:** `[0] key  [1] page  [2] arg  [3] flags` (int; 0 when an older client leaves it out).
+  `OPEN_WAKE` (1) turns the screen on, as an incoming call does, and closes the shade. The opened app's Back at its
+  root goes Home: `opened_by` is none, because a service has no screen to return to. The flags count only from a
+  service; an app's flags are ignored.
+- **Cards** (`NOTIFY`, `NOTIFY_CLEAR`, `BADGE`, the 1.18 SID check by `apps::sid("dtsrv")`): a tap on a service's
+  card (action 0), and every action on it, arrive as `Notified { id, action }`, delivered in place. They never bring
+  up a screen. The service decides what to open (DTSRV: `OPEN clock` on the alarm's page).
+- **Settings keys:** a service writes the keys it owns or shares (`Owner::Apps(&["clock", "dtsrv"])` for
+  `clock.alarms` and `clock.timer`, which DTSRV imports once and then deletes). It also writes `dtsrv.*` (`dtsrv.next`:
+  the next alarm and the next event, which the shell shows in the home widget and the agenda card).
 
 ## Older numbering, now void
 
