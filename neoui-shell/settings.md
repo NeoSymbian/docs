@@ -914,6 +914,13 @@ The per-app notification keys are top-panel.md's `n.<app>` (it replaces this fil
   Clock's data with a test alarm (`settings.dat` restored to its hash), and opens and **cancels** both resets and
   the Messages/Phone Clear data questions. The owner's Wi-Fi, SMS and call log are never touched on the phone.
 
+**SE4a Pixel run (2026-11-26, image 29 `se4a-boot29.img`, 27,557,888 bytes):** Apps → Clock showed "Not running",
+then "Running" after Open; Stop → "Stop Clock?" → Stop: `neoui: settings stops app clock`, `clock: quit`, a clean
+exit. Clear data → Delete: Clock removed its 5 stored keys (`clock: data cleared (8 keys, 0 refused)`), `settings.dat`
+saved. Messages and Phone (no Stop row: residents) and both resets: question shown, Cancel (`nav Answer(1)`), nothing
+deleted or reset in the log. `settings.dat` pushed back; it and `clock.dat`, both `wifi.dat` and `left.dat` matched
+their hashes from before. Seen there and fixed: "Messages's data" → "Delete Messages data?" (neoui `e33c77c`).
+
 ### Status (2026-11-26)
 
 | Part | State |
@@ -924,7 +931,8 @@ The per-app notification keys are top-panel.md's `n.<app>` (it replaces this fil
 | SE1 | SE1a (find) merged 2026-11-26: neoui#39 (`5055cdb`); two Codex reviews; Pixel RAM-boot run: grid, search → selected row, Back along the path, Kernel log → Dev tools Console. SE1b (zones) merged 2026-11-26: neoui#40 (`32b032a`); Codex review, findings fixed; Pixel RAM-boot run: Sydney UTC+11:00 (summer time), Dublin UTC+00:00 (no summer time), World clock Yesterday −4 h / Today +7 h. SE1c spike done. SE1c-1 (Saved networks, Forget) merged 2026-11-26: neohw#18 (`5a4f8f2`, NeoWifi 1.1), neoui#43 (`2b222c8`); two Codex reviews (WIFID's stop/save fixes); Pixel run: list, Forget→Cancel, Wi-Fi off/on (stop 121 ms), wifi.dat/left.dat byte-identical. SE1c-2 waits for the owner. SE1d (Apps catalogue) merged 2026-11-26: neoui#44 (`eedb063`, protocol 1.14 INFO_APPS + ACTION_OPEN_ENTRY, neoui-proto `apps.rs`); Codex review, findings fixed; virt-taps walks search → Apps → Clock; Pixel run: ROM apps, the empty state, old apps listed after Old apps ran, eshell opened through Settings |
 | SE2 | SE2a (profiles) merged 2026-11-26: neoui#45 (`079ce68`, protocol 1.15 ACTION_PROFILE); two Codex passes (UiMirror's stale edits, writes in one frame, ring before airplane), virt walks Offline and back, Pixel run: Meeting, the shade's Silent, brightness and Wi-Fi checks, all restored. SE2b (tones) merged 2026-11-26: neohw#19 (`5964dfb`, modem-ipc 2.7), neoui#46 (`fa84c0f`, main merged in, CI green); two Codex passes, findings fixed; Pixel run without a call passed and restored; the owner tested calls and asked for the merge. SE2c (Your sounds) is next |
 | SE3 | planned 2026-11-26 (SE3a–SE3d). SE3a (battery saver, show percentage, battery usage, show touches, keypress vibration) merged 2026-11-26: neoui#47 (`85364a1`, protocol 1.16), Codex xhigh review fixed, Pixel run on the final head passed and restored. SE3b (Storage) merged 2026-11-26: neoui#48 (`3f5927c`), Codex review fixed, Pixel run on the final head passed (read-only). SE3c waits for the phone/files repins; SE3d colours not started |
-| SE4–SE7 | not started |
+| SE4 | SE4a (Stop, Clear data, Reset network settings, Reset settings) merged 2026-11-26: neohw#20 (`4163f92`, NeoWifi 1.2 `RESET`, MODEMD's bulk deletes by SID), neoui#49 (`fca5a1b`, protocol 1.17), docs#68; Codex xhigh review, findings fixed; virt ran both resets; Pixel run on image 29 passed and restored (below). Next: TP1 → TP2 → TP4 (with SE4's notification pages) → TP7 |
+| SE5–SE7 | not started |
 
 ## Part 1: settings store (done 2026-11-09)
 
