@@ -307,6 +307,53 @@ TP7 and TP8 can swap.
 - Browser WB5 (download done: TP2; downloads in the island: TP6);
 - Files FA9 M1b (TP3).
 
+### TP1 plan (2026-11-26)
+
+From `tp-statusbar`, `tp-shade` and `tp-shade-buttons`; neoui only, no protocol change. **Only what something
+backs is drawn** (D4); the rest of the 11 states come with the phase that feeds them.
+
+**Status bar** (`ui/components/frame.slint` `StatusBar`, 25 dp):
+- **Left:** the clock, then up to 3 **app glyphs** (14 dp, `text-secondary`), then "+n". One glyph per app with
+  cards in the shade, newest first: a small table by app key (`messages` → message, `phone` → missed_call,
+  `files` → folder, `clock` → alarm, anything else → bell). The shell's own rows count too (missed calls → phone,
+  unread SMS → messages, while Messages posts no cards of its own). The C9 unread envelope goes: it is this glyph now.
+- **Centre:** an empty island slot (TP6).
+- **Right, in the boards' order:** the mode icons (ring off: vibrate, or silent when vibration is off too;
+  alarm when an alarm is on, from `clock.alarms`), then the network (RAT + bars, R when roaming; **No SIM** when
+  the SIM is absent, **SOS** when registration is denied; a plane instead of all of it in airplane mode), Wi-Fi,
+  the battery (the bolt while charging; **amber fill** while the battery saver is on).
+- **The operator's name leaves the bar** (the boards don't show it); Settings → Mobile network keeps it.
+- **Not in TP1:** privacy dots and screen recording (no source yet), the island (TP6), DND's moon (TP4), headset
+  (no jack detection yet: a gap for AUDIOD).
+
+**The shade's first stop** (`ui/components/shade.slint`), under the status bar, which stays visible:
+- **Header:** the time (30 dp, light), the date (if `shade.date`), then ⚙ (opens Settings; Panel & notifications
+  once TP4 adds it) and ⏻ (the power menu). ✎ comes with the control centre (TP7).
+- **Tiles:** the 4 as today, drawn as the board's 74 dp tiles (radius 14, accent when on, icon over label).
+- **Brightness** as today; the **media slot** stays empty until TP3.
+- **NOTIFICATIONS** and the cards as today (TP2 brings sections, See all, swipe and Clear all).
+- **Shape:** bottom corners 22 dp, the scrim over the rest. "Pull for all controls" comes with TP7.
+- **Buttons mode** (`tp-shade-buttons`): the same panel above the key row.
+
+**Opening it:**
+- a tap, or a pull of more than 24 dp, anywhere on the status bar (as today), over home and over apps;
+- **`shell.swipehome`** (bool, on): a swipe down on home opens it too (more vertical than sideways, past 48 dp, not
+  on the dock). Its Settings row arrives with `tp-settings` in TP4. `shell.tap` waits for TP7, where it has a choice.
+
+**`Visible(false)` when the screen goes off:** the front app hears `Visible(false)` at screen-off and
+`Visible(true)` at screen-on. Checked against the apps that react to it: Files (pauses video), NEOPHONE (must not
+end or hide a call when the proximity sensor turns the screen off).
+
+**Checks:**
+- **host:** snapshots for each built state (`tp1-statusbar-*`: idle, apps waiting with +n, modes, charging with
+  the saver, airplane, No SIM, SOS) and the shade (`tp1-shade`, `tp1-shade-buttons`); a test for the glyph table
+  and the +n count;
+- **virt-taps:** swipe down on home → the shade; ⚙ → Settings;
+- **Pixel:** the bar with real Wi-Fi, LTE, battery and charging; ring off and vibrate; an alarm set (then put back);
+  the shade by tap, by pull and from home; screen off → `Visible(false)` in the log. Airplane mode is not switched
+  on the phone (never Offline); its state is checked on virt.
+- **boot.img measured** (27.56 MB now, the limit about 28.6 MB).
+
 ## Boards drawn in TP0
 
 Drawn on 2026-11-21 (canvas version 67, the Top panel page's "TP0" row). The same publish renumbered
