@@ -813,6 +813,27 @@ Files, From Photos), `set2-storage`.
 *For the owner:* the saver's cap (40 %) and whether it switches on by itself at 15 %; the colours' exact gradients
 (from the board); picture wallpapers and the decoder's ROM cost.
 
+**SE3b plan (Storage, `set2-storage`; proposed 2026-11-26, neoui only):**
+- **What exists:** e32 `Fs::drives`/`volume` (total, free, media, attributes) and `read_dir`. Files keeps a per-kind
+  index, but neoui can't pin files (files pins neoui). Files' `OPEN` pages are Pick and Save only: "Open in Files at
+  E:" needs a Files page (`files::BROWSE`, the arg a folder), so it waits for Files' repin (the boot-size decision).
+- **Drives** (shown at once, no worker): one row per drive `drives()` lists, as `used of total` with the board's line:
+  C: Phone ("Settings, installed apps, app data"), D: RAM ("Temporary files", total only), E: Mass memory ("Media and
+  documents"), Z: System ("Read-only", no free space shown). A drive that fails `volume` shows "Not available".
+- **C: and E: by kind** (the board's bar and list): a worker thread walks C: and E:, skipping `\private`, `\sys`,
+  `\resource` and `\system`. It sums file sizes by extension into Images, Video, Audio, Documents and Other files,
+  with the table in neoui-proto (`settings_app::storage::kind_of`, host-tested; the same families as Files' viewers).
+  Apps = the sizes in `\sys\bin` on C: and E: (installed EXEs and DLLs). Other = used − files − apps (app data,
+  system files). Free = free. The bar shows Apps / Files / Other / Free like the board.
+  - The scan is cancellable: leaving the page stops it at the next directory. It shows "Counting…" with the running
+    totals, at most 64 directory levels deep, and the result is kept for the app's life. It never opens files, only
+    lists them, so nothing is written.
+- **Not in SE3b:** app data by owner (SE4, with Clear data); Share E: over USB (FS6); "Open in Files" at a drive (after
+  Files' repin; a plain "Open Files" row opens Files at its start).
+- **Tests:** `kind_of` and the sums (proto), snapshots `set2-storage` (scanned, counting, an E:-less phone).
+  **Pixel run:** the drive rows against fshell's `drive` output and the scan's totals against `du`-style sums of a
+  folder, with nothing written (C: hashed before and after: `settings.dat` and the scanned folders' listings).
+
 **SE3a as built** (neoui#47, 2026-11-26; coordinator's conditions: every default as before, the saver by hand only
 with a named cap, show touches drawing only and measured, usage only from what the history holds):
 - `neoui_proto::effects` holds the saver's cap (`SAVER_CAP_PERCENT` 40, a `shortcut:`) and the key pulse (12 ms at
