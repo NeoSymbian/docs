@@ -688,8 +688,8 @@ with `EMMC_C=1`, so the eMMC C: is the real one.
 
 **SE2b waits for the owner (not merged, coordinator 2026-11-26):** on image 20, a real incoming call, an SMS that
 arrives just before a call, and a call during media playback; then merge. PRs neohw#19 (`1430041`) and neoui#46
-(`02ff31a`, pins neohw `1430041`). Image: `boot20.img` (27,402,240 bytes, sha256 `8e6b6861…`), kept on the Mac in
-the session's scratchpad; rebuild from those two heads if it's gone. The night's Pixel run checked: the Ringtone and
+(`02ff31a`, pins neohw `1430041`). Image: `boot20.img` (27,402,240 bytes, sha256 `8e6b6861…`), on the Mac at
+`kernel/out/ekern-bonito/se2b-boot20.img` (gitignored); rebuild from those two heads if it's gone. The night's Pixel run checked: the Ringtone and
 Message tone sheets and their previews, MODEMD's tones (`0x02`, `0x01`, `0x03`, `0x13`, `0x20`, back to `0x00`),
 None keeping Vibrate on (with its note), the 10th byte only while a tone isn't Built-in, and the file back
 byte-identical. No call was made.
