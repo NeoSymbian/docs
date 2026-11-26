@@ -645,6 +645,9 @@ answered.
   2. whether Meeting's ring plays once (SE2b changes MODEMD's loop);
   3. whether Silent also silences the message tone and buzz (today `silent` stops the tone; the buzz stays).
 - **Not selected on the phone at night:** Offline (it drops LTE and Wi-Fi). Host tests and virt cover it.
+- **Also for the owner (from SE2a's review):** turning airplane mode *on* elsewhere doesn't enter Offline (D3 only
+  says turning it off leaves Offline). If Offline is then chosen and left, airplane mode stays on, because that is
+  what the user had. Should airplane on elsewhere make Offline the profile?
 
 *Tests:*
 - proto: the blob round trip and its limits, the upgrade mapping, the reducer (Silent remembers and restores; Offline
