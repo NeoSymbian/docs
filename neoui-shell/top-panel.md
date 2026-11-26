@@ -290,7 +290,7 @@ Each phase ends on the Pixel, with neoui host snapshots for every new board and 
 | **TP0** | Docs + canvas | This folder; [protocol.md](protocol.md). On the canvas: renumber `api-notify-protocol`/`api-notify-model`; fix `set2-notifications`/`set2-notify-app` ("neoui-shell Part 2" → TP stages) and `store-shade` ("no progress field": 1.11 has one); **draw the missing boards** ([below](#boards-drawn-in-tp0)) | — | docs, canvas | every board on the five pages is in the screen map; the link check passes |
 | **TP1** | Status bar v2 + the first stop | Left: the clock + app glyphs (≤ 3, then +n). Centre: the island slot (empty). Right: silent/vibrate, alarm set, DND, headset, airplane, No SIM / SOS / roaming, charging. The shade's first stop as `tp-shade` (date header, the 4-tile row, the media slot, cards, "Pull for all controls"). A pull down from the status bar anywhere. `Visible(false)` when the screen goes off. `shell.tap`, `shell.swipehome` | — | neoui | the 11 `tp-statusbar` states render on the phone; the shade opens by tap and pull |
 | **TP2** | Cards | NOTIFY grows; BLOB, NOTIFY_CLEAR, NotifyGone; sections, swipe to dismiss, Clear all, groups, history; 24 per app. **NEOPHONE** posts missed calls and the ongoing-call card, and the shell's three rows go. **NEOMSG** posts Conversation cards with Mark read. **Files** moves its job to Progress style | 31, 32 / 22 | neoui-proto, neoui, phone, files | a missed call, an SMS and a Files copy show as `nt-shade` cards; a swipe dismisses and the app hears NotifyGone |
-| **TP3** | Media session | MEDIA + Media events; the shade's media card; the home Media card goes live; the volume HUD. **Files FA9 M1b:** Files posts the session, keeps playing in the background, and its footer "Stops when you leave Files." changes | 33 / 23 | neoui-proto, neoui, files | a WAV started in Files plays on with Files in the background; pause, next and seek work from the shade and from home |
+| **TP3** | Media session | MEDIA + Media events; the shade's media card; the home Media card goes live; the volume HUD; `Visible(false)` when the screen goes off (moved from TP1). **Files FA9 M1b:** Files posts the session, keeps playing in the background, and its footer "Stops when you leave Files." changes | 33 / 23 | neoui-proto, neoui, files | a WAV started in Files plays on with Files in the background; pause, next and seek work from the shade and from home |
 | **TP4** | Channels, banners, reply, DND | CHANNEL, importances, the user's override; the heads-up banner (never over a full-screen call or the keyboard's field); inline reply with the shell keyboard; the rate limit; Do not disturb; tone and vibration per importance (`sound.rs`, haptics); Settings pages and the `notify.*`/`n.<app>` keys. **Messages:** Reply, Mark read and Call from the banner and the shade | 34, 35 / 24 | neoui-proto, neoui, phone | an SMS arrives as a banner while Files is open; Reply sends it and Files stays in front; DND holds the banner |
 | **TP5** | Calls in the panel | NEOPHONE posts the incoming call as a sticky banner while the phone is in use; full screen when the screen is off, locked or on home. Answer and Reject from the banner; Reply with message | (uses TP2/TP4) | phone, neoui | a call rings over Files as a banner; Answer connects; a call to a locked phone is full screen |
 | **TP6** | Live island | ACTIVITY; compact, two, expanded; transient alerts; the order and permission rules; `island.*`. **Producers:** NEOPHONE (the call, `di-call`), the media session (derived), Files (copies), later Clock/DTSRV timers and Browser downloads | 36 / 25 | neoui-proto, neoui, phone, files | in a call, Files shows the green island; a hold gives Mute/Speaker/End; music shows as the circle |
@@ -340,9 +340,9 @@ backs is drawn** (D4); the rest of the 11 states come with the phase that feeds 
 - **`shell.swipehome`** (bool, on): a swipe down on home opens it too (more vertical than sideways, past 48 dp, not
   on the dock). Its Settings row arrives with `tp-settings` in TP4. `shell.tap` waits for TP7, where it has a choice.
 
-**`Visible(false)` when the screen goes off:** the front app hears `Visible(false)` at screen-off and
-`Visible(true)` at screen-on. Checked against the apps that react to it: Files (pauses video), NEOPHONE (must not
-end or hide a call when the proximity sensor turns the screen off).
+**`Visible(false)` when the screen goes off moves to TP3.** Files stops its audio on `Visible(false)` ("Stops when
+you leave Files"), so sending it at screen-off before background play exists would cut music at every screen
+timeout. TP3 sends it together with the media session, once Files keeps playing in the background.
 
 **Checks:**
 - **host:** snapshots for each built state (`tp1-statusbar-*`: idle, apps waiting with +n, modes, charging with
@@ -350,7 +350,7 @@ end or hide a call when the proximity sensor turns the screen off).
   and the +n count;
 - **virt-taps:** swipe down on home → the shade; ⚙ → Settings;
 - **Pixel:** the bar with real Wi-Fi, LTE, battery and charging; ring off and vibrate; an alarm set (then put back);
-  the shade by tap, by pull and from home; screen off → `Visible(false)` in the log. Airplane mode is not switched
+  the shade by tap, by pull and from home; ⚙ and ⏻ from the shade. Airplane mode is not switched
   on the phone (never Offline); its state is checked on virt.
 - **boot.img measured** (27.56 MB now, the limit about 28.6 MB).
 
