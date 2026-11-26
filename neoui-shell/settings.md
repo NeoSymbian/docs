@@ -159,8 +159,9 @@ below.
 **Protocol** ([neoui-shell/protocol.md](protocol.md); numbers reserved by this document):
 - **`SETTINGS_INFO = 40`** `[kind, cursor, Des8 out]` returns a bounded, versioned, revisioned snapshot of something
   only the shell knows:
-  - kinds: 1 battery history, 2 Wi-Fi IP/portal, 3 clock sync;
-  - later: 4 app catalogue (SE1), 5 notification channels (SE5).
+  - kinds: 1 battery history, 2 Wi-Fi IP/portal, 3 clock sync, 4 app catalogue (SE1, 1.14), 5 battery usage (SE3a,
+    1.16), 6 running apps (SE4a, 1.17);
+  - later: the notification channels (TP4, a new kind).
 - **`SETTINGS_ACTION = 41`** `[kind, Des8 request]` asks the shell to act:
   - kind 1 signs in to the current network;
   - later: profile switch (SE2), reset jobs (SE4), share E: (SE6).
@@ -871,6 +872,47 @@ with a named cap, show touches drawing only and measured, usage only from what t
   - the first minute after a reboot can count up to 60 s too much as a gap;
   - the show-touches ring hasn't been seen on a screenshot (the debug monitor can't hold a finger down); the owner
     should look: Developer options → Show touches.
+
+#### SE4 plan (proposed 2026-11-26, owner-approved order)
+The owner's order: **SE4a** (Stop, Clear data, the two resets) first, then the panel and notifications of
+[top-panel.md](top-panel.md) in this push: **TP1 → TP2 → TP4 → TP7**, SE4's notification pages landing with TP4
+(Device → Notifications = `tp-settings`; Apps → an app → Notifications = `nt-settings`). TP3 stays with Files
+(FA9 M1b); TP5, TP6, TP8 and TP9 come later. Each stage gets its own plan here or in top-panel.md before code.
+The per-app notification keys are top-panel.md's `n.<app>` (it replaces this file's `notify.<id>.on/.banner`).
+
+**SE4a plan (neoui 1.17, neohw NeoWifi 1.2):**
+- **Protocol (Settings-only by SID, like kinds 2 and 3):**
+  - `SETTINGS_INFO` kind 6 `INFO_RUNNING`: the running apps' keys, each with a resident flag.
+  - `SETTINGS_ACTION` 4 `ACTION_STOP {key}`: the shell's switcher close (quit, 3 s grace, then a kill).
+    `KErrPermissionDenied` for the residents (Phone, Messages: they would respawn) and Settings itself.
+  - `SETTINGS_ACTION` 5 `ACTION_RESET {0 network | 1 settings}`: a typed shell job, then the POWER restart path (the
+    shell flushes `settings.dat` and the battery log first).
+  - `SETTINGS_ACTION` 6 `ACTION_CLEAR {key}`: the shell sends **`AppEvent::ClearData` (kind 28)** to the app,
+    starting it hidden if it isn't running. The app clears its own data and quits.
+- **Stop** (Apps → an app): "Running" or "Not running" from kind 6; no Stop row for the residents or Settings.
+- **Clear data, only where the data's owner can do it (D4, no dead rows):**
+  - **Clock** clears its own keys (every key the registry gives to `clock`: alarms, timer, stopwatch, cities, its
+    preferences) on `ClearData`.
+  - **Messages:** NEOSET asks MODEMD, the SMS owner: `SMS_EDIT` `EDIT_DELETE_ALL` (blocked senders' messages stay).
+  - **Phone:** MODEMD `CLEAR_LOG 0`, the call history. Contacts stay (NEOCONT has no clear path yet); the
+    question says so.
+  - Browser, Files, Terminal and the rest get the row when they handle `ClearData` (with their repins).
+- **Reset network settings:** WIFID's new `RESET` (op 8): leave, write `wifi.dat` as a valid empty file (so the old
+  `\private\e0002001\wifi.dat` migration can't bring networks back), clear `left.dat`; then the restart. Bluetooth
+  bonds and the APN join when their owners exist; the question names only Wi-Fi networks.
+- **Reset settings:** every registered key no app owns back to its default, except `registry::RESET_KEEPS`: the
+  sound profiles with their live values (a mirror reset alone would be folded into the active profile), the radio
+  switches, `legacy.pad.epoch` and `open.always` (the apps chosen per file type). App-owned keys (Clock's alarms,
+  Phone's speed dial, `contacts.migrated`) are never touched, and neither is Clock's 24-hour time (Clock's key,
+  which Date & time shows): it survives both Reset settings and Clock's Clear data. A host test lists every key as
+  reset, kept or an app's. `settings.dat` is saved before the restart, or the action fails and nothing restarts.
+- **Pages:** 21 `AppDetail` (the per-app hub, S06) replaces the app sheet: Open, App settings, Stop, Clear data
+  (notifications join in TP4). 22 `Reset` under About in both roots: Reset network settings, Reset settings. Every
+  destructive row asks first, naming what goes, what stays and "The phone restarts".
+- **Checks:** host tests (records, the reset list, the empty `wifi.dat`); virt runs the resets on a scratch C:
+  (a changed key back to default, alarms kept; a fabricated `wifi.dat` emptied); the Pixel run stops Clock, clears
+  Clock's data with a test alarm (`settings.dat` restored to its hash), and opens and **cancels** both resets and
+  the Messages/Phone Clear data questions. The owner's Wi-Fi, SMS and call log are never touched on the phone.
 
 ### Status (2026-11-26)
 
