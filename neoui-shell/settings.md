@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Settings: the store and the Settings app
 
-**Status: the store is done 2026-11-09 (neoui `22af6ac`); the Settings app (NEOSET) SE0 is built and merged 2026-11-26 (neoui#38 `b19d597`, e32-rs#16, neohw#17), SE1 in progress.** One store for the shell and every app (`neoui-proto::settings`,
+**Status: the store is done 2026-11-09 (neoui `22af6ac`); the Settings app (NEOSET) SE0–SE3 parts and SE4a are built and merged 2026-11-26 (the [Status](#status-2026-11-26) table lists each); the notification pages come with the top panel's TP4.** One store for the shell and every app (`neoui-proto::settings`,
 `SETTING_GET`/`SET`/`WATCH`). Moved here from `neoui-shell.md` Part 1 on 2026-11-21; the hub is [../neoui-shell.md](../neoui-shell.md).
 The keys the top panel adds (`shell.*`, `notify.*`, `island.*`, `lock.*`) are listed in [top-panel.md](top-panel.md#settings-keys).
 
@@ -18,7 +18,7 @@ Written 2026-11-25. This is the implementation plan for the Settings app:
 - the platform work it needs;
 - the stages SE0–SE7.
 
-Nothing of it is built yet. Today's Settings is a screen inside the UI server; see [The app today]](#the-app-today).
+What is built is in the [Status](#status-2026-11-26) table. [The app today](#the-app-today) describes the shell's Settings screen that NEOSET replaced.
 
 **The design:** the canvas's Settings page, https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#page-009b5da44490
 - 48 `set2-*` boards, decisions S01–S07, published 2026-11-17;
@@ -931,7 +931,7 @@ their hashes from before. Seen there and fixed: "Messages's data" → "Delete Me
 | SE1 | SE1a (find) merged 2026-11-26: neoui#39 (`5055cdb`); two Codex reviews; Pixel RAM-boot run: grid, search → selected row, Back along the path, Kernel log → Dev tools Console. SE1b (zones) merged 2026-11-26: neoui#40 (`32b032a`); Codex review, findings fixed; Pixel RAM-boot run: Sydney UTC+11:00 (summer time), Dublin UTC+00:00 (no summer time), World clock Yesterday −4 h / Today +7 h. SE1c spike done. SE1c-1 (Saved networks, Forget) merged 2026-11-26: neohw#18 (`5a4f8f2`, NeoWifi 1.1), neoui#43 (`2b222c8`); two Codex reviews (WIFID's stop/save fixes); Pixel run: list, Forget→Cancel, Wi-Fi off/on (stop 121 ms), wifi.dat/left.dat byte-identical. SE1c-2 waits for the owner. SE1d (Apps catalogue) merged 2026-11-26: neoui#44 (`eedb063`, protocol 1.14 INFO_APPS + ACTION_OPEN_ENTRY, neoui-proto `apps.rs`); Codex review, findings fixed; virt-taps walks search → Apps → Clock; Pixel run: ROM apps, the empty state, old apps listed after Old apps ran, eshell opened through Settings |
 | SE2 | SE2a (profiles) merged 2026-11-26: neoui#45 (`079ce68`, protocol 1.15 ACTION_PROFILE); two Codex passes (UiMirror's stale edits, writes in one frame, ring before airplane), virt walks Offline and back, Pixel run: Meeting, the shade's Silent, brightness and Wi-Fi checks, all restored. SE2b (tones) merged 2026-11-26: neohw#19 (`5964dfb`, modem-ipc 2.7), neoui#46 (`fa84c0f`, main merged in, CI green); two Codex passes, findings fixed; Pixel run without a call passed and restored; the owner tested calls and asked for the merge. SE2c (Your sounds) is next |
 | SE3 | planned 2026-11-26 (SE3a–SE3d). SE3a (battery saver, show percentage, battery usage, show touches, keypress vibration) merged 2026-11-26: neoui#47 (`85364a1`, protocol 1.16), Codex xhigh review fixed, Pixel run on the final head passed and restored. SE3b (Storage) merged 2026-11-26: neoui#48 (`3f5927c`), Codex review fixed, Pixel run on the final head passed (read-only). SE3c waits for the phone/files repins; SE3d colours not started |
-| SE4 | SE4a (Stop, Clear data, Reset network settings, Reset settings) merged 2026-11-26: neohw#20 (`4163f92`, NeoWifi 1.2 `RESET`, MODEMD's bulk deletes by SID), neoui#49 (`fca5a1b`, protocol 1.17), docs#68; Codex xhigh review, findings fixed; virt ran both resets; Pixel run on image 29 passed and restored (below). Next: TP1 → TP2 → TP4 (with SE4's notification pages) → TP7 |
+| SE4 | SE4a (Stop, Clear data, Reset network settings, Reset settings) merged 2026-11-26: neohw#20 (`4163f92`, NeoWifi 1.2 `RESET`, MODEMD's bulk deletes by SID), neoui#49 (`fca5a1b`, protocol 1.17), docs#68; Codex xhigh review, findings fixed; virt ran both resets; Pixel run on image 29 passed and restored (below). Then the top panel: TP1 merged (neoui#50), TP2a merged (neoui#51, protocol 1.18); next TP2b → TP4 (with SE4's notification pages) → TP7 ([top-panel.md](top-panel.md#phases)) |
 | SE5–SE7 | not started |
 
 ## Part 1: settings store (done 2026-11-09)
