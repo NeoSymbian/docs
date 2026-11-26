@@ -5,8 +5,9 @@ Written 2026-11-17. This is the proposal for a new repo, `NeoSymbian/datetime`. 
 - **Clock** (`NEOCLOCK.EXE`), moved out of neoui and redesigned;
 - **Calendar** (`NEOCAL.EXE`), new.
 
-They share a resident server, **DTSRV**, that owns every alarm, timer, event and to-do and rings them. Today's
-Clock is built (in neoui). Calendar exists only as a shell mock. Nothing here is built yet.
+They share a resident server, **DTSRV**, that owns every alarm, timer, event and to-do and rings them. **Built
+2026-11-26** in [NeoSymbian/datetime](https://github.com/NeoSymbian/datetime) (DT0–DT7 in one go; see
+[Status](#status-2026-11-26)).
 
 **The design** is on the canvas's Clock page (https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#page-9cf533b1dc6b) and
 Calendar page (https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#page-b458b7e9b909):
@@ -52,7 +53,12 @@ From the canvas (owner, 2026-11-17, console questions):
   - the 5 old boards are removed;
   - everything is drawn in Gestures, plus a Buttons row per app, the prototypes and the spec sheets.
 
-## The apps today
+**DT09 DTSRV is a headless app** (owner, 2026-11-26, console). Since protocol 1.18 only an app's own EXE may post
+shade cards, so "DTSRV sends OPEN + NOTIFY" needed a shell change. The owner chose protocol **1.19 services**
+(an `APPS` entry with no screen: started at boot, kept alive, OPEN with `OPEN_WAKE`, card taps delivered in place)
+over relaying the rings through the shell. Details: [neoui-shell/protocol.md](neoui-shell/protocol.md#services-119).
+
+## The apps before (2026-11-17)
 
 **Clock, NEOCLOCK.EXE 0xE0002002**, in `neoui/symbian/apps/clock`, on the kit since 2026-11-17:
 - **Tabs:** Clock (digital or analog face, seconds, date, next alarm), Alarms, World, Timer and Stopwatch.
@@ -111,7 +117,7 @@ datetime/
   `symbian/Cargo.toml` (the files and phone repos already drift: `e6aa05e` vs `27a90f7`).
 - Nightly as in neoui.
 
-**Licences:** Apache for the `*-core` crates and `pim-ics`; GPL-3.0 for everything that links Slint (`-ui`,
+**Licences:** Apache for the `*-core` crates, `pim-ics`, DTSRV and its client; GPL-3.0 for everything that links Slint (`-ui`,
 `symbian/*`). DTSRV links no Slint, so it is Apache.
 
 **CI:**
@@ -121,25 +127,39 @@ datetime/
 
 ## How it works
 
-**DTSRV** is a Rust CServer2 (`e32::server`), started at boot (`RESIDENT` in `neoui/symbian/src/host.rs`).
-- **Stores:**
-  - `alarms.dat`, `timers.dat`, `calendar.ics` (one VCALENDAR per calendar, colour in `X-NEO-COLOR`) and
-    `todo.ics`, all in `C:\private\e0008003\`;
-  - DTSRV is their only writer;
-  - writes are atomic: temp file + rename.
-- **Firing:**
-  - one `RTimer::At` on the earliest due item (alarm, timer end, reminder), instead of a per-minute poll;
-  - on fire: `OPEN clock:/ring?id=` or `calendar:/ring?uid=` (protocol 1.9) and `NOTIFY` for the shade (1.8);
-  - snooze re-arms;
-  - a change of time or zone (DTSRV watches `time.zone`, `time.auto`) re-plans everything.
-- **dt-ipc 1.0** (opcodes on `dt2-spec-dtsrv`):
-  - `NEXT`;
-  - `WATCH`, an async change notification;
-  - `ALARM_LIST/PUT/DEL`, `TIMER`, `RING_ACTION`;
-  - `EVENT_QUERY` (expanded instances, birthdays included), `EVENT_PUT/DEL`;
-  - `TODO_LIST/PUT/DEL`;
-  - `IMPORT_ICS`, `EXPORT_ICS`.
-- **Birthdays:** read from NEOCONT's book, never copied. Contacts stays the only writer of the book.
+**DTSRV** (`symbian/server`, Apache-2.0) is a Rust CServer2 (`e32::server`, name `DtSrv`) and a **service** of the UI
+server (protocol 1.19): the shell starts it at boot (`RESIDENT`, first) and keeps it running. It links no Slint, so
+it talks to the UI server through a thin client on `neoui-proto` (`ui.rs`), not `neoapp`.
+- **Stores** in `C:\private\e0008003\`, DTSRV the only writer, each saved as `x.new` + replace:
+  - `alarms.dat`, `timers.dat` (`datetime-core` blobs), `rings.dat` (each alarm's last rung occurrence, the rings
+    not yet acted on, the snoozes left: no double ring after a restart or a clock set back);
+  - `calendar.ics` (one VCALENDAR per calendar, `X-NEO-COLOR`, `X-WR-CALNAME`) and `todo.ics`;
+  - only "not found" means "no file": any other read error keeps the store unread (writes answer KErrNotReady)
+    and it is read again every 10 s.
+  - First run: `clock.alarms` / `clock.timer` (the old Clock's settings) are imported, then emptied.
+- **Planning:** one plan over alarms (local minute of week), the timer and the reminders of the next two days
+  (`datetime-core::plan`), against UTC and the local zone (the `time.zone` city's `tz::Rule` with automatic zone
+  off, else the kernel offset). It sleeps `min(due − now, 60 s)`; `time.*` and `clock.*` changes re-plan at once.
+  `shortcut:` a clock jump without a settings change is seen within 60 s (upgrade: an e32 `TIMER_AT` wrapper).
+- **Firing:** `OPEN(clock | calendar, page RING, arg ring id, OPEN_WAKE)` (screen on, shade closed) plus DTSRV's
+  own card (Snooze / Dismiss, in place; the running timer has an ongoing card with Pause). A card tap reopens the
+  page. Ring ids are `(kind << 24) | item` (1 alarm, 2 timer, 3 reminder).
+- **`dtsrv.next`:** the next alarm and the next event as a settings blob (`neoui_proto::clock::next`), which the
+  shell shows in the home ClockWidget and AgendaCard. There is no shell→DTSRV IPC.
+- **dt-ipc 1.0** (`datetime-core::ipc`; large replies return the full length and are asked for again):
+
+  | Op | Name | Op | Name |
+  |---|---|---|---|
+  | 1 | NEXT | 12 | TODO_PUT |
+  | 2 | WATCH (async, mask: alarms 1, timers 2, events 4, todos 8, rings 16) | 13 | TODO_DEL |
+  | 3 / 4 / 5 | ALARM_LIST / PUT (id 0 creates) / DEL | 14 | IMPORT_ICS (text ≤ 256 KB) |
+  | 6 | TIMER (get, start, pause, resume, reset, add) | 15 | EXPORT_ICS |
+  | 7 | RING_ACTION (snooze, dismiss, stop, +1 min) | 16 | CLEAR (mask) |
+  | 8 | EVENT_QUERY (days, hidden calendars) | 17 | WATCH_CANCEL |
+  | 9 / 10 | EVENT_PUT / EVENT_DEL (this or all) | 18 / 19 | CALENDARS / CALENDAR_PUT |
+  | 11 | TODO_LIST | 20 / 21 | RING_INFO / EVENT_GET |
+- **Birthdays:** read from NEOCONT's book (`contacts.dat`, NCT2 since phone#birthdays) through phone's `contacts`
+  crate, again on every `contacts.rev` change, never copied.
 
 **The apps** keep no alarm or event state. They read through DTSRV and redraw on `WATCH`. Only the Stopwatch stays
 local, because it never rings. The Ringing screen lives in `ui-shared`:
@@ -169,7 +189,7 @@ widget text now comes from `NEXT`. The shell drops the alarm check (`due()`, `Ap
 | Alarms with the phone off | none | a PMIC RTC alarm + power-on reason in the kernel (sdm670) | kernel |
 | Ring while silent | sound profiles don't exist yet | profiles (settings S-boards) and an audio path for tones | neoui, telephony |
 | Alarm sounds | a beep | the audio service of files FA9 (MP3/AAC), or built-in tones first | telephony, files |
-| OPEN a page with arguments from a server | OPEN is app-to-app (1.9) | allow a non-UI client (DTSRV) to OPEN and NOTIFY | neoui |
+| OPEN a page with arguments from a server | done: protocol 1.19 services (DT09) | — | neoui |
 | .ics in Messages | SMS only | MMS (modem C10) | neohw |
 | Share by Bluetooth | none | hardware/bluetooth.md B5 | neohw |
 
