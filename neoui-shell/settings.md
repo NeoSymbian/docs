@@ -681,6 +681,18 @@ with `EMMC_C=1`, so the eMMC C: is the real one.
 - `C:\private\e0004002\wifi.dat` and `left.dat`: byte-identical before and after SE1c-1's run (`63af15d5…`, empty).
   A rejoin re-saved `wifi.dat` through the new `replace_private`, with the same bytes and no `.new` left over.
 - No files were added to `C:\sys\bin` or `C:\Data` by these runs (fa12's test files were deleted by fa12).
+- SE2b's run (image 20): `C:\private\e0003001\settings.bin` (MODEMD) was 9 bytes `4338 0100 0100 0100 1e`
+  (`a8543b7d…`); it took a 10th tones byte while a tone was chosen, and is byte-identical again after both tones went
+  back to Built-in (no `.new` left). `settings.dat` gained `sound.tones`, now empty (0 bytes, every tone Built-in);
+  the installed build drops it on load.
+
+**SE2b waits for the owner (not merged, coordinator 2026-11-26):** on image 20, a real incoming call, an SMS that
+arrives just before a call, and a call during media playback; then merge. PRs neohw#19 (`1430041`) and neoui#46
+(`02ff31a`, pins neohw `1430041`). Image: `boot20.img` (27,402,240 bytes, sha256 `8e6b6861…`), kept on the Mac in
+the session's scratchpad; rebuild from those two heads if it's gone. The night's Pixel run checked: the Ringtone and
+Message tone sheets and their previews, MODEMD's tones (`0x02`, `0x01`, `0x03`, `0x13`, `0x20`, back to `0x00`),
+None keeping Vibrate on (with its note), the 10th byte only while a tone isn't Built-in, and the file back
+byte-identical. No call was made.
 
 **Proposed order:** SE1a, then SE1b; SE1c after a research spike (does the firmware take a directed scan?); SE1d.
 
@@ -697,7 +709,7 @@ SE5 and SE6 follow their platform stages.
 | This plan | written 2026-11-25 |
 | SE0 | built and merged 2026-11-26: neoui#38 (`b19d597`), e32-rs#16 (`Message::client_sid`), neohw#17 (e32 pin). QEMU walk and three Pixel RAM-boot runs: Open apps card, Wi-Fi list and join (keyboard, wrong password, no double join), Buttons/Gestures by NEOSET's SID, the connect and reap races, keyboard resume. Two Codex reviews, findings fixed |
 | SE1 | SE1a (find) merged 2026-11-26: neoui#39 (`5055cdb`); two Codex reviews; Pixel RAM-boot run: grid, search → selected row, Back along the path, Kernel log → Dev tools Console. SE1b (zones) merged 2026-11-26: neoui#40 (`32b032a`); Codex review, findings fixed; Pixel RAM-boot run: Sydney UTC+11:00 (summer time), Dublin UTC+00:00 (no summer time), World clock Yesterday −4 h / Today +7 h. SE1c spike done. SE1c-1 (Saved networks, Forget) merged 2026-11-26: neohw#18 (`5a4f8f2`, NeoWifi 1.1), neoui#43 (`2b222c8`); two Codex reviews (WIFID's stop/save fixes); Pixel run: list, Forget→Cancel, Wi-Fi off/on (stop 121 ms), wifi.dat/left.dat byte-identical. SE1c-2 waits for the owner. SE1d (Apps catalogue) merged 2026-11-26: neoui#44 (`eedb063`, protocol 1.14 INFO_APPS + ACTION_OPEN_ENTRY, neoui-proto `apps.rs`); Codex review, findings fixed; virt-taps walks search → Apps → Clock; Pixel run: ROM apps, the empty state, old apps listed after Old apps ran, eshell opened through Settings |
-| SE2 | SE2a (profiles) merged 2026-11-26: neoui#45 (`079ce68`, protocol 1.15 ACTION_PROFILE); two Codex passes (UiMirror's stale edits, writes in one frame, ring before airplane), virt walks Offline and back, Pixel run: Meeting, the shade's Silent, brightness and Wi-Fi checks, all restored. SE2b (tones) in progress; SE2c after it |
+| SE2 | SE2a (profiles) merged 2026-11-26: neoui#45 (`079ce68`, protocol 1.15 ACTION_PROFILE); two Codex passes (UiMirror's stale edits, writes in one frame, ring before airplane), virt walks Offline and back, Pixel run: Meeting, the shade's Silent, brightness and Wi-Fi checks, all restored. SE2b (tones) built: neohw#19 (`1430041`, modem-ipc 2.7), neoui#46 (`02ff31a`); two Codex passes, findings fixed; Pixel run without a call passed and restored; waits for the owner's call test before merging. SE2c after it |
 | SE3–SE7 | not started |
 
 ## Part 1: settings store (done 2026-11-09)
