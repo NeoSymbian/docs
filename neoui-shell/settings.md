@@ -730,6 +730,10 @@ with `EMMC_C=1`, so the eMMC C: is the real one.
   back to Built-in (no `.new` left). `settings.dat` gained `sound.tones`, now empty (0 bytes, every tone Built-in);
   the installed build drops it on load.
 
+- SE3a's runs (images 21–23): `settings.dat` was `07e10b2c…` (656 bytes) at the start of the run and byte-identical
+  at the end, every new key back at its default. Image 21's shell (no SE2b) dropped SE2b's empty `sound.tones` key
+  from `settings.dat` on its first save; that key was inert there.
+
 **SE2b waits for the owner (not merged, coordinator 2026-11-26):** on image 20, a real incoming call, an SMS that
 arrives just before a call, and a call during media playback; then merge. PRs neohw#19 (`1430041`) and neoui#46
 (`02ff31a`, pins neohw `1430041`). Image: `boot20.img` (27,402,240 bytes, sha256 `8e6b6861…`), on the Mac at
@@ -809,6 +813,25 @@ Files, From Photos), `set2-storage`.
 *For the owner:* the saver's cap (40 %) and whether it switches on by itself at 15 %; the colours' exact gradients
 (from the board); picture wallpapers and the decoder's ROM cost.
 
+**SE3a as built** (neoui#47, 2026-11-26; coordinator's conditions: every default as before, the saver by hand only
+with a named cap, show touches drawing only and measured, usage only from what the history holds):
+- `neoui_proto::effects` holds the saver's cap (`SAVER_CAP_PERCENT` 40, a `shortcut:`) and the key pulse (12 ms at
+  70, the pads' tick). A host test checks that a fresh store gives today's panel level, no pulse, the percent shown
+  and no rings.
+- Battery usage (`SETTINGS_INFO` kind 5, protocol 1.16, page 19): the window starts at the last full charge the
+  phone then ran down from, else covers the whole history; minutes without a reading count as gaps.
+- Codex xhigh review: rings over the shade, square rings over neighbours and the Back hint, hover fingers, pulses per
+  code point instead of per press, a refused brightness write taken as done, the usage window and its gaps. All fixed.
+- Pixel run (image 23, neohw main): saver on `panel 409 of 1023 (setting 206)`, off `826` at once; `key pulse 12 ms
+  amplitude 70 -> 0`; show touches costs about 0.2 ms of the shell's app time per frame while scrolling (3.2–3.5
+  against 3.0–3.3 ms at 33 fps); `settings.dat` byte-identical after every key went back.
+- **For the owner (left open):**
+  - a found row below the fold isn't scrolled to (every long page; Battery's Saving rows are one);
+  - the rings pause during a home-page swipe;
+  - the first minute after a reboot can count up to 60 s too much as a gap;
+  - the show-touches ring hasn't been seen on a screenshot (the debug monitor can't hold a finger down); the owner
+    should look: Developer options → Show touches.
+
 ### Status (2026-11-26)
 
 | Part | State |
@@ -818,7 +841,7 @@ Files, From Photos), `set2-storage`.
 | SE0 | built and merged 2026-11-26: neoui#38 (`b19d597`), e32-rs#16 (`Message::client_sid`), neohw#17 (e32 pin). QEMU walk and three Pixel RAM-boot runs: Open apps card, Wi-Fi list and join (keyboard, wrong password, no double join), Buttons/Gestures by NEOSET's SID, the connect and reap races, keyboard resume. Two Codex reviews, findings fixed |
 | SE1 | SE1a (find) merged 2026-11-26: neoui#39 (`5055cdb`); two Codex reviews; Pixel RAM-boot run: grid, search → selected row, Back along the path, Kernel log → Dev tools Console. SE1b (zones) merged 2026-11-26: neoui#40 (`32b032a`); Codex review, findings fixed; Pixel RAM-boot run: Sydney UTC+11:00 (summer time), Dublin UTC+00:00 (no summer time), World clock Yesterday −4 h / Today +7 h. SE1c spike done. SE1c-1 (Saved networks, Forget) merged 2026-11-26: neohw#18 (`5a4f8f2`, NeoWifi 1.1), neoui#43 (`2b222c8`); two Codex reviews (WIFID's stop/save fixes); Pixel run: list, Forget→Cancel, Wi-Fi off/on (stop 121 ms), wifi.dat/left.dat byte-identical. SE1c-2 waits for the owner. SE1d (Apps catalogue) merged 2026-11-26: neoui#44 (`eedb063`, protocol 1.14 INFO_APPS + ACTION_OPEN_ENTRY, neoui-proto `apps.rs`); Codex review, findings fixed; virt-taps walks search → Apps → Clock; Pixel run: ROM apps, the empty state, old apps listed after Old apps ran, eshell opened through Settings |
 | SE2 | SE2a (profiles) merged 2026-11-26: neoui#45 (`079ce68`, protocol 1.15 ACTION_PROFILE); two Codex passes (UiMirror's stale edits, writes in one frame, ring before airplane), virt walks Offline and back, Pixel run: Meeting, the shade's Silent, brightness and Wi-Fi checks, all restored. SE2b (tones) built: neohw#19 (`1430041`, modem-ipc 2.7), neoui#46 (`02ff31a`); two Codex passes, findings fixed; Pixel run without a call passed and restored; waits for the owner's call test before merging. SE2c after it |
-| SE3 | planned 2026-11-26 (SE3a–SE3d); SE3a first |
+| SE3 | planned 2026-11-26 (SE3a–SE3d). SE3a (battery saver, show percentage, battery usage, show touches, keypress vibration): neoui#47, Codex xhigh review fixed, Pixel run on the final head passed and restored |
 | SE4–SE7 | not started |
 
 ## Part 1: settings store (done 2026-11-09)
