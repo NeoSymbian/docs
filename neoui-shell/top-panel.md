@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Top panel: status bar, shade, notifications, media, calls and messages, live island, control centre, lock screen
 
-**Status: designed 2026-11-21; TP0 done (docs + canvas); TP1 built 2026-11-26 (neoui#50); TP2–TP9 not built.** The design comes from the canvas page **Top panel &
+**Status: designed 2026-11-21; TP0 done (docs + canvas); TP1 built 2026-11-26 (neoui#50); TP2a built 2026-11-26 (neoui#51); TP2b–TP9 not built.** The design comes from the canvas page **Top panel &
 notifications** (18 boards) plus the related boards on the Shell, Navigation, Phone, Messages, Clock, Files, Store,
 Browser and Settings pages. The screen map is at the [end](#screen-map). It replaces `neoui-shell.md` Part 2 (the
 2026-11-09 notification sketch, whose opcode numbers are void) and Navigation's G6 lock screen. The hub is
@@ -396,7 +396,7 @@ From `nt-shade` and `nt-anatomy`. Three parts, so the phone repin is measured on
     ⚙), the sections with their labels, then **Clear all** (ONGOING cards stay);
   - a card: the app's glyph and name, "· now / 2 min / 10:24" from `when` (the app's `time` for old records), the
     group's count and ▾, the avatar (initials on a tint), title, two lines, progress, up to 3 actions (Reply drawn
-    as the main one, Danger in red);
+    as the main one, Danger in red; In place (3) for Mark read);
   - a **group** (same app and `group`) shows its newest card with the count; ▾ opens the rest under it;
   - **swipe** left or right past a third of the width dismisses a card (not ONGOING ones): the app hears
     `NotifyGone { id, 0 }`.
@@ -406,6 +406,19 @@ From `nt-shade` and `nt-anatomy`. Three parts, so the phone repin is measured on
   a swipe and Clear all.
 - **Not in TP2a (they have no producer or no screen yet):** BLOB (31) and Picture style (no app has images to post),
   the 24 h history (no view shows it), slow-swipe Snooze and the hold sheet (channels, TP4), the Silent fold (TP4).
+
+**TP2a as built (2026-11-26, neoui#51):** as planned, plus action kind 3 **IN_PLACE** (Mark read): the app hears
+`Notified` without coming to the front (started hidden if it isn't running), and the shade stays open. Codex xhigh
+review fixed: taps and swipes go by (app, id), not a place in the list; `NotifyGone` only to apps that connected at
+1.18 or later (the 1.12 Browser would end on it); the shell's Wi-Fi login card under Browser survives the Browser's
+NOTIFY_CLEAR; a tap keeps an ongoing card; a group spanning sections is one stack; swipe or scroll by the dominant
+axis. Open: Kit and the old apps' bridge share SID 0xE0002006, so the SID check can't tell them apart (one of them
+needs another UID). Runs:
+- **virt (images 41–43):** NEOKIT posts 6 cards (SID check passed), See all, a swipe → `NotifyGone(0)`, Clear all
+  takes 4 and keeps the ongoing one, Mark read in place → `Notified(5, 2)`;
+- **Pixel (images 42, 43):** the same, plus scrolling the list, the group's ▾ opening the list (found on image 42:
+  ▾ on the first stop did nothing visible; fixed), NOTIFY_CLEAR from the kit; Wi-Fi files byte-identical
+  (`settings.dat` changed only by the owner's brightness while using the phone).
 
 **TP2b: Phone and Messages post their own cards (phone repo, neoui).** NEOPHONE: "N missed calls · names" with Call
 back · Message, and an ONGOING Call-style card during a call (End). NEOMSG: one Conversation card per unread
