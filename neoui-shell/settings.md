@@ -900,9 +900,12 @@ The per-app notification keys are top-panel.md's `n.<app>` (it replaces this fil
 - **Reset network settings:** WIFID's new `RESET` (op 8): leave, write `wifi.dat` as a valid empty file (so the old
   `\private\e0002001\wifi.dat` migration can't bring networks back), clear `left.dat`; then the restart. Bluetooth
   bonds and the APN join when their owners exist; the question names only Wi-Fi networks.
-- **Reset settings:** every registered shell-owned key back to its default except `sound.profiles`, `sound.tones`,
-  `sound.profile` and `legacy.pad.epoch`; app-owned keys (Clock's alarms, Phone's speed dial, `contacts.migrated`)
-  are never touched. The active profile is applied again afterwards. A host test lists every key as reset or kept.
+- **Reset settings:** every registered key no app owns back to its default, except `registry::RESET_KEEPS`: the
+  sound profiles with their live values (a mirror reset alone would be folded into the active profile), the radio
+  switches, `legacy.pad.epoch` and `open.always` (the apps chosen per file type). App-owned keys (Clock's alarms,
+  Phone's speed dial, `contacts.migrated`) are never touched, and neither is Clock's 24-hour time (Clock's key,
+  which Date & time shows): it survives both Reset settings and Clock's Clear data. A host test lists every key as
+  reset, kept or an app's. `settings.dat` is saved before the restart, or the action fails and nothing restarts.
 - **Pages:** 21 `AppDetail` (the per-app hub, S06) replaces the app sheet: Open, App settings, Stop, Clear data
   (notifications join in TP4). 22 `Reset` under About in both roots: Reset network settings, Reset settings. Every
   destructive row asks first, naming what goes, what stays and "The phone restarts".
