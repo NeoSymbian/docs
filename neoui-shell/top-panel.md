@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Top panel: status bar, shade, notifications, media, calls and messages, live island, control centre, lock screen
 
-**Status: designed 2026-11-21; TP0 done (docs + canvas), nothing of TP1–TP9 built.** The design comes from the canvas page **Top panel &
+**Status: designed 2026-11-21; TP0 done (docs + canvas); TP1 built 2026-11-26 (neoui#50); TP2–TP9 not built.** The design comes from the canvas page **Top panel &
 notifications** (18 boards) plus the related boards on the Shell, Navigation, Phone, Messages, Clock, Files, Store,
 Browser and Settings pages. The screen map is at the [end](#screen-map). It replaces `neoui-shell.md` Part 2 (the
 2026-11-09 notification sketch, whose opcode numbers are void) and Navigation's G6 lock screen. The hub is
@@ -355,6 +355,23 @@ timeout. TP3 sends it together with the media session, once Files keeps playing 
   the shade by tap, by pull and from home; ⚙ and ⏻ from the shade. Airplane mode is not switched
   on the phone (never Offline); its state is checked on virt.
 - **boot.img measured** (27.56 MB now, the limit about 28.6 MB).
+
+**TP1 runs (2026-11-26):**
+- **virt (image 32/33):** a swipe down on home → the shade; ⚙ → Settings; ⏻ → the Power menu; a short pull on a
+  favourite opens nothing; a sideways swipe still turns the page.
+- **Pixel, image 33 (`tp1-boot33.img`, 27,566,080 bytes):**
+  - the bar with real LTE (4 bars), 5 GHz Wi-Fi and the battery full on USB, no operator name;
+  - the shade's Silent tile → the vibrate glyph in the bar, then back to the Outdoor profile;
+  - the shade by a tap on the bar, a pull from the bar and a swipe down on home; ⚙ → Settings; ⏻ → the Power menu
+    (Cancel);
+  - home's long press still opens Edit home · Wallpaper; a page swipe and the home pull no longer do;
+  - `settings.dat`, both `wifi.dat` and `left.dat` byte-identical before and after.
+- **Found on the Pixel (image 32) and fixed:** the swipe down opened the shade, and half a second later home's long
+  press menu over it. The UI server's takeover (`cancel_touch`) left Slint's press held, so home's 500 ms timer ran
+  on; page slides did the same before TP1. `cancel_touch` and the start of a pull now stop it until the next press
+  (neoui `8135960`, test `home_hold.rs`).
+- Not tried on the phone: the alarm glyph (host snapshot only), airplane mode (never switched on the owner's phone),
+  No SIM.
 
 ## Boards drawn in TP0
 
