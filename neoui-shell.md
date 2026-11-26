@@ -16,6 +16,7 @@ design (settings, notifications, home pages, widgets); its parts moved into the 
 | [neoui-shell/navigation.md](neoui-shell/navigation.md) | Navigation v2: Buttons, Gestures (Thumb map), N9; the recognizer; Open apps, peek, Lanes | G1, NV1–NV12, G2–G5 | NV built 2026-11-17 |
 | [neoui-shell/keyboard.md](neoui-shell/keyboard.md) | The system keyboard (en, hy, ru, pads, terminal) and the old apps' key pads | — | built |
 | [neoui-shell/settings.md](neoui-shell/settings.md) | The settings store (Part 1), the apps rebuilt on it, and the Settings app `NEOSET.EXE` (v2, out of the shell): pages, `SETTINGS_INFO`/`ACTION`, who may write what | Part 1, SE0–SE7 | store built 2026-11-09; app designed 2026-11-25 |
+| [neoui-shell/settings-data.md](neoui-shell/settings-data.md) | The data every Settings board shows: who produces it, the protocol, gates and feasibility | D1–D19 | plan 2026-11-26 |
 | [neoui-shell/home.md](neoui-shell/home.md) | Home pages, pin and unpin, the dock, widgets (Parts 3–4) | Parts 3–4 | planned |
 | [neoui-shell/design-system.md](neoui-shell/design-system.md) | Tokens, layout, glyphs, digits, app tiles, components | — | built |
 | [neoui-shell/smooth-ui.md](neoui-shell/smooth-ui.md) | 60 fps: input pacing, layers, CPU placement, FP/NEON, DPU, GPU | S1–S6 | S1–S3 done |
