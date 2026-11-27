@@ -163,8 +163,14 @@ board below, so check the board when they differ.
 | OP3 | Debug link | ✅ done | 2026-11-26 | USB console, AUTOFASTBOOT, phone.py (kernel 58470a68) | [hardware/devices/fajita](hardware/devices/fajita.md) |
 | OP4 | Input | ✅ done | 2026-11-26 | keys and RMI4 touch | [hardware/devices/fajita](hardware/devices/fajita.md) |
 | OP5 | Clocks | ✅ done | 2026-11-26 | cpufreq 4 + 4, touch boost, TSENS | [hardware/devices/fajita](hardware/devices/fajita.md) |
-| OP6 | UFS, read-only | ✅ done | 2026-11-26 | every LUN's GPT read; PRs kernel#46 build#67 docs#79 | [hardware/devices/fajita](hardware/devices/fajita.md) |
-| OP7 | C: and E: on UFS | ⬜ open | — | the owner's call (/e/OS owns userdata since 2026-11-27) | [hardware/devices/fajita](hardware/devices/fajita.md) |
+| OP6 | UFS, read-only | ✅ done | 2026-11-26 | every LUN's GPT read; PRs kernel#46 build#67 | [hardware/devices/fajita](hardware/devices/fajita.md) |
+| U1 | UFS: Linux's split (core, vendor ops, QMP PHY) | ✅ done | 2026-11-27 | `blk init` + `blk luns` as in OP6 (kernel 90eea545) | [hardware/devices/fajita](hardware/devices/fajita.md) |
+| U2 | UFS: our own bring-up | ✅ done | 2026-11-27 | `blk reset`: link, NOP, fDeviceInit, LUNs (kernel 90eea545) | [hardware/devices/fajita](hardware/devices/fajita.md) |
+| U3 | UFS: 2 lanes, HS-G3 | ✅ done | 2026-11-27 | `blk gear`: pwrmode 11, lanes 2/2 (kernel 90eea545) | [hardware/devices/fajita](hardware/devices/fajita.md) |
+| U4 | UFS: interrupts + request queue | ✅ done | 2026-11-27 | 1 GB at 328 MB/s, 0 errors, `boot_a` hash matches (kernel df7ff8d1) | [hardware/devices/fajita](hardware/devices/fajita.md) |
+| U5 | UFS: guarded writes, C: on `system_b` | ✅ done | 2026-11-27 | guard + wtest; a file survives 3 reboots; 392 MB/s (kernel 18afb83c, 8f21452e) | [hardware/devices/fajita](hardware/devices/fajita.md) |
+| U6 | UFS: error recovery, own init by default | ✅ done | 2026-11-27 | 4 injected faults recovered, data intact (kernel afc16193) | [hardware/devices/fajita](hardware/devices/fajita.md) |
+| OP7 | C: and E: on UFS | 🔵 active | 2026-11-27 | a test C: on `system_b` works (U5); the real place is the owner's call (/e/OS owns userdata) | [hardware/devices/fajita](hardware/devices/fajita.md) |
 | OP8 | Panel | ⬜ open | — | DCS to the S6E3FC2X01 | [hardware/devices/fajita](hardware/devices/fajita.md) |
 | OP9 | Battery | ⬜ open | — | bq27xxx gauge, PMI8998 charger | [hardware/devices/fajita](hardware/devices/fajita.md) |
 | OP10 | Modem | ⬜ open | — | LLCC slice table, then MSS on OnePlus firmware | [hardware/devices/fajita](hardware/devices/fajita.md) |

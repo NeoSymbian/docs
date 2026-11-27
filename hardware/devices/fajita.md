@@ -10,6 +10,8 @@ port should serve it too (untested).
 
 **Status (2026-11-26):** OP0–OP6 done, and **neoui runs on the 6T** (RAM boot): the launcher, apps, touch, keys, the USB console, CPU clocks with touch boost, and temperatures all work. Since `ROFS=ramdisk` (kernel#45), Z:'s ROFS rides as the boot image's ramdisk, which takes the image past the bootloader's ~49.5 MB kernel limit: the Files app is back in it. UFS reads work (read-only, OP6).
 
+**UFS driver (2026-11-27):** U1–U6 done (kernel branch `fajita`, not pushed yet): our own UFS bring-up, 2 lanes at HS-G3, interrupts with an 8-slot queue (1 GB read at 392 MB/s), and guarded writes into `system_b` only. A test C: on `system_b` keeps files across reboots, and the driver recovers from a dead host or a device reset mid-request (U6). Details: [The UFS driver](#the-ufs-driver-u1u6-2026-11-27).
+
 **The phone changed (2026-11-27).** It no longer runs Ubuntu Touch; the owner had it reinstalled:
 - **Software:** /e/OS 4.5.1 (Android 15, LineageOS-based) on slot a, active. Slot b holds OxygenOS 11.1.2.2 system and
   vendor, with the /e/OS recovery in `boot_b`.
@@ -127,8 +129,14 @@ CLAUDE.md apply too: the build on atlas, CI green, bonito unaffected.
 | OP3 | Debug link | done | 2026-11-26 | USB console, AUTOFASTBOOT, phone.py (kernel 58470a68) |
 | OP4 | Input | done | 2026-11-26 | keys and RMI4 touch |
 | OP5 | Clocks | done | 2026-11-26 | cpufreq 4 + 4, touch boost, TSENS |
-| OP6 | UFS, read-only | done | 2026-11-26 | every LUN's GPT read; PRs kernel#46 build#67 docs#79 |
-| OP7 | C: and E: on UFS | open | — | the owner's call (/e/OS owns userdata since 2026-11-27) |
+| OP6 | UFS, read-only | done | 2026-11-26 | every LUN's GPT read; PRs kernel#46 build#67 |
+| U1 | UFS: Linux's split (core, vendor ops, QMP PHY) | done | 2026-11-27 | `blk init` + `blk luns` as in OP6 (kernel 90eea545) |
+| U2 | UFS: our own bring-up | done | 2026-11-27 | `blk reset`: link, NOP, fDeviceInit, LUNs (kernel 90eea545) |
+| U3 | UFS: 2 lanes, HS-G3 | done | 2026-11-27 | `blk gear`: pwrmode 11, lanes 2/2 (kernel 90eea545) |
+| U4 | UFS: interrupts + request queue | done | 2026-11-27 | 1 GB at 328 MB/s, 0 errors, `boot_a` hash matches (kernel df7ff8d1) |
+| U5 | UFS: guarded writes, C: on `system_b` | done | 2026-11-27 | guard + wtest; a file survives 3 reboots; 392 MB/s (kernel 18afb83c, 8f21452e) |
+| U6 | UFS: error recovery, own init by default | done | 2026-11-27 | 4 injected faults recovered, data intact (kernel afc16193) |
+| OP7 | C: and E: on UFS | active | 2026-11-27 | a test C: on `system_b` works (U5); the real place is the owner's call (/e/OS owns userdata) |
 | OP8 | Panel | open | — | DCS to the S6E3FC2X01 |
 | OP9 | Battery | open | — | bq27xxx gauge, PMI8998 charger |
 | OP10 | Modem | open | — | LLCC slice table, then MSS on OnePlus firmware |
@@ -339,6 +347,55 @@ The build: `ROFS=ramdisk ROFS_CORE='(?i)\.dll$|neofiles\.exe$' neo kernel fajita
 
 **Verified:** Files opens and browses C: and Z:. The rest of the left-out apps (NEOPHONE, NEOCONT, NEOMSG, NEOWEB,
 about 14 MB together) would fit in the room left: about 21 MB in the kernel and 10 MB in the ramdisk.
+
+### The UFS driver, U1–U6 (2026-11-27)
+
+The plan (the owner's choices, 2026-11-26): port the **design** of Linux's UFS driver, not its code (Linux is GPL-2.0;
+[fajita-ufs-reference.md](fajita-ufs-reference.md) lists the facts used), with our own bring-up, 2 lanes, interrupts and
+a request queue, and writes only into `system_b`. Kernel branch `fajita` (local commits, not pushed yet), files in
+`sdm845_assp/`, split like Linux's:
+- `ufshcd.cpp`: the generic UFSHCI 2.1 core: request lists, UIC commands, link start-up, power mode, every command
+  through one builder with an allow-list, the block backend;
+- `qcom_ufs.cpp`: Qualcomm's vendor steps: supplies, GDSC, clocks, resets, the hooks around HCE and link start-up;
+- `qcom_ufs_phy.cpp`: the QMP v3 PHY tables and calibration.
+
+| Stage | What it adds | Measured on the 6T |
+|---|---|---|
+| U1–U3 | our own init (`blk reset`) instead of adopting ABL's link; `blk gear` to HS-G3 Rate B on 2 lanes | link up, 6 LUNs; pwrmode 11, lanes 2/2; 231 MB/s polled |
+| U4 | SPI 265 interrupt (ISR masks the line, IDFC wakes the waiter, 10 ms timer as a bound), 8 slots in flight | 1 GB at 328 MB/s, 0 UIC/fatal errors, 0 timeouts; `boot_a`'s hash matches the Ubuntu Touch copy |
+| U5a | WRITE(10) with FUA, 4 KB read-modify-write below FAT's 512-byte sectors; `EMMC_C=2` = monitor writes | `blk guard` refuses sector 0, the last of `system_a`, the first after `system_b`; `blk wtest` passes; 64 MB written at 141 MB/s |
+| U5b | `EMMC_C=1` = C: on `system_b` at boot (medblk's MBR + FAT) | a 3 MB file keeps its SHA-256 across 3 reboots; 1 GB read at 392 MB/s |
+| U6 | error recovery (below); our own init at boot in every build (read-only without `EMMC_C`, C: then the RAM drive) | 4 injected faults, each recovered on the first try; 1 GB at 397 MB/s afterwards |
+
+**The write guard:** a write must lie inside `system_b` on LUN 0, found exactly once in the GPT; it is checked in the
+block backend and again in the command builder. Never WRITE BUFFER, purge or write-protect flags.
+
+**Data checks:** the first 64 MB of `system_a` and `userdata` hash the same before and after every write test, on the old
+layout (Ubuntu Touch, U5a) and on the stock one (/e/OS, U5b). On the stock layout the driver found `system_b` by name at
+sectors 6543872–12401151 (2.79 GB), so C: takes all of it.
+
+**A bug found on the way (U5b):** with C: on UFS, the boot-time init waits in the extension thread and later the file
+server waits in its own. A wake-up left by both the interrupt and the timer firing made `NFastSemaphore::SetOwner`
+fault (`nkern.cpp` 494: CrashDump). Fixed by dropping the count when the owner changes (kernel `8f21452e`).
+
+**Monitor:** `blk reset`, `blk gear`, `blk irq on|off`, `blk speed [MB]`, `blk guard <sector>`, `blk wspeed [MB]`,
+`blk hash <part> [MB]`, besides OP6's commands.
+
+**Notes:**
+- Before `blk gear` the link runs in PWM-G1 (~0.5 MB/s): a large read then blocks the monitor for minutes.
+- fshell on a fresh C: needs Settings → Developer options → USB debugging (off by default); neoui saves it on C:.
+
+**Error recovery (U6, Linux's error handler reduced):** a slot timeout (1 s), a fatal error bit, a UniPro PA_INIT
+error, or the host found disabled or without a device marks the link broken. Every read and write then resets and
+restores it (device reset, HCE, link start-up, NOP, fDeviceInit, HS-G3; up to 5 tries; the LUNs and the allow-list
+stay as found) and runs again, up to 3 times. `blk inject <n> [dev]` disables the host (or pulses the device's
+reset) while the n-th request from then is in flight. On the 6T:
+- the host disabled, then the device reset, each in the middle of a 64 MB hash: both hashes still match;
+- a device reset during a write of an on-phone copy to C: (`cp`): the copy hashes like the original, also after a
+  reboot;
+- a device reset during `phone.py push`: the write recovers, but the YMODEM transfer overruns while the file server
+  waits (about a second) and aborts; pushing again works;
+- `shortcut:` no ABORT TASK first: a timed-out request resets the whole link.
 
 ## Open questions
 
