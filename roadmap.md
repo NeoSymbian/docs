@@ -233,8 +233,10 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   cards, the media session (background playback), banners and inline reply, calls and messages from the panel, the
   live island, the control centre and the lock screen, as stages TP0–TP9. TP0 (docs + canvas) is done; TP1 is next.
 - **Settings app** ([neoui-shell/settings.md](neoui-shell/settings.md#the-settings-app-neoset), designed 2026-11-25): `NEOSET.EXE` replaces the shell's
-  Settings screen (so it shows in Open apps), with every page of the canvas's Settings v2, as stages SE0–SE7. SE0
-  (the app with today's pages in v2 chrome and no dead rows) is next.
+  Settings screen (so it shows in Open apps), with every page of the canvas's Settings v2, as stages SE0–SE7.
+  SE0–SE4a built 2026-11-26; every page matched to its board (V0–V2); **2026-11-27, the Settings run** built the data
+  behind the boards (D1–D11, D18; [settings-data.md](neoui-shell/settings-data.md#built-2026-11-27)) with the top
+  panel's TP2b and TP4 (notifications, protocol 1.21). Left: TP7, V3, and the hardware stages D12–D17, D19.
 - **Navigation v2 and the neoui kit** ([navigation.md](neoui-shell/navigation.md), [kit.md](neoui-shell/kit.md); merged to main
   2026-11-17, installed into slot a the same day):
   - apps draw their header and footer with a shared kit (`neoui-kit`, `@neoui/kit.slint`) and talk to the shell

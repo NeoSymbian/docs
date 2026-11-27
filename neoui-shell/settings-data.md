@@ -1,12 +1,30 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Settings data: what the boards show and who produces it
 
-**Status: plan, 2026-11-26.** The owner decided that NEOSET matches the design canvas's `set2-*` boards and that every value a board shows is real ([settings.md](settings.md#board-parity-owner-2026-11-26)). This file is the data side: the stages D1–D19, each with its producer, protocol, gate and feasibility. It was written by Codex (xhigh, read-only, from the `origin/main` trees named below); the order the owner approved is in settings.md. The visual side (V0–V3) is in settings.md too.
+**Status: plan 2026-11-26; D1–D11 and D18 built 2026-11-27 (the Settings run, table below), D12–D17 and D19 show honest "Not yet (Dxx)" rows until their hardware stages.** The owner decided that NEOSET matches the design canvas's `set2-*` boards and that every value a board shows is real ([settings.md](settings.md#board-parity-owner-2026-11-26)). This file is the data side: the stages D1–D19, each with its producer, protocol, gate and feasibility. It was written by Codex (xhigh, read-only, from the `origin/main` trees named below); the order the owner approved is in settings.md. The visual side (V0–V3) is in settings.md too.
 
 
 Four board values already have producers worth reusing. WIFID supplies **all four** requested Wi-Fi detail fields. F32 supplies free bytes for **C:**, although Settings currently prefers E: for the root summary. The kernel exposes both the console-overlay state and the booted A/B slot. The largest gaps are cellular packet data, Bluetooth, and calibrated battery attribution.
 
 Codex inspected the local `origin/main` trees, including `docs b1e2d91`, `neoui 56f4775`, `neohw 4163f92`, `kernel 73111a3d`, `e32-rs b525e9f`, `build dc684b5`, `phone 8165f58`, `files 39ab88a` and `browser ddf32c9`. The hardware roadmaps are in the **docs** repository at these revisions. It read source only: no builds, tests or phone runs. The checks below are implementation acceptance criteria. [Settings status](https://github.com/NeoSymbian/docs/blob/b1e2d91/neoui-shell/settings.md#status-2026-11-26) · [Hardware ownership](https://github.com/NeoSymbian/docs/blob/b1e2d91/hardware.md)
+
+## Built (2026-11-27)
+
+| Stage | As built | Left |
+|---|---|---|
+| D1 | `settings_app/row_model.rs`: stable row ids, instances, one provider for page, search and root; search keeps its query, scroll and selection on Back | visible APs / saved SSIDs as instances; a hit below the fold isn't scrolled into view |
+| D2 | Wi-Fi details from WIFID's link record; Console overlay (HAL 0x4e02/03, `REPAINT` 45 after off); About's active slot (HAL 0x4e09) | — |
+| D3 | C: and E: counted apart, C:'s Apps/Files/Other bar, file system per drive (e32 `file_system_name`/`sub_type`), mount generation, root "C: … free" | the per-drive kinds page (FS6) |
+| D4 | INFO 8 from SYSSTART (catalogue, EXE found, measurements), owners Dev tools and Terminal (`OWNER_REPORT` 42), confirmed Clear data with tickets (INFO 13), the shell's own measurement on a worker | owners in datetime, Files, Browser, Phone/Messages; full-colour app icons |
+| D5 | the charge-cycle recorder (discharge + display-on only, gaps counted), A/B checkpoints, INFO 9, Battery usage's card and Screen-on time | per-app shares (D16) |
+| D6 | message-tone line; keypad tones and vibrate on touch per profile (`CONTROL_FEEDBACK` 44); preview pause/elapsed; your own ringtones (WAV import, modem-ipc 2.8, NeoAudio 1.1) | Contacts/Messages feedback; picking your sound as a message tone; ring-gain preview |
+| D7 | wallpaper colours (`display.wallpaper`), font size (`display.font_size`: Settings, home and the shade) | pictures (needs INSTALL_WALLPAPER), display language strings, the other apps' font scale at their repins |
+| D8 | clipboard-read toast (`privacy.clip_notice`), diagnostics = Dev tools' local log | read-only app permissions (needs the capability words) |
+| D9 | with TP4, protocol 1.21: `CHANNEL` 34, INFO 7, `n.<app>`, DND, banners, the Notifications pages | MODEMD's alert policy (DND for calls/SMS, favourites); inline reply |
+| D10 | switcher columns and thumbnails, swipe down closes apps, Lanes, `home.layout` and the home editor (ACTION 9) | "Add to home" from the menu; 2×2 widgets |
+| D11 | modem-ipc 2.9: protection state, SET_PIN_PROTECTION, CHANGE_PIN; the SIM card lock page; one-attempt rule; PINs never stored or logged | a spare-SIM run for the mutating paths; PUK |
+| D18 | About: "Slot a · Update service unavailable" | a signed feed (INFO 11, CHECK_UPDATE) |
+| D12–D17, D19 | honest "Not yet (Dxx)" rows on Wi-Fi, Mobile, Bluetooth, root, Notifications, Reset | their stages |
 
 ## Protocol and delivery order
 
