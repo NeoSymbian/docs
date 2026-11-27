@@ -84,7 +84,7 @@ work that has been designed but not built**, so that two designs can't pick the 
 | 44 | `CONTROL_FEEDBACK` | 1.20 | built (D6): `[kind, key]` → 0: a control of the app in front accepted a touch (kind 0; the kit reports it with `neoapp::kit_feedback!`) or a dial pad key (kind 1, key = its ASCII `0`–`9`, `*`, `#`). The shell answers at most once per finger-0 press it delivered to that app: a pulse with `sound.touch_vibrate`, the key's DTMF pair with `sound.keypad_tones` out of a call in an audible profile. `KErrNotReady` without a press to answer or not in front, `KErrArgument` for another kind, `KErrNotSupported` from a client older than 1.20 |
 | 45 | `REPAINT` | 1.20 | built (D2 fix): no arguments → 0: something drew straight onto the screen (the kernel console overlay, just turned off), so the shell copies its whole frame and the front app's whole surface at the next frame. `KErrNotSupported` from an older shell |
 | 46 | `WIDGET` | 1.22 | contract ([1.22](#widget-46)): checked against the catalogue, `KErrNotSupported` until home Part 4. home.md's first `WIDGET = 12` (and the plan's 11) were 1.4's retired `TOOLBAR`/`TITLE`: numbers are never reused |
-| 47 | `SHELL_VERSION` | 1.22 | built: no arguments → `major << 8 \| minor`, for any app (a publisher's way to learn the shell reads 1.22; an older shell answers `KErrNotSupported`) |
+| 47 | `SHELL_VERSION` | 1.22 | built: no arguments → `features << 16 \| major << 8 \| minor` (`ipc::ShellVersion`; 15 feature bits, so it stays positive), for any app: a publisher's way to learn the shell reads 1.22 and what it draws. Bit 0 `SHELL_CALL_KEYS`: the shell draws a Call card's Answer and Reject (clear in this build; W2-J sets it). An older shell answers `KErrNotSupported` |
 | 48 | — | — | next free |
 
 ## AppEvent kinds (shell → app)
@@ -474,11 +474,17 @@ version 1, and both are read.
 ### Cards: `STICKY` and the Call style's keys (O1)
 `Notification::flags` bit 8 `NOTIFY_STICKY`: the banner doesn't time out; an Urgent Call-style card with it gets past
 Do not disturb. A 1.21 shell refuses a card with it (`KErrArgument`), so a publisher asks first: `SHELL_VERSION` (47,
-`neoapp::App::shell_version`) answers the shell's minor, and an older shell answers `KErrNotSupported`. **Fallback
-before 1.22:** no STICKY, and Answer and Reject are the card's own actions (as in 1.21). On a Call-style card the 1.22
-shell draws round Answer and Reject itself and reports them as `Notified { id, action }` with `action` 0xA0
-(`page::CALL_ANSWER`) and 0xA1 (`CALL_REJECT`), only to a publisher connected with minor ≥ 22 (`needs_minor`); the
-app's own ≤ 3 actions (Silence, Reply with message) stay `i + 1`.
+`neoapp::App::shell_version`) answers the shell's minor and features, and an older shell answers `KErrNotSupported`.
+**Fallback before 1.22:** no STICKY. **Answer and Reject are the card's own actions unless the reply has
+`SHELL_CALL_KEYS`** (bit 0; this build leaves it clear because the shade still draws only the publisher's actions).
+With it, the shell draws round Answer and Reject on a Call-style card and reports them as `Notified { id, action }`
+with `action` 0xA0 (`page::CALL_ANSWER`) and 0xA1 (`CALL_REJECT`); the app's own ≤ 3 actions (Silence, Reply with
+message) stay `i + 1`.
+
+**Call keys for a cold owner (W2-J).** An Answer or Reject for a publisher that isn't running (`open_notification`
+starts it cold, unbound and minor 0) is held until it binds; `needs_minor` (22) is applied after binding, so a 1.22
+owner gets it and a 1.21 owner gets none. This build never emits 0xA0/0xA1, so the queue is built with them. Tests to
+write with it: `call_key_waits_for_a_1_22_owner`, `call_key_dropped_for_a_1_21_owner`.
 
 ### Keys (1.22, all shell-owned; Settings writes them unless noted)
 `shell.tap` Int 0–1 (0 shade, 1 control centre), `shell.media` Bool on, `shell.tiles` Bytes ([tiles](#tp7-tiles-122);

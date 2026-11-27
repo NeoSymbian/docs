@@ -238,7 +238,7 @@ Rules:
 
 | Moment | What the user sees | Who does it |
 |---|---|---|
-| A call rings, phone in use | **Heads-up call banner**: avatar, name, number; round Answer and Reject, then Silence · Reply with message. It does not time out; a tap expands it to the full call screen | NEOPHONE posts an Urgent Call-style card with STICKY (O1); the shell draws the banner and its fixed Answer and Reject keys, and the card's actions are Silence and Reply with message. All four come back as `Notified` and NEOPHONE calls MODEMD |
+| A call rings, phone in use | **Heads-up call banner**: avatar, name, number; round Answer and Reject, then Silence · Reply with message. It does not time out; a tap expands it to the full call screen | NEOPHONE posts an Urgent Call-style card with STICKY (O1); the shell draws the banner, and the card's other actions are Silence and Reply with message. Answer and Reject are NEOPHONE's own actions until the shell's `SHELL_VERSION` reply has `SHELL_CALL_KEYS` ([protocol 1.22](protocol.md#cards-sticky-and-the-call-styles-keys-o1)); then the shell draws them and they come back as `Notified` 0xA0/0xA1. NEOPHONE calls MODEMD either way |
 | A call rings, screen off, locked or on home | the full-screen incoming call (`p2-call-incoming`), as today | the shell keeps `ui.show("phone","call")` for these cases only |
 | In a call, user left the call screen | the **island** (green, time ticking; hold = the shell's Mute · Keypad · Speaker · End, `di-call`) and a Live card in the shade (`nt-shade`). The in-app "Return to call" bar stays | NEOPHONE: ACTIVITY (TP6) + an ONGOING Call card (TP2) |
 | A missed call | a card "2 missed calls · Ben Okafor, +1 555 0123" with Call back · Message (Default channel) | NEOPHONE posts it (TP2); the shell's row goes |
