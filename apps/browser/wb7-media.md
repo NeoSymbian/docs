@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # WB7: media
 
-Part of the [browser docs](README.md).
+Part of [Apps](../README.md) · Status: plan · Updated: 2026-11-21 · Neighbours: [the browser hub](README.md)
 
 **Status:** ⬜ not started.
 

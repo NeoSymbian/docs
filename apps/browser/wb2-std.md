@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # WB2: Rust `std` on NeoSymbian
 
-Part of the [browser docs](README.md).
+Part of [Apps](../README.md) · Status: done · Updated: 2026-11-25 · Neighbours: [the browser hub](README.md)
 
 **Status:** ✅ done 2026-11-19 (WB2a–WB2d) · [browser#3](https://github.com/NeoSymbian/browser/pull/3), [browser#4](https://github.com/NeoSymbian/browser/pull/4), [browser#5](https://github.com/NeoSymbian/browser/pull/5), [browser#6](https://github.com/NeoSymbian/browser/pull/6), [build#33](https://github.com/NeoSymbian/build/pull/33), [build#34](https://github.com/NeoSymbian/build/pull/34), [build#37](https://github.com/NeoSymbian/build/pull/37), [e32-rs#4](https://github.com/NeoSymbian/e32-rs/pull/4), [e32-rs#5](https://github.com/NeoSymbian/e32-rs/pull/5), [kernel#21](https://github.com/NeoSymbian/kernel/pull/21), [kernel#24](https://github.com/NeoSymbian/kernel/pull/24), [legacy#6](https://github.com/NeoSymbian/legacy/pull/6), [ossrv#1](https://github.com/NeoSymbian/oss.FCL.sf.os.ossrv/pull/1), [ossrv#2](https://github.com/NeoSymbian/oss.FCL.sf.os.ossrv/pull/2)
 
@@ -9,9 +9,9 @@ Part of the [browser docs](README.md).
 
 | Stage | Work | Gate | Estimate (PM) |
 |---|---|---|---:|
-| WB2 OS personality | rust + libc forks, the std unix PAL over P.I.P.S., the mio bridge. The EXE runtime for `std`: today `e32::main!` brings its own panic handler, a 64 MiB Rust heap (`e32/src/heap.rs`) and a 1 MiB native heap (`build/emitter/build_rust_exe.py`); a `std` EXE needs std-aware start-up, allocator budgets, panic/unwind, and C/C++ linkage | Rust's std tests on Syborg and the phone; **one EXE mixing `std`, e32 and C++** runs; a Tokio TCP fetch over NeoNet | 6–12 |
+| WB2 OS personality | rust + libc forks, the std unix PAL over P.I.P.S., the mio bridge. The EXE runtime for `std`: today `e32::main!` brings its own panic handler, a 64 MiB Rust heap (`e32/src/heap.rs`) and a 1 MiB native heap (`build/emitter/build_rust_exe.py`); a `std` EXE needs std-aware start-up, allocator budgets, panic/unwind, and C/C++ linkage | Rust's std tests on the emulator and the phone; **one EXE mixing `std`, e32 and C++** runs; a Tokio TCP fetch over NeoNet | 6–12 |
 
-Written 2026-11-17. This is the working doc for [browser.md](README.md) stage **WB2**: Rust's standard library for
+Written 2026-11-17. This is the working doc for [the browser hub](README.md)'s stage **WB2**: Rust's standard library for
 NeoSymbian, which Servo, SpiderMonkey's Rust side, Tokio and rustls all need. Today all our Rust is `no_std`.
 
 **WB2's gate** (above):
@@ -23,7 +23,7 @@ NeoSymbian, which Servo, SpiderMonkey's Rust side, Tokio and rustls all need. To
 
 | Step | What | State |
 |---|---|---|
-| **WB2a** | ARMv7 + NEON user code with the soft-float calling convention: e32-rs `targets/armv7a-neosymbian-eabi.json`, `cargo arm7` | ✅ 2026-11-17 (e32-rs#4): neotest 10/10, NEOWB1 6/6 on QEMU and the Pixel |
+| **WB2a** | ARMv7 + NEON user code with the soft-float calling convention: e32-rs `targets/armv7a-neosymbian-eabi.json`, `cargo arm7` | ✅ 2026-11-17 (e32-rs#4): neotest 10/10, NEOWB1 6/6 on QEMU and the Pixel. Replaced by US4 (2026-11-25): `armv8a-neosymbian-eabi`, `cargo arm` |
 | **WB2b** | Rust EXEs import from P.I.P.S.'s DLLs (build `exes.txt` `libs=`); `PIPSPROB.EXE` measures P.I.P.S. | ✅ 2026-11-18 on QEMU and the Pixel (identical results) |
 | **WB2c-1** | P.I.P.S. fixed in our forks: `clock_gettime` nanoseconds, `CLOCK_MONOTONIC` (generic timer, kernel EL0VCTEN), new `poll`/`pread`/`pwrite` exports; libc built without GCC builtins | ✅ 2026-11-18 on QEMU and the Pixel: PIPSPROB 19 ok, 0 failed (kernel#21, ossrv#1, legacy#6) |
 | **WB2c-2** | Forks on branch `neosymbian`: `NeoSymbian/libc` (`src/unix/symbian`) and `NeoSymbian/rust` `library/` only (on `nightly-2026-10-20` = 07e526db9, the toolchain e32-rs pins): `target_os = "symbian"` in the unix family; e32's std mode | ✅ 2026-11-18 on QEMU and the Pixel: STDTEST 17 ok, 1 skipped (no IP stack); MIXTEST all ok (browser#4, e32-rs#5, build#33) |
@@ -49,15 +49,16 @@ since Servo and its ~500 dependencies all assume it.
 **Later: back to upstream** (on the [roadmap](../../roadmap.md)). The forks are the start, not the end state:
 - re-sync them on every nightly bump;
 - offer the libc module and the mio cfgs upstream once they are stable;
-- then propose `armv7a-symbian-eabi` as a **tier 3** Rust target, as NuttX, Vita and the 3DS (`horizon`) did. That
+- then propose `armv8a-symbian-eabi` as a **tier 3** Rust target, as NuttX, Vita and the 3DS (`horizon`) did. That
   needs named target maintainers.
 
 Once upstream takes them, the forks shrink to nothing.
 
 ## Building for it
 
-- **Target:** `armv7a-neosymbian-eabi`, which is:
-  - ARMv7-A/ARMv8-AArch32, VFPv3-D32 + NEON;
+- **Target:** `armv8a-symbian-eabi` (`cargo sym`), the `std` twin of e32-rs's `armv8a-neosymbian-eabi`, since US4
+  (2026-11-25; `armv7a-neosymbian-eabi` with VFPv3-D32 until then), which is:
+  - ARMv8-A AArch32 with NEON;
   - the soft-float calling convention, so calls into the 2010 libraries stay compatible;
   - 64-bit atomics.
 - **`+no-movt` (GCC: `-mword-relocations`) is required.** E32 images relocate whole 32-bit words only, so a
@@ -87,7 +88,7 @@ size, field offset and constant the Rust `libc` port needs. These tables come fr
 | Gap | Effect | WB2c answer |
 |---|---|---|
 | `pthread_cond_timedwait` returns ETIMEDOUT at once | timed waits (`Condvar::wait_timeout`, `park_timeout`, channels with timeouts) would spin | **Fixed in the ossrv fork**: the cause was `clock_gettime(CLOCK_REALTIME)` putting the whole microsecond count since year 0 in `tv_nsec`, so every deadline was garbage |
-| `clock_gettime(CLOCK_MONOTONIC)` → EINVAL (the constant exists, = 4) | no `Instant` | **Added in the ossrv fork**: the ARM generic timer's 64-bit count (CNTVCT at CNTFRQ), which the kernel now lets EL0 read (CNTKCTL_EL1.EL0VCTEN). Only on the SMP (AArch64) kernel; Syborg's Cortex-A8 keeps EINVAL |
+| `clock_gettime(CLOCK_MONOTONIC)` → EINVAL (the constant exists, = 4) | no `Instant` | **Added in the ossrv fork**: the ARM generic timer's 64-bit count (CNTVCT at CNTFRQ), which the kernel now lets EL0 read (CNTKCTL_EL1.EL0VCTEN). Only on the SMP (AArch64) kernel; Syborg's Cortex-A8 (retired 2026-11-21) kept EINVAL |
 | no `pthread_condattr_setclock` | — | condvar on CLOCK_REALTIME (as espidf/horizon) |
 | no `poll()` (`struct pollfd` only); `select()` exists, `FD_SETSIZE` 1024 | std's `init` and connect timeouts; mio | **Added to libc.dll** (ordinal 598): `poll()` over `select()`; std skips its init `poll` (as vita/horizon) |
 | no `pread`/`pwrite` | `FileExt::read_at`/`write_at` | **Added to libc.dll** (599, 600): lseek + read/write, not atomic against another user of the fd |
@@ -148,305 +149,7 @@ size, field offset and constant the Rust `libc` port needs. These tables come fr
 
 ### All layout values
 
-| Name | Value |
-|---|---:|
-| `sizeof(long)` | 4 |
-| `sizeof(size_t)` | 4 |
-| `sizeof(ssize_t)` | 4 |
-| `sizeof(off_t)` | 8 |
-| `sizeof(time_t)` | 4 |
-| `sizeof(clock_t)` | 4 |
-| `sizeof(pid_t)` | 4 |
-| `sizeof(uid_t)` | 4 |
-| `sizeof(gid_t)` | 4 |
-| `sizeof(mode_t)` | 2 |
-| `sizeof(dev_t)` | 4 |
-| `sizeof(ino_t)` | 4 |
-| `sizeof(nlink_t)` | 2 |
-| `sizeof(blksize_t)` | 4 |
-| `sizeof(blkcnt_t)` | 8 |
-| `sizeof(socklen_t)` | 4 |
-| `sizeof(sa_family_t)` | 1 |
-| `sizeof(in_port_t)` | 2 |
-| `sizeof(in_addr_t)` | 4 |
-| `sizeof(nfds_t)` | 4 |
-| `sizeof(wchar_t)` | 2 |
-| `sizeof(pthread_t)` | 4 |
-| `sizeof(pthread_attr_t)` | 32 |
-| `sizeof(pthread_mutex_t)` | 12 |
-| `sizeof(pthread_mutexattr_t)` | 12 |
-| `sizeof(pthread_cond_t)` | 24 |
-| `sizeof(pthread_condattr_t)` | 4 |
-| `sizeof(pthread_key_t)` | 4 |
-| `sizeof(pthread_once_t)` | 4 |
-| `sizeof(fd_set)` | 128 |
-| `sizeof(struct stat)` | 96 |
-| `stat.st_dev` | 0 |
-| `sizeof(stat.st_dev)` | 4 |
-| `stat.st_ino` | 4 |
-| `sizeof(stat.st_ino)` | 4 |
-| `stat.st_mode` | 8 |
-| `sizeof(stat.st_mode)` | 2 |
-| `stat.st_nlink` | 10 |
-| `sizeof(stat.st_nlink)` | 2 |
-| `stat.st_uid` | 12 |
-| `sizeof(stat.st_uid)` | 4 |
-| `stat.st_gid` | 16 |
-| `sizeof(stat.st_gid)` | 4 |
-| `stat.st_rdev` | 20 |
-| `sizeof(stat.st_rdev)` | 4 |
-| `stat.st_size` | 48 |
-| `sizeof(stat.st_size)` | 8 |
-| `stat.st_atime` | 24 |
-| `sizeof(stat.st_atime)` | 4 |
-| `stat.st_mtime` | 32 |
-| `sizeof(stat.st_mtime)` | 4 |
-| `stat.st_ctime` | 40 |
-| `sizeof(stat.st_ctime)` | 4 |
-| `stat.st_blksize` | 64 |
-| `sizeof(stat.st_blksize)` | 4 |
-| `stat.st_blocks` | 56 |
-| `sizeof(stat.st_blocks)` | 8 |
-| `sizeof(struct dirent)` | 264 |
-| `dirent.d_ino` | 0 |
-| `sizeof(dirent.d_ino)` | 4 |
-| `dirent.d_name` | 8 |
-| `sizeof(dirent.d_name)` | 256 |
-| `sizeof(struct timespec)` | 8 |
-| `timespec.tv_sec` | 0 |
-| `sizeof(timespec.tv_sec)` | 4 |
-| `timespec.tv_nsec` | 4 |
-| `sizeof(timespec.tv_nsec)` | 4 |
-| `sizeof(struct timeval)` | 8 |
-| `timeval.tv_sec` | 0 |
-| `sizeof(timeval.tv_sec)` | 4 |
-| `timeval.tv_usec` | 4 |
-| `sizeof(timeval.tv_usec)` | 4 |
-| `sizeof(struct sockaddr)` | 30 |
-| `sockaddr.sa_family` | 0 |
-| `sizeof(sockaddr.sa_family)` | 2 |
-| `sockaddr.sa_data` | 4 |
-| `sizeof(sockaddr.sa_data)` | 24 |
-| `sizeof(struct sockaddr_in)` | 28 |
-| `sockaddr_in.sin_family` | 0 |
-| `sizeof(sockaddr_in.sin_family)` | 2 |
-| `sockaddr_in.sin_port` | 2 |
-| `sizeof(sockaddr_in.sin_port)` | 2 |
-| `sockaddr_in.sin_addr` | 4 |
-| `sizeof(sockaddr_in.sin_addr)` | 4 |
-| `sockaddr_in.sin_zero` | 8 |
-| `sizeof(sockaddr_in.sin_zero)` | 20 |
-| `sizeof(struct sockaddr_in6)` | 32 |
-| `sockaddr_in6.sin6_family` | 0 |
-| `sizeof(sockaddr_in6.sin6_family)` | 2 |
-| `sockaddr_in6.sin6_port` | 2 |
-| `sizeof(sockaddr_in6.sin6_port)` | 2 |
-| `sockaddr_in6.sin6_flowinfo` | 20 |
-| `sizeof(sockaddr_in6.sin6_flowinfo)` | 4 |
-| `sockaddr_in6.sin6_addr` | 4 |
-| `sizeof(sockaddr_in6.sin6_addr)` | 16 |
-| `sockaddr_in6.sin6_scope_id` | 24 |
-| `sizeof(sockaddr_in6.sin6_scope_id)` | 4 |
-| `sizeof(struct sockaddr_storage)` | 128 |
-| `sizeof(struct addrinfo)` | 32 |
-| `addrinfo.ai_flags` | 0 |
-| `sizeof(addrinfo.ai_flags)` | 4 |
-| `addrinfo.ai_family` | 4 |
-| `sizeof(addrinfo.ai_family)` | 4 |
-| `addrinfo.ai_socktype` | 8 |
-| `sizeof(addrinfo.ai_socktype)` | 4 |
-| `addrinfo.ai_protocol` | 12 |
-| `sizeof(addrinfo.ai_protocol)` | 4 |
-| `addrinfo.ai_addrlen` | 16 |
-| `sizeof(addrinfo.ai_addrlen)` | 4 |
-| `addrinfo.ai_canonname` | 20 |
-| `sizeof(addrinfo.ai_canonname)` | 4 |
-| `addrinfo.ai_addr` | 24 |
-| `sizeof(addrinfo.ai_addr)` | 4 |
-| `addrinfo.ai_next` | 28 |
-| `sizeof(addrinfo.ai_next)` | 4 |
-| `sizeof(struct pollfd)` | 8 |
-| `pollfd.fd` | 0 |
-| `sizeof(pollfd.fd)` | 4 |
-| `pollfd.events` | 4 |
-| `sizeof(pollfd.events)` | 2 |
-| `pollfd.revents` | 6 |
-| `sizeof(pollfd.revents)` | 2 |
-| `sizeof(struct linger)` | 8 |
-| `linger.l_onoff` | 0 |
-| `sizeof(linger.l_onoff)` | 4 |
-| `linger.l_linger` | 4 |
-| `sizeof(linger.l_linger)` | 4 |
-| `sizeof(struct iovec)` | 8 |
-| `iovec.iov_base` | 0 |
-| `sizeof(iovec.iov_base)` | 4 |
-| `iovec.iov_len` | 4 |
-| `sizeof(iovec.iov_len)` | 4 |
-| `PTHREAD_MUTEX_NORMAL` | 0 |
-| `PTHREAD_MUTEX_RECURSIVE` | 1 |
-| `PTHREAD_MUTEX_DEFAULT` | 0 |
-| `PTHREAD_MUTEX_ERRORCHECK` | 2 |
-| `PTHREAD_CREATE_JOINABLE` | 0 |
-| `PTHREAD_CREATE_DETACHED` | 1 |
-| `EPERM` | 1 |
-| `ENOENT` | 2 |
-| `EINTR` | 4 |
-| `EIO` | 5 |
-| `EBADF` | 9 |
-| `EAGAIN` | 35 |
-| `EWOULDBLOCK` | 35 |
-| `ENOMEM` | 12 |
-| `EACCES` | 13 |
-| `EEXIST` | 17 |
-| `ENOTDIR` | 20 |
-| `EISDIR` | 21 |
-| `EINVAL` | 22 |
-| `ENFILE` | 23 |
-| `EMFILE` | 24 |
-| `ENOSPC` | 28 |
-| `ESPIPE` | 29 |
-| `EROFS` | 30 |
-| `EPIPE` | 32 |
-| `ERANGE` | 34 |
-| `EDEADLK` | 11 |
-| `ENAMETOOLONG` | 63 |
-| `ENOSYS` | 78 |
-| `ENOTEMPTY` | 66 |
-| `ELOOP` | 62 |
-| `EINPROGRESS` | 36 |
-| `EALREADY` | 37 |
-| `ENOTSOCK` | 38 |
-| `EMSGSIZE` | 40 |
-| `EPROTONOSUPPORT` | 43 |
-| `EOPNOTSUPP` | 45 |
-| `ENOTSUP` | 45 |
-| `EAFNOSUPPORT` | 47 |
-| `EADDRINUSE` | 48 |
-| `EADDRNOTAVAIL` | 49 |
-| `ENETDOWN` | 50 |
-| `ENETUNREACH` | 51 |
-| `ECONNABORTED` | 53 |
-| `ECONNRESET` | 54 |
-| `ENOBUFS` | 55 |
-| `EISCONN` | 56 |
-| `ENOTCONN` | 57 |
-| `ETIMEDOUT` | 60 |
-| `ECONNREFUSED` | 61 |
-| `EHOSTUNREACH` | 65 |
-| `EXDEV` | 18 |
-| `EBUSY` | 16 |
-| `EFBIG` | 27 |
-| `EMLINK` | 31 |
-| `ETXTBSY` | 26 |
-| `O_RDONLY` | 0 |
-| `O_WRONLY` | 1 |
-| `O_RDWR` | 2 |
-| `O_ACCMODE` | 3 |
-| `O_CREAT` | 512 |
-| `O_EXCL` | 2048 |
-| `O_TRUNC` | 1024 |
-| `O_APPEND` | 8 |
-| `O_NONBLOCK` | 4 |
-| `O_CLOEXEC` | absent |
-| `O_DIRECTORY` | absent |
-| `O_NOFOLLOW` | 256 |
-| `O_SYNC` | 128 |
-| `F_DUPFD` | 0 |
-| `F_DUPFD_CLOEXEC` | absent |
-| `F_GETFD` | 1 |
-| `F_SETFD` | 2 |
-| `F_GETFL` | 3 |
-| `F_SETFL` | 4 |
-| `FD_CLOEXEC` | 1 |
-| `FD_SETSIZE` | 1024 |
-| `S_IFMT` | 61440 |
-| `S_IFDIR` | 16384 |
-| `S_IFREG` | 32768 |
-| `S_IFLNK` | 40960 |
-| `S_IFIFO` | 4096 |
-| `S_IFSOCK` | 49152 |
-| `S_IFCHR` | 8192 |
-| `S_IFBLK` | 24576 |
-| `SEEK_SET` | 0 |
-| `SEEK_CUR` | 1 |
-| `SEEK_END` | 2 |
-| `AF_UNSPEC` | 0 |
-| `AF_INET` | 2048 |
-| `AF_INET6` | 2054 |
-| `AF_UNIX` | 1 |
-| `AF_LOCAL` | 1638 |
-| `SOCK_STREAM` | 1 |
-| `SOCK_DGRAM` | 2 |
-| `SOCK_RAW` | 4 |
-| `SOCK_CLOEXEC` | absent |
-| `SOCK_NONBLOCK` | absent |
-| `SOL_SOCKET` | 1 |
-| `SO_REUSEADDR` | 1030 |
-| `SO_ERROR` | 9 |
-| `SO_TYPE` | 4104 |
-| `SO_RCVTIMEO` | 4102 |
-| `SO_SNDTIMEO` | 4101 |
-| `SO_BROADCAST` | -1 |
-| `SO_LINGER` | -3 |
-| `SO_KEEPALIVE` | 773 |
-| `SO_RCVBUF` | 2 |
-| `SO_SNDBUF` | 3 |
-| `IPPROTO_IP` | 256 |
-| `IPPROTO_IPV6` | 41 |
-| `IPPROTO_TCP` | 6 |
-| `IPPROTO_UDP` | 17 |
-| `TCP_NODELAY` | 1 |
-| `IP_TTL` | 784 |
-| `IPV6_V6ONLY` | 27 |
-| `IP_MULTICAST_TTL` | -6 |
-| `IP_MULTICAST_LOOP` | -7 |
-| `IP_ADD_MEMBERSHIP` | 1133 |
-| `IPV6_JOIN_GROUP` | 12 |
-| `MSG_PEEK` | 2 |
-| `MSG_DONTWAIT` | 128 |
-| `MSG_NOSIGNAL` | 131072 |
-| `MSG_WAITALL` | 64 |
-| `SHUT_RD` | 0 |
-| `SHUT_WR` | 1 |
-| `SHUT_RDWR` | 2 |
-| `POLLIN` | 1 |
-| `POLLPRI` | 2 |
-| `POLLOUT` | 4 |
-| `POLLERR` | 8 |
-| `POLLHUP` | 16 |
-| `POLLNVAL` | 32 |
-| `FIONBIO` | -2147195266 |
-| `FIONREAD` | 1074030207 |
-| `INADDR_ANY` | 0 |
-| `INADDR_LOOPBACK` | 2130706433 |
-| `AI_PASSIVE` | 1 |
-| `AI_CANONNAME` | 2 |
-| `AI_NUMERICHOST` | 4 |
-| `EAI_AGAIN` | 2 |
-| `EAI_FAIL` | 4 |
-| `EAI_FAMILY` | 5 |
-| `EAI_NONAME` | 8 |
-| `EAI_SERVICE` | 9 |
-| `EAI_SOCKTYPE` | 10 |
-| `EAI_SYSTEM` | 11 |
-| `CLOCK_REALTIME` | 0 |
-| `CLOCK_MONOTONIC` | 4 |
-| `PTHREAD_STACK_MIN` | 8192 |
-| `_SC_PAGESIZE` | 47 |
-| `_SC_NPROCESSORS_ONLN` | 58 |
-| `PATH_MAX` | 256 |
-| `PROT_NONE` | 0 |
-| `PROT_READ` | 1 |
-| `PROT_WRITE` | 2 |
-| `MAP_PRIVATE` | 2 |
-| `MAP_ANON` | absent |
-| `MAP_ANONYMOUS` | absent |
-| `MAP_FAILED` | -1 |
-| `DT_DIR` | 4 |
-| `DT_REG` | 8 |
-| `DT_LNK` | 10 |
-| `DT_UNKNOWN` | 0 |
-| `STDIN_FILENO` | 0 |
+The 297 values (sizes, field offsets, constants) are in the appendix [wb2-layout-values.md](wb2-layout-values.md).
 
 ## What WB2c found and did (2026-11-18)
 

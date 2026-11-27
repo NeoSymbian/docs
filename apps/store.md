@@ -1,6 +1,8 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # NeoStore: apps for NeoSymbian (NEOSTORE, NEOINST, the store server)
 
+Part of [Apps](README.md) · Status: plan · Updated: 2026-11-18
+
 Written 2026-11-18. This is the proposal for a new repo, `NeoSymbian/store`. NeoStore brings two kinds of app to the
 phone and installs them there, with no ROM build:
 - **classic S60 apps** (`.sis`, `.sisx`), which run in Old apps ([../user-side/legacy.md](../user-side/legacy.md));
@@ -79,8 +81,9 @@ For the implementation (2026-11-18):
   0xE0009003.
 - **Third-party UIDs:** the store assigns them from **0xE1000000–0xE1FFFFFF**, one range per developer. Old SIS apps
   keep their own UIDs, and the package registry refuses a UID that another vendor already installed.
-- **Protocol:** the store's neoui opcodes take the next free protocol version. 1.10 (HAPTIC) and 1.11 (Files
-  FA1/FA2) are taken, so that is **1.12** today.
+- **Protocol:** the store's neoui opcodes (`REGISTER`, `UNREGISTER`) are reserved in
+  [protocol.md](../neoui-shell/protocol.md#opcodes-app--shell), the only owner of protocol numbers; they take the protocol version that is next when ST4 ships.
+  (This page said 1.12 until 2026-11-27; Files FA8 took 1.12.)
 - **The phase prefix is ST.**
 
 ## Today
@@ -91,9 +94,9 @@ For the implementation (2026-11-18):
 | Installing new apps | They are compiled into neoui. `APPS`, `LAUNCHERS`, `PAGES` and `RESIDENT` are fixed tables in `neoui/symbian/src/host.rs`. The names are fixed in `shell.slint` and the tiles in `home.slint`/`menu.slint`. `connect` binds only EXEs the shell launched itself. |
 | An EXE dropped on C: | It runs from the debug shell, but it's missing from the grid, OPEN refuses its key and `connect` returns `KErrNotSupported`. |
 | HTTP on the phone | NEONET (neohw `crates/net`: DHCP, DNS, TCP) and ESOCK over it. No HTTP client library, only hand-written GETs (the Wi-Fi internet check). |
-| TLS | none. rustls comes with browser WB4 (crypto provider, entropy) and WB6 (certificates). |
-| Capabilities | ROM EXEs get all of them. `drive=c` EXEs get none; `exes.txt` can't set capabilities or VID. Whether PlatSec guards `C:\sys\bin` is unclear: `rust-integration.md` says the ROM doesn't enforce it, `kernel-issues.md` says it does. ST0 settles it. |
-| Notifications | `NOTIFY` (1.8): at most 16 per app, with no progress field. |
+| TLS | only in the browser's `std` engine: rustls with aws-lc-rs since browser WB4 (2026-11-20); a certificate store comes with WB6. None for `no_std` apps. |
+| Capabilities | ROM EXEs get all of them. `drive=c` EXEs get none; `exes.txt` can't set capabilities or VID. Whether PlatSec guards `C:\sys\bin` is unclear: `rust-integration.md` says the ROM doesn't enforce it, the kernel issues register ([issues.md](../kernel/issues.md)) says it does. ST0 settles it. |
+| Notifications | `NOTIFY`: at most 16 per app; an optional progress field since Files FA2 (2026-11-18). |
 
 ## The repo
 
@@ -133,7 +136,8 @@ which link Slint.
 - server: `go vet`, `gofmt -l`, `go test ./...` (testcontainers Postgres + MinIO);
 - host crates: `cargo fmt/clippy/test` and the snapshots; fuzz targets for `npk` and `sis`;
 - device: `cargo arm`;
-- neoui's `syborg.yml` clones store (as it clones files) and taps through it, with a local server on the runner.
+- neoui's `virt-taps` workflow clones store (as it clones files) and taps through it on QEMU `virt`, with a local
+  server on the runner.
 
 ## The package format (.npk)
 
@@ -195,7 +199,7 @@ These have no SIS or reg-rsc equivalent.
 | resident (started at boot, never evicted) | `host.rs` `RESIDENT` | `[app] resident`: needs store review (it costs RAM at every boot) |
 | tile icon (192 px, 72 dp on screen) and ENTRY icon (≤ 128 px ARGB) | `ui/icons/apps/*.svg`, `make_icons.py` | `[app] icon`, `entry_icon` |
 | settings keys owned or shared, with type, default and limit | `neoui-proto` settings registry | `[[settings]]` |
-| file-type handlers with "Always" | files FA8 (planned) | `[[handles]] types`, `page`, `priority` |
+| file-type handlers with "Always" | files FA8: `neoui_proto::open::HANDLERS`, the `open.always` setting | `[[handles]] types`, `page`, `priority` |
 | minimum protocol, platform release | none | `[requires] protocol`, `platform` |
 
 ### manifest.toml
@@ -225,7 +229,7 @@ summary = "To-dos with reminders and a home widget"
 name    = "Առաջադրանքներ"
 
 [requires]
-protocol = "1.12"
+protocol = "1.N"                 # the version that ships REGISTER (protocol.md)
 platform = ">=0.9"
 devices  = ["bonito", "sargo"]   # empty = all
 packages = [{ uid = 0xE1000002, version = ">=1.0" }]
@@ -401,7 +405,7 @@ index. Listing changes go through the same queue.
 | `UNINSTALL` | package uid | job id |
 | `LIST` | — | installed packages: uid, key, version, code, drive, size, source |
 
-**Protocol 1.12 (neoui):**
+**The app registry in neoui** (`REGISTER`/`UNREGISTER`, reserved in [protocol.md](../neoui-shell/protocol.md#opcodes-app--shell)):
 - `REGISTER {key, exe, uid, caption per language, icon, pages, launcher, resident, hidden, handles}` and
   `UNREGISTER {key}`. Only NEOINST's SID is accepted.
 - The registry persists in `C:\private\e0002001\apps\` and is read at boot.
@@ -409,7 +413,7 @@ index. Listing changes go through the same queue.
   the same registry.
 - The Apps grid becomes a model and no longer a fixed Slint list.
 - OPEN and `connect` accept registered keys.
-- `Notification` gains an optional `progress` (0–100), for the download entry.
+- The download entry uses `Notification`'s optional `progress` (0–100), built for Files FA2.
 
 **The device key (NS03):**
 - An Ed25519 key in `C:\private\e0009001\device.key`, made on first run.
@@ -453,17 +457,17 @@ From the canvas (the full table is on [`spec-map`](https://claude.ai/artifact/Rs
 | An HTTP client | hand-written GETs | `neo-http`: HTTP/1.1, Range, chunked, redirects to the same host | store (later shared with the browser) | ST0, ST7 |
 | TLS | none | rustls + a certificate store (browser WB4/WB6) | browser, e32-rs | ST11 |
 | Capabilities on built EXEs | `exes.txt` sets none | `caps=`, `vid=` in `build_rust_exe.py` | build | ST3 |
-| Apps the shell doesn't know at build time | fixed `APPS`/grid, `connect` only for its own launches | the registry, `REGISTER`, protocol 1.12 | neoui | ST4 |
+| Apps the shell doesn't know at build time | fixed `APPS`/grid, `connect` only for its own launches | the registry, `REGISTER` ([protocol.md](../neoui-shell/protocol.md#opcodes-app--shell)) | neoui | ST4 |
 | A trusted writer of `\sys\bin` | none | NEOINST in the ROM with TCB | store, build | ST5 |
 | Install SIS on the phone | build time only | `crates/sis` in NEOINST | store, legacy | ST6 |
 | Old apps grid updates live | rebuilt when LEGACY starts | watch AppArc's change notification, or re-publish on a NEOINST event | legacy | ST6 |
-| Progress in the shade | `Notification` has none | an optional `progress` field | neoui | ST5 |
+| Progress in the shade | done: `Notification.progress` (Files FA2) | — | neoui | ST5 |
 | `RSisRegistrySession` for old apps | none | SISREGSRV + the 2010 client DLL in the ROM | store, build | ST9 |
 | Open `.npk`/`.sis` from Files | the Package board only | `store:/install?path=` | files, store | ST10 |
 
 ## Phases
 
-Each phase ends with host tests, and for the phone, the Syborg CI and the Pixel.
+Each phase ends with host tests, and for the phone, the QEMU `virt` CI (neoui's `virt-taps` workflow) and the Pixel.
 
 | Phase | Work | Repos | Gate | Boards |
 |---|---|---|---|---|
@@ -471,14 +475,14 @@ Each phase ends with host tests, and for the phone, the Syborg CI and the Pixel.
 | **ST1** the server | Repo, schema and migrations, MinIO blobs, `/v1/index` (signed), `/v1/apps`, `/dl`, `/img`, `neostore admin import` (adds an app from a `.sis` with its texts and images); deploy on atlas k3s (`prod-nsstore`) at `store.neosymbian.org` | store | `go test` green against testcontainers; the index of 3 imported classic apps verifies with the store key | [`spec-api`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-b65de07881be) |
 | **ST2** the console | GitHub OAuth, developers, listing editor, release upload with manifest/SIS extraction, review queue, approve and countersign, hide reviews, audit log | store | a developer uploads, the admin approves, the index changes; CSRF and role tests | [`web-signin`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-fa9c40f7be3a), [`web-dev-apps`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-d86869e10001), [`web-dev-listing`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-95477f374bcd), [`web-dev-release`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-c1db1c79ae63), [`web-admin-queue`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-e577a9a701a0), [`web-admin-review`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-e483852bb49a) |
 | **ST3** `.npk` | `crates/npk` (manifest, zip, signatures) + fuzzing; `npk-pack`; `caps=`/`vid=`/`npk=` in build | store, build | NEOKIT packed as `.npk` round-trips; a tampered file or manifest is refused | [`spec-npk`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-9abf29cffae0) |
-| **ST4** the app registry | Protocol 1.12 `REGISTER`/`UNREGISTER`; the registry file; the built-in apps moved into it; the grid as a model; OPEN and `connect` for registered keys | neoui | a registered test EXE on C: shows on the grid, opens a page and connects; the ROM apps are unchanged | — |
-| **ST5** NEOINST for `.npk` | inst-ipc 1.0, verify, consent, atomic copy and rollback, the package record, uninstall, `Notification.progress` | store, neoui, build | install, upgrade, uninstall of a test app on the Pixel; power cut mid-install leaves the old version | [`consent`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-118ab796bc7a), [`installing`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-8b4a1a4915c5), [`installed`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-338d889e6ca1), [`install-error`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-beaa08ab6295), [`uninstall`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-5c5159a21e52), [`shade`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-26e1d76ed174) |
+| **ST4** the app registry | `REGISTER`/`UNREGISTER` (reserved in protocol.md); the registry file; the built-in apps moved into it; the grid as a model; OPEN and `connect` for registered keys | neoui | a registered test EXE on C: shows on the grid, opens a page and connects; the ROM apps are unchanged | — |
+| **ST5** NEOINST for `.npk` | inst-ipc 1.0, verify, consent, atomic copy and rollback, the package record, uninstall, the download's shade progress | store, neoui, build | install, upgrade, uninstall of a test app on the Pixel; power cut mid-install leaves the old version | [`consent`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-118ab796bc7a), [`installing`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-8b4a1a4915c5), [`installed`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-338d889e6ca1), [`install-error`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-beaa08ab6295), [`uninstall`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-5c5159a21e52), [`shade`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-26e1d76ed174) |
 | **ST6** SIS on the phone | `crates/sis` (conditions, embedded, SA/SP/PU, FR/FT/FN, `\sys\hash`), AppArc registration, LEGACY live re-publish; replaces legacy L4's SWI port | store, legacy | X-plore and Frozen Bubble installed at runtime from C: and E: match the ROM-built ones; uninstall leaves no files | [`app-classic`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-05c811454b3c), [`sis-options`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-04c8824816e0) |
 | **ST7** NEOSTORE v1 | `neo-http`, the index cache, the four tabs, search, app page, screenshots, download with resume, updates and Update all, installed apps, settings | store | every phone board matches its host snapshot; a 200-app index scrolls smoothly; Discover works offline | [`discover`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-2ab0bd3ae9ca), [`apps`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-9ef244c7a60f), [`games`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-0bcd1b1850a5), [`category`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-01578e09938b), [`filter`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-7fd89bd4aee9), [`search`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-74430da5a9a5), [`search-results`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-797df93ddbdc), [`app`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-2f38a283d1c7), [`app-installed`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-1c61fbcaae8c), [`screens`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-6ee5ca7d347d), [`about`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-eedbe11abe2c), [`downloading`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-42cb74e6cc31), [`updates`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-cde1c41781a7), [`updates-empty`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-78a528d3f9f8), [`library`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-413d62f4389a), [`menu`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-2b5f6bf2f828), [`settings`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-2d739b3f8410), [`offline`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-a5d6fba0d114), [`discover-loading`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-13ef84fd3759), [`b-discover`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-8c686ed8651c), [`b-app`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-44be6aa1cef6) |
 | **ST8** ratings | The device key, signed ratings, reviews list and sort, my review, server rate limits and hiding | store | one rating per device enforced; a forged signature is refused | [`rate`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-614f282e5550), [`reviews`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-b8a64fe52686), [`review-mine`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-f215389ade3e) |
 | **ST9** SisRegistry compat | SISREGSRV with the 2010 `sisregistryclient.dll`: installed packages, versions, files | store, build | an old app that queries the registry sees the packages installed in ST6 | — |
 | **ST10** links | Files opens `.npk`/`.sis` in `store:/install?path=` (replaces the Install button on files' Package board, FA13); Settings → Apps uninstalls and shows granted caps | files, neoui, store | a side-loaded `.npk` from E: installs with user caps only | [`sideload`](https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#artboard-808545ab7c45) |
-| **ST11** HTTPS | `neo-http` over rustls once browser WB4/WB6 land; drop the plain-HTTP rule | store, browser | the phone talks only HTTPS to the store | — |
+| **ST11** HTTPS | `neo-http` over rustls (in the browser since WB4) once browser WB6 brings the certificate store; drop the plain-HTTP rule | store, browser | the phone talks only HTTPS to the store | — |
 
 **Order:**
 - ST0 first.
@@ -491,11 +495,25 @@ Each phase ends with host tests, and for the phone, the Syborg CI and the Pixel.
 
 ## Status (2026-11-18)
 
-| Part | State |
-|---|---|
-| The design (39 screen and web boards, the prototype, 5 spec sheets) | done, on the canvas |
-| N8 NeoStore (`store.notallow.cc`) | running, separate (NS01) |
-| ST0–ST11 | proposed; the repo isn't created yet |
+The design (39 screen and web boards, the prototype, 5 spec sheets) is done, on the canvas. The N8 NeoStore
+(`store.notallow.cc`) runs separately (NS01). Nothing below is built; the repo isn't created yet.
+
+<!-- stages -->
+| Stage | What | State | Updated | Next / evidence |
+|---|---|---|---|---|
+| ST0 | Spikes: PlatSec on C:, HTTP, SIS enums | open | — | first; answers go into this doc |
+| ST1 | The Go server on atlas | open | — | can start at once; needs the `neosymbian.org` zone check |
+| ST2 | The developer and admin console | open | — | after ST1 |
+| ST3 | The `.npk` format and `npk-pack` | open | — | starts the `.npk` line |
+| ST4 | The app registry in neoui | open | — | after ST3; opcodes reserved in protocol.md |
+| ST5 | NEOINST for `.npk` | open | — | after ST4 |
+| ST6 | SIS installs on the phone | open | — | needs ST5; replaces legacy L4's SWI port |
+| ST7 | NEOSTORE v1, the phone app | open | — | needs ST1 and ST5 |
+| ST8 | Ratings with the device key | open | — | needs ST7 |
+| ST9 | SisRegistry compatibility | open | — | last group |
+| ST10 | Links from Files and Settings | open | — | last group; replaces Files FA13's install button |
+| ST11 | HTTPS to the store | open | — | needs browser WB6's certificates |
+<!-- /stages -->
 
 ## Not doing
 

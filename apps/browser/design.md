@@ -1,10 +1,12 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Browser design: the choice of engine
 
-Part of the [browser docs](README.md). Written 2026-11-15, the design that chose Servo (roadmap U3).
+Part of [Apps](../README.md) · Status: reference · Updated: 2026-11-21 · Neighbours: [the browser hub](README.md)
+
+Written 2026-11-15, the design that chose Servo (roadmap U3).
 
 **Sources:**
-- a read of our kernel, e32-rs, neoui, neolink, legacy and build trees;
+- a read of our kernel, e32-rs, neoui, neolink (merged into neohw 2026-11-18), legacy and build trees;
 - the sibling N8 experiments in `~/WS/Symbian` (LiveTo, NeoLite, NeoNetSurf, NeoWeb);
 - upstream Servo v0.8.0, mozjs-sys 153.6.0-1, WebRender 0.70.1 and surfman 0.14.0;
 - three Codex research passes (candidate survey, Servo port, Servo integration).
@@ -25,11 +27,12 @@ measurements.
 ## Where the platform stood (2026-11-15)
 
 All of this is solved now except the GPU: see [architecture.md](architecture.md#platform-prerequisites).
+
 | Need | At design time (2026-11-16) | Where |
 |---|---|---|
 | Sockets | NeoNet (smoltcp: DHCP, DNS, TCP, UDP; IPv4) and the 2010 `RSocket` API over it (W5a) | [wifi.md](../../hardware/wifi.md) W5, W5a |
 | TLS, HTTP client | **none** (only hand-written `GET /generate_204`) | `neoui/symbian/src/wifi.rs:439` |
-| Hardware FP/NEON at EL0 | **off**: the per-thread FP save/restore hooks are empty | [kernel-issues.md](../../kernel/issues.md) KRN-019, [smooth-ui.md](../../neoui-shell/smooth-ui.md) S4 |
+| Hardware FP/NEON at EL0 | **off**: the per-thread FP save/restore hooks are empty | [issues.md](../../kernel/issues.md) KRN-019, [smooth-ui.md](../../neoui-shell/smooth-ui.md) S4 |
 | Atomics | **none**: user code was ARMv5TE, which has no CAS, so Rust had no `Arc` (native atomics since US4, 2026-11-25) | `e32-rs/crates/e32/src/cs.rs` |
 | RAM | **~87 MB** on `main` for the kernel and the whole user side (`A64_BOOT_RAM_END`). M4.3 is in progress: kernel branch `ram-map` (`640aa2ff`, 2026-11-15) takes the RAM banks from the bootloader's DTB, below 4 GiB (`KPhysTop`) | `kernel/baseport/arm64/bonito_variant/variant.conf:8`, `kernel/kernel/eka/kernel/arm64/a64boot.cpp` |
 | Address space | ~2 GiB private VA per process (flexible model) | `kernel/kernel/eka/include/memmodel/epoc/flexible/arm64/mmboot.h` |
@@ -93,7 +96,7 @@ Even running them needs legacy L4+ (installing .sis at runtime), IAP records (ES
 | Candidate | Note |
 |---|---|
 | LiveTo (ours, `~/WS/Symbian/LiveTo`: Chromium screencast, JPEG + ACK, touch/text/audio, pairing) | 2–6 pw for a neoui client. Plain TCP, LAN only |
-| [WRP](https://github.com/tenox7/wrp) | Already running on ZimaOS; image maps |
+| [WRP](https://github.com/tenox7/wrp) | Was already running on ZimaOS (2026-11-15); image maps |
 | [Browservice](https://github.com/ttalvitie/browservice) | CEF streaming; unmaintained since 2026-09 |
 | Opera-Mini-style server layout (OBML-like) | 20–60+ pw; a protocol of our own |
 | [Carbonyl](https://github.com/fathyb/carbonyl), [Browsh](https://github.com/browsh-org/browsh) | Chromium/Firefox drawn as terminal output |

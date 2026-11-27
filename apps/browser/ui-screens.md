@@ -1,10 +1,12 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # The browser app: phases UI0–UI6 and every screen
 
-Part of the [browser docs](README.md). The phases UI0–UI6 build every board of the canvas's Browser page; the spec
+Part of [Apps](../README.md) · Status: active · Updated: 2026-11-22 · Neighbours: [the browser hub](README.md)
+
+The phases UI0–UI6 build every board of the canvas's Browser page; the spec
 they follow is [ui.md](ui.md).
 
-**Status (2026-11-21):** 25 of 31 screens built; on Servo on the Pixel: 19 ✅, 5 🟡, 7 ⬜.
+**Status (2026-11-22):** 29 of 31 screens built; on Servo on the Pixel: 23 ✅, 5 🟡, 3 ⬜.
 - **Built** ✅: rendered by `app/neoweb-ui`'s tests into `snapshots/br2-*.png` (the shell's QUERY and NOTIFY screens
   have no snapshot: they're the shell's).
 - **On Servo:** ✅ the screen works with the real engine on the Pixel (WB5's gate runs, 2026-11-21); 🟡 works with a

@@ -1,12 +1,14 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # The browser app (NEOWEB): UI spec
 
-Part of the [browser docs](README.md). Written 2026-11-17: every screen of `NEOWEB.EXE`, the rules its chrome
+Part of [Apps](../README.md) · Status: active · Updated: 2026-11-25 · Neighbours: [the browser hub](README.md)
+
+Written 2026-11-17: every screen of `NEOWEB.EXE`, the rules its chrome
 follows, how it talks to the shell and to the engine. The phases that build the screens, and each screen's status, are
 in [ui-screens.md](ui-screens.md); the engine side is the WB stages.
 
-**Status (2026-11-21):** ✅ UI0–UI4 built, and on Servo on the Pixel since WB5; ⬜ UI5 (WB6) and UI6 (WB7). The
-counts per screen are in [ui-screens.md](ui-screens.md).
+**Status (2026-11-22):** ✅ UI0–UI5 built (UI4 but `set2-app-browser`), and on Servo on the Pixel since WB5 and UI5;
+⬜ UI6 (WB7). The counts per screen are in [ui-screens.md](ui-screens.md).
 
 **The design is the canvas.** The Browser page of the design canvas is the source of truth:
 https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ#page-9cb33ae9a178
@@ -193,7 +195,7 @@ From `br2-spec-shell`; the calls are in `neoui-proto/src/ipc.rs`, protocol 1.9.
 | `PAGE` | Every page: title (the Open apps card), `can_back`, full for video | Title ≤ 48 B; resend when anything changes |
 | `QUERY` | JS alert and confirm; "Leave this page?"; Clear browsing data; Close all pages | Text ≤ 160 B, 1–3 buttons; destructive = red; Back answers the last button. The first line is the site |
 | `NOTE` | "Page reloaded to save memory" · "Page closed" + Undo · "Link copied" · "Added to bookmarks" + Undo · the tab cap | Text ≤ 80 B, action ≤ 32 B, 3 s |
-| `NOTIFY` | Downloads: "Downloading …" → "Download complete", with action Open → the Downloads page | Title ≤ 48 B, text ≤ 160 B; the same id replaces; ≤ 16 per app; no progress bar |
+| `NOTIFY` | Downloads: "Downloading …" → "Download complete", with action Open → the Downloads page | Title ≤ 48 B, text ≤ 160 B; the same id replaces; ≤ 16 per app; no progress bar in protocol 1.9 (the shade has one since Files FA2) |
 | `BADGE` | Not used | — |
 | `CLIP_SET` / `CLIP_GET` | Copy link, Copy (selection), Paste in the address bar and in forms, paste-and-go | ≤ 2048 B, shared by all apps; a longer URL is refused with a NOTE, never cut |
 | `KEYBOARD` | TEXT for the address bar and inputs, NUMBER, PHONE | Returns h; direct Unicode input, no preedit ([architecture.md](architecture.md)) |

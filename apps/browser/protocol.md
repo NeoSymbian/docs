@@ -1,7 +1,9 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # neoweb-proto: the Browser app ↔ the engine
 
-Part of the [browser docs](README.md). **Version 1.5** (2026-11-21, UI5). The source is
+Part of [Apps](../README.md) · Status: reference · Updated: 2026-11-25 · Neighbours: [the browser hub](README.md)
+
+**Version 1.5** (2026-11-21, UI5). The source is
 [`app/neoweb-proto/src/lib.rs`](https://github.com/NeoSymbian/browser/blob/main/app/neoweb-proto/src/lib.rs); this page
 lists it, and the code wins where they differ.
 
@@ -10,7 +12,7 @@ lists it, and the code wins where they differ.
 | Process | What | Built for |
 |---|---|---|
 | `NEOWEB.EXE` (ROM) | The neoui app: the Slint chrome, every screen of [ui-screens.md](ui-screens.md), the library on C: | `armv8a-neosymbian-eabi`, `no_std` (`armv5te-none-eabi` until US4, 2026-11-25) |
-| `NEOWEBE.EXE` (C:, `drive=c`) | The engine: Servo 0.8 with SWGL, downloads (ureq + rustls) | `armv7a-symbian-eabi`, `std` |
+| `NEOWEBE.EXE` (C:, `drive=c`) | The engine: Servo 0.8 with SWGL, downloads (ureq + rustls) | `armv8a-symbian-eabi`, `std`, built with `cargo sym` (`armv7a-symbian-eabi` until US4, 2026-11-25) |
 
 - **Transport:** NEOWEBE runs the Symbian server `NeoWebEngine`; NEOWEB starts it (`neowebe.exe --serve`) when it
   can't connect. Each message is a tag byte and little-endian fields; strings are a `u32` length and UTF-8; lists a

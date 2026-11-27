@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # WB5: input and chrome
 
-Part of the [browser docs](README.md).
+Part of [Apps](../README.md) · Status: done · Updated: 2026-11-21 · Neighbours: [the browser hub](README.md)
 
 **Status:** ✅ done 2026-11-21 · [browser#10](https://github.com/NeoSymbian/browser/pull/10), [browser#11](https://github.com/NeoSymbian/browser/pull/11), [ossrv#5](https://github.com/NeoSymbian/oss.FCL.sf.os.ossrv/pull/5), [servo#1](https://github.com/NeoSymbian/servo/pull/1), [webrender#1](https://github.com/NeoSymbian/webrender/pull/1), [build#47](https://github.com/NeoSymbian/build/pull/47), [docs#52](https://github.com/NeoSymbian/docs/pull/52), [docs#53](https://github.com/NeoSymbian/docs/pull/53) · every screen: [ui-screens.md](ui-screens.md) · the protocol: [protocol.md](protocol.md)
 
@@ -15,7 +15,7 @@ Part of the [browser docs](README.md).
 
 Merged in browser#10 and #11 (protocol 1.4), ossrv#5, servo#1 (paint timing), webrender#1 (the scroll root fix),
 build#47 (the ossrv pin) and docs#52. The gate flows ran on the Pixel by RAM boot, on a user side from before US2
-(ARMv7); US4 rebuilds the Rust binaries for ARMv8.
+(ARMv7); US4 rebuilt the Rust binaries for ARMv8 (2026-11-25).
 
 | Part | Works on the Pixel | Notes |
 |---|---|---|
@@ -34,7 +34,8 @@ build#47 (the ossrv pin) and docs#52. The gate flows ran on the Pixel by RAM boo
 - Found while marking the screens (2026-11-21): the chrome doesn't hide on scroll (`ChromeScroll` is unused with
   Servo); the tab list isn't saved on Quit; no heap budget for eviction; no ←/→ history list; eviction and Buttons
   mode were not run on the phone. Each screen: [ui-screens.md](ui-screens.md).
-- Re-test on an ARMv8 user side after US4 (these runs used a user side from before US2).
+- Re-test on an ARMv8 user side after US4 (these runs used a user side from before US2): done in US4's Pixel run
+  (2026-11-25), where the owner browsed with the ARMv8 NEOWEBE ([user-side-smp.md](../../user-side/user-side-smp.md)).
 
 **Fixed on the way:**
 - A thread calling `localtime` died with `TzServer 1` (no time zone server in the ROM). P.I.P.S. now uses the

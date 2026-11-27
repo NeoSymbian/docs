@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # WB3: SpiderMonkey on NeoSymbian
 
-Part of the [browser docs](README.md).
+Part of [Apps](../README.md) · Status: done · Updated: 2026-11-25 · Neighbours: [the browser hub](README.md)
 
 **Status:** ✅ done 2026-11-19 · [browser#7](https://github.com/NeoSymbian/browser/pull/7), [mozjs#1](https://github.com/NeoSymbian/mozjs/pull/1)
 
@@ -11,7 +11,7 @@ Part of the [browser docs](README.md).
 |---|---|---|---:|
 | WB3 mozjs shell | SpiderMonkey interpreter-only, as an EXE | JS test scripts, GC stress, threads, a clean OOM on the phone | 3–6 |
 
-Written 2026-11-19. This is the working doc for [browser.md](README.md) stage **WB3**: Servo's JavaScript engine,
+Written 2026-11-19. This is the working doc for [the browser hub](README.md)'s stage **WB3**: Servo's JavaScript engine,
 SpiderMonkey, as a NeoSymbian EXE, before Servo itself (WB4) depends on it.
 
 **The gate (above):** JS test scripts, GC stress, threads and a clean out-of-memory, all on the phone.
@@ -30,8 +30,8 @@ SpiderMonkey, as a NeoSymbian EXE, before Servo itself (WB4) depends on it.
 
 ### The target
 
-C++ is built for the Rust target `armv7a-symbian-eabi` (WB2a):
-- ARMv7 + NEON with soft-float calls (`-mfloat-abi=softfp`);
+C++ is built for the Rust target `armv8a-symbian-eabi` since US4 (2026-11-25; `armv7a-symbian-eabi`, WB2a, until then):
+- ARMv8-A AArch32 + NEON with soft-float calls (`-march=armv8-a+crc+crypto -mfloat-abi=softfp -marm`);
 - `-mword-relocations`, and never `-fPIC`: an E32 image takes only whole-word absolute relocations;
 - 32-bit enums, a 2-byte `wchar_t`, `-fno-exceptions`.
 

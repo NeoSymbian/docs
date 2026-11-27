@@ -1,7 +1,10 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
 # Phone, Contacts and Messages: three apps (NEOPHONE v2)
 
-NeoSymbian/phone builds three apps on the neoui kit (`neoui-kit.md`), from the design canvas's NEOPHONE v2 pages (`p2-*`
-boards: Phone, Contacts, Messages). They used to be one process behind three icons (C8/C9, `hardware/modem.md`).
+Part of [Apps](README.md) · Status: done · Updated: 2026-11-17
+
+NeoSymbian/phone builds three apps on the neoui kit ([kit.md](../neoui-shell/kit.md)), from the design canvas's NEOPHONE v2 pages (`p2-*`
+boards: Phone, Contacts, Messages). They used to be one process behind three icons (C8/C9, [modem.md](../hardware/modem.md)).
 
 **The owner's decisions (2026-11-17):**
 - **Three separate EXEs.** Each has its own card in Open apps; they open each other. This replaces the canvas's P01 ("one app with three tabs").
@@ -51,7 +54,7 @@ root returns to the app that opened it (the shell's origin), else home.
 - `symbian/common`: MODEMD's client, the files, the prefs reader, blocking, opening the other apps.
 - `symbian/{phone,contacts,messages}`: each app's event loop and areas.
 
-**MODEMD.** The apps use these modem-ipc additions (`hardware/modem.md`):
+**MODEMD.** The apps use these modem-ipc additions ([modem.md](../hardware/modem.md)):
 - **2.4:** Messages' Archive (`EDIT_ARCHIVE_THREAD` 8, `EDIT_UNARCHIVE_THREAD` 9). A new message brings the thread back.
 - **2.5:** Unblock sender, Delete all, and the reason a message failed.
 - **2.6:** a call's conference flag and connect time, the IMEI, and `SILENCE`.
@@ -99,5 +102,5 @@ MODEMD (modem-ipc 2.5); why a message failed.
 | neoui 1.9: OPEN / ARG / DONE, notification actions, two residents, the kit parts | on main |
 | the split into three EXEs, the shared frame | on main; RAM-booted on the Pixel |
 | Phone, Contacts, Messages v2 (every `p2-*` board, `snapshots/p2-*.png`) | on main |
-| the board audit (2026-11-17): every board reached with real data; fixes for the bar timer, badges, Conference, Silence, IMEI, Send as vCard, the speed-dial number; boards `p2-call-conference`, `p2-msg-archived` | on main (telephony 2.6) |
-| a Pixel install | installed into slot a, 2026-11-17 (`filesystem.md`) |
+| the board audit (2026-11-17): every board reached with real data; fixes for the bar timer, badges, Conference, Silence, IMEI, Send as vCard, the speed-dial number; boards `p2-call-conference`, `p2-msg-archived` | on main (modem-ipc 2.6, neohw) |
+| a Pixel install | installed into slot a, 2026-11-17 ([filesystem.md](../storage/filesystem.md)) |

@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # WB1: the kernel
 
-Part of the [browser docs](README.md).
+Part of [Apps](../README.md) · Status: done · Updated: 2026-11-17 · Neighbours: [the browser hub](README.md)
 
 **Status:** ✅ done 2026-11-17 · [kernel#19](https://github.com/NeoSymbian/kernel/pull/19), [e32-rs#3](https://github.com/NeoSymbian/e32-rs/pull/3)
 
@@ -28,4 +28,5 @@ Kernel PR [kernel#19](https://github.com/NeoSymbian/kernel/pull/19), tests [e32-
   - FP is saved on every reschedule (no trap on first use);
   - stacks are committed in full;
   - there is no user protect call: no-JIT SpiderMonkey does not need one (WB3, [wb3-js.md](wb3-js.md)).
-- **Still open from S4:** the Rust ARMv7/NEON softfp target and LDREX atomics, which come with WB2.
+- **Still open from S4 (then):** the Rust ARMv7/NEON softfp target and LDREX atomics, which came with WB2 (WB2a);
+  since US4 (2026-11-25) all Rust is ARMv8 AArch32 with native atomics.

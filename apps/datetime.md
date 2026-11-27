@@ -1,6 +1,8 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # datetime: Clock + Calendar v2 (NEOCLOCK, NEOCAL, DTSRV)
 
+Part of [Apps](README.md) · Status: done · Updated: 2026-11-26
+
 Written 2026-11-17. This is the proposal for a new repo, `NeoSymbian/datetime`. It ships two apps from one codebase:
 - **Clock** (`NEOCLOCK.EXE`), moved out of neoui and redesigned;
 - **Calendar** (`NEOCAL.EXE`), new.
@@ -123,7 +125,7 @@ datetime/
 **CI:**
 - host: `cargo fmt/clippy/test` and the snapshots;
 - device: `cargo arm`;
-- from US6b, UI taps on QEMU virt through the tabs (neoui's Syborg job, which cloned files this way, was retired in US5).
+- UI taps on QEMU `virt` through the tabs: neoui's `virt-taps` workflow clones datetime (US6b; the Syborg job it replaced was retired in US5).
 
 ## How it works
 
@@ -187,8 +189,8 @@ widget text now comes from `NEXT`. The shell drops the alarm check (`due()`, `Ap
 | Need | Today | Needs | Where |
 |---|---|---|---|
 | Alarms with the phone off | none | a PMIC RTC alarm + power-on reason in the kernel (sdm670) | kernel |
-| Ring while silent | sound profiles don't exist yet | profiles (settings S-boards) and an audio path for tones | neoui, telephony |
-| Alarm sounds | a beep | the audio service of files FA9 (MP3/AAC), or built-in tones first | telephony, files |
+| Ring while silent | sound profiles exist since Settings SE2b (2026-11-26) | alarms that ring through Silent (not checked) | neoui, neohw |
+| Alarm sounds | three NeoAudio tones (DT2) | the audio service of files FA9 (MP3/AAC) for other sounds | neohw, files |
 | OPEN a page with arguments from a server | done: protocol 1.19 services (DT09) | — | neoui |
 | .ics in Messages | SMS only | MMS (modem C10) | neohw |
 | Share by Bluetooth | none | hardware/bluetooth.md B5 | neohw |
@@ -199,7 +201,7 @@ Each phase ends with host tests and board snapshots in the datetime repo, then t
 
 | Phase | Work | Repos | Gate | Boards |
 |---|---|---|---|---|
-| **DT0** move | Create `NeoSymbian/datetime`; NEOCLOCK → `symbian/clock` + `crates/clock-ui`, model → `datetime-core`; UID 0xE0008001. neoui drops `symbian/apps/clock` and its exes line, and clones datetime in `syborg.yml`. No behaviour change. | datetime, neoui, docs | today's Clock taps pass on Syborg from the new repo | — |
+| **DT0** move | Create `NeoSymbian/datetime`; NEOCLOCK → `symbian/clock` + `crates/clock-ui`, model → `datetime-core`; UID 0xE0008001. neoui drops `symbian/apps/clock` and its exes line, and clones datetime in its `virt-taps` workflow. No behaviour change. | datetime, neoui, docs | today's Clock taps pass on QEMU `virt` from the new repo | — |
 | **DT1** DTSRV for alarms and timers | The server, `alarms.dat`/`timers.dat`, one-time import of `clock.alarms`/`clock.timer`, `RTimer::At`, OPEN + NOTIFY on fire, snooze; clockwork's alarm code removed; NEXT for the home widget | datetime, neoui | an alarm rings with Clock closed and after a reboot; a time-zone change moves it | `dt2-ring-alarm`, `dt2-ring-timer`, `dt2-shade` |
 | **DT2** Clock v2 | 3 tabs, TimeHero, world cards, alarm cards with digit glyphs, free-text label, sound and snooze settings, Timer/Stopwatch switch, Buttons mode | datetime | every `clk2-*` board matches its snapshot; Back order of `dt2-spec-map` | `clk2-*` |
 | **DT3** the calendar model | `pim-ics` (round trip, unknown properties kept), `calendar-core` (RRULE subset, ranges, to-dos), DTSRV event and to-do stores | datetime | fuzzed parser; recurrence tests across DST changes | — |
@@ -219,16 +221,20 @@ Each phase ends with host tests and board snapshots in the datetime repo, then t
 Built in one go on 2026-11-26, by parallel agents with a Codex review: datetime#1, neoui#59 (protocol 1.19),
 phone#11 (birthdays), files#18 (Add to Calendar), this doc.
 
-| Phase | State |
-|---|---|
-| DT0 move | done: NEOCLOCK is datetime's (0xE0008001); neoui dropped `apps/clock` and the clock model |
-| DT1 DTSRV | done: service (1.19), stores, plan, OPEN WAKE + cards, snooze, import of `clock.alarms`/`clock.timer`, `dtsrv.next` |
-| DT2 Clock v2 | done: every non-Proposed `clk2-*` board (23 snapshots), Ringing with a NeoAudio tone |
-| DT3 model | done: `pim-ics`, `calendar-core` (RRULE subset with DST, fuzzed), DTSRV's event and to-do stores |
-| DT4 NEOCAL | done: every non-Proposed `cal2-*` board (27 snapshots); the shell mock is gone |
-| DT5 reminders | done: Calendar's Ringing (`calendar.ring`) and cards, snooze |
-| DT6 links | done: birthdays from NEOCONT (NCT2), anniversaries, `.ics` import from Files, share/export |
-| DT7 home widgets | done: ClockWidget's next alarm and AgendaCard from `dtsrv.next` |
+<!-- stages -->
+| Stage | What | State | Updated | Next / evidence |
+|---|---|---|---|---|
+| DT0 | Move Clock into the datetime repo | done | 2026-11-26 | NEOCLOCK 0xE0008001; neoui dropped `apps/clock` (datetime#1, neoui#59) |
+| DT1 | DTSRV for alarms and timers | done | 2026-11-26 | protocol 1.19 service, stores, plan, cards; Pixel: alarm rang, came back after reboot |
+| DT2 | Clock v2 | done | 2026-11-26 | every non-Proposed `clk2-*` board (23 snapshots); Ringing with a NeoAudio tone |
+| DT3 | The calendar model | done | 2026-11-26 | `pim-ics`, `calendar-core` (RRULE subset with DST, fuzzed), DTSRV stores |
+| DT4 | NEOCAL views | done | 2026-11-26 | every non-Proposed `cal2-*` board (27 snapshots); the shell mock is gone |
+| DT5 | Reminders | done | 2026-11-26 | Pixel: a 1-minute reminder rang in Calendar |
+| DT6 | Links: birthdays, .ics, share | done | 2026-11-26 | phone#11 (NCT2 birthdays), files#18 (Add to Calendar); Pixel-tested |
+| DT7 | Home widgets | done | 2026-11-26 | ClockWidget and AgendaCard from `dtsrv.next` (neoui#59) |
+<!-- /stages -->
+
+Merged with docs#80; not installed on the phone yet.
 
 **Pixel (RAM boots, 2026-11-26, `ROFS=ramdisk EMMC_C=1`, two images):**
 - **UI and connectivity:** UI, LTE and Wi-Fi up; DTSRV starts first and imports.
@@ -262,57 +268,7 @@ phone#11 (birthdays), files#18 (Add to Calendar), this doc.
 
 ## System time (shell, built 2026-11-13)
 
-The shell owns the clock, the Date & time settings page, network time and the time zones (`time.*` keys);
-DTSRV and the apps read them. Moved here from `neoui-shell.md` Parts 5 and 6 on 2026-11-21. The status bar and the
-shade's header are in [../neoui-shell/top-panel.md](../neoui-shell/top-panel.md).
-
-**Settings → Date & time** (view `datetime`; the date and zone helpers are in `neoui-proto::clock::datetime`, which
-is host-tested):
-
-| Row | Key | Notes |
-|---|---|---|
-| Automatic time | `time.auto` (on) | NITZ from MODEMD's status, else the HTTP `Date:` of the internet check |
-| Automatic time zone | `time.auto_zone` (on) | NITZ's zone (quarter hours, daylight saving included) |
-| Time zone | `time.zone` ("") | A World catalogue city (Part 6). A tap steps to the next city. The offset in force stays in the kernel and `clock.dat` |
-| 24-hour time | `clock.24h` | Moved here from Display |
-| Seconds in the status bar | `status.seconds` (off) | |
-| Date in the shade | `shade.date` (on) | |
-| Date format | `time.date_format` 0..=3 | "Friday, 13 November", "13.11.2026", "2026-11-13", "11/13/2026" |
-
-**Network time** (`symbian/src/netclock.rs`):
-- A new NITZ value, or a fresh HTTP Date, corrects the clock when it is more than 2 s off or the zone differs
-  (`datetime::correction`). `clock::Keeper` saves it.
-- "Last set" shows the source and the time.
-- **Phone, 2026-11-13:** the clock was booted wrong (00:00). Ucom's NITZ (UTC+4) set it 21 s after boot, matching the
-  Mac to within seconds.
-
-**Shortcuts:**
-- the NITZ age inside MODEMD's status is not counted;
-- the Wi-Fi switch stops scanning and rejoining but leaves the radio up.
-
-
-### Time zones with daylight saving (Part 6, 2026-11-13)
-
-**Rules:** each World catalogue city (`neoui-proto::clock::world`, 87 cities west to east) carries its zone's rule
-as a POSIX `TZ` string from IANA tzdata, e.g. Berlin `CET-1CEST,M3.5.0,M10.5.0/3`.
-- `clock::tz::Rule` parses and evaluates the string: the standard offset, the daylight saving offset, and the
-  `Mm.w.d`, `Jn` and `n` dates with POSIX's extended times (Israel's `/26`, Greenland's `/-1`).
-- Southern zones, whose summer spans the new year, and Lord Howe's 30-minute change are covered.
-- Host tests check the 2026 changes for Berlin, London, New York, Sydney, Lord Howe and Jerusalem.
-
-**The zone in force:**
-- `time.zone` (Owner::Shell) names the city. With "Automatic time zone" off, the shell applies the city's offset
-  once a minute (`symbian/src/clockwork.rs`), so the clock enters and leaves summer time by itself. `clock::Keeper`
-  saves the offset as before.
-- With automatic zone on, NITZ sets the offset (its zone includes daylight saving), and the city rule stays out of
-  the way.
-- **Time zone row:** shows "UTC+02:00 · Berlin (summer time)": the chosen city when its rule agrees with the clock,
-  else the first city on that offset.
-- **World page:** the catalogue lists each city's offset in force now.
-
-**Shortcuts:**
-- today's rules only, no history (tzdata 2025): the table needs an update when a country changes its rules;
-- the Time zone row steps through the cities one tap at a time; there is no picker yet.
+Moved to [../neoui-shell/system-time.md](../neoui-shell/system-time.md) on 2026-11-27 (with its time-zone subsection).
 
 ## Not doing
 

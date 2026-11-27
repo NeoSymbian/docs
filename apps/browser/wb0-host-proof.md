@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # WB0: the host proof (and WB0p)
 
-Part of the [browser docs](README.md).
+Part of [Apps](../README.md) · Status: done · Updated: 2026-11-21 · Neighbours: [the browser hub](README.md)
 
 **Status:** ✅ WB0 GO 2026-11-16 (QEMU; results in browser `wb0/results/2026-11-16/`) · ⏸ WB0p deferred (no ARM board, owner 2026-11-16); the Pixel now gives the numbers it wanted: scrolling 15–18 fps ([WB5](wb5-input-chrome.md)), local pages in about 8 s ([WB4](wb4-servo.md)).
 

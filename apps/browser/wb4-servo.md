@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # WB4: Servo in the Browser app
 
-Part of the [browser docs](README.md).
+Part of [Apps](../README.md) · Status: done · Updated: 2026-11-20 · Neighbours: [the browser hub](README.md)
 
 **Status:** ✅ done 2026-11-20 · [browser#8](https://github.com/NeoSymbian/browser/pull/8), [build#40](https://github.com/NeoSymbian/build/pull/40), [kernel#31](https://github.com/NeoSymbian/kernel/pull/31), [ossrv#3](https://github.com/NeoSymbian/oss.FCL.sf.os.ossrv/pull/3), [mozjs#2](https://github.com/NeoSymbian/mozjs/pull/2) · the protocol: [protocol.md](protocol.md)
 
