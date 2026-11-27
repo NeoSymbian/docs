@@ -45,7 +45,7 @@ board below, so check the board when they differ.
 | 11 | Smoothness | [S5](neoui-shell/smooth-ui.md), [M4](kernel/README.md) | open / active | Display processor (vsync, planes); tickless idle and a CPU governor |
 | 12 | Bluetooth | [B0](hardware/bluetooth.md) | open | GENI UART and HCI: a valid version answer after a cold boot |
 | 13 | GNSS first fix | [GN3, GN5](hardware/gnss.md) | parked | Paused by the owner; GN3's phone re-test first |
-| 14 | The OnePlus 6T | [OP7+](hardware/devices/fajita.md) | open | The firmware changed on 2026-11-27 (/e/OS, OxygenOS 11): re-read the live DTB first; OP7 (C: and E: on UFS) is the owner's call |
+| 14 | The OnePlus 6T | [OP7+](hardware/devices/fajita.md) | open | New firmware since 2026-11-27 (OxygenOS 11, /e/OS); our kernel boots on it. OP7 (C: and E: on UFS) is the owner's call |
 | 15 | Release readiness | [KM0–KM6](kernel/modernization.md) | open | KM0: gates that fail when a test doesn't report (KRN-022) |
 | 16 | NeoStore | [ST0](apps/store.md) | open | Spikes: PlatSec on C:, HTTP, SIS enums |
 

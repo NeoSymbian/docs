@@ -20,9 +20,16 @@ port should serve it too (untested).
 - **Seen on the new firmware:** a 2019 Android 9 kernel (TWRP 3.3.1) RAM-booted panics into Qualcomm CrashDump Mode,
   and `fastboot boot` of the /e/OS recovery returns to fastboot (it starts only from the fastboot menu).
 
-**So the OP0–OP6 results below were measured on the old firmware.** ABL's behaviour, the reserved-memory map, the
-`cont_splash` address, the `dtbo` index and the ~49.5 MB kernel limit may all have changed: re-read them from the live
-device tree before the next NeoSymbian RAM boot. The reinstall runbook and the backups of the old firmware are kept
+**Our kernel on the new firmware (2026-11-27, 6 RAM boots).** The OP0–OP6 results below were measured on the old
+firmware. Since the reinstall:
+- **Boot:** a 36.4 MB `boot.img` (kernel + DTB 11.2 MB, ramdisk 25.2 MB) is accepted and boots to neoui.
+- **RAM:** the same 1651 MB in 7 banks. Banks 0 and 1 moved slightly (0x81c00000–0x83e00000, 0x855ff000–0x85700000);
+  banks 2–6 are unchanged.
+- **Display:** the splash framebuffer is still at 0x9d400000 (1080×2340). Download mode is off, as before.
+- **Hardware:** USB, the SMMU, UFS and touch all come up.
+- **CrashDump:** the one seen that day was our own UFS semaphore bug, fixed in kernel `8f21452e`, not the firmware.
+- **Not re-read yet:** the boots pass our own DTB (taken from the old `boot_a`). The live /e/OS device tree, the `dtbo`
+  index and the exact kernel size limit under the new ABL are still to check. The reinstall runbook and the backups of the old firmware are kept
 privately, outside this repo.
 
 ## Decisions (owner, 2026-11-26)
@@ -335,7 +342,8 @@ about 14 MB together) would fit in the room left: about 21 MB in the kernel and 
 
 ## Open questions
 
-- Everything that depends on the firmware, after the 2026-11-27 change to OxygenOS 11.1.2.2 (above): the RAM-boot
-  limit, ABL's handling of `fastboot boot`, the reserved memory and the panel's splash address.
+- What the 2026-11-27 firmware change (OxygenOS 11.1.2.2, above) left unchecked: the live device tree and its `dtbo`
+  index, and the exact kernel size limit under the new ABL. The RAM map and the splash address were re-checked on our
+  boots.
 
 - Whether ABL applies `dtbo` on `fastboot boot` (the kernel reads `/memory` and `/reserved-memory` from what it is handed).
