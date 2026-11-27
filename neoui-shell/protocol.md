@@ -167,10 +167,12 @@ event words are exact: reserved words are 0, a revision is never 0, a ticket is 
 is the only 1.17 clear; anything else is no event.
 
 **A connection is its own process's.** Since the 1.20 fixes a new session is bound to its app at its first message, by
-the kernel's secure ID of the process that sent it: the newest started app without a session whose EXE has that SID
-(`apps::sid_fits`; the legacy bridge by its shared 0xE0002006). Two hidden starts at once (an owner's cold start and an
-`OPEN_FILE`) can't swap sessions, files or settings. A session that fits no started app is refused
-(`KErrNotSupported`). The kit and the bridge share a SID: while both are starting, the newer takes the connection.
+the kernel's word twice: the process that sent it is the one SYSSTART started for the app (e32 `Process::id` against
+`Message::client_process_id`, e32-rs `7d6ab96`), and its secure ID fits the app's EXE (`apps::sid_fits`; the legacy
+bridge by its shared 0xE0002006). Two hidden starts at once (an owner's cold start and an `OPEN_FILE`) can't swap
+sessions, files or settings, and the kit and the bridge, which share a SID, can't take each other's session (so a
+`NOTIFY` or `CHANNEL` is never put down to the wrong one). A session that fits no started app is refused
+(`KErrNotSupported`).
 
 ### Paging
 
@@ -266,7 +268,9 @@ downloads/documents, contacts, trash contents and imported birthdays have no imp
   Failed: `result < 0`. Partial, interrupted: `result ≤ 0`. `committed_scope` is never more than was asked. The
   owner needs the capability it has **now** (registered again without it: `KErrPermissionDenied`). The same report
   again answers 0 (and retries a save still due), after a restart too: the table keeps a fingerprint of each accepted
-  report (`jobs::fingerprint`, FNV-1a 64). A different one on a finished ticket answers `KErrAlreadyExists`. The owner
+  report (`jobs::fingerprint`, FNV-1a 64; `jobs.dat` version 2). The first build's table (version 1, no
+  fingerprints) is still read: its receipts and next ticket stay, its unfinished jobs are interrupted, and it is saved
+  as version 2. A different one on a finished ticket answers `KErrAlreadyExists`. The owner
   can't name its own SID, capabilities or another app: the shell knows those.
 
 Claim and finish check the owner's key, its kernel SID, its current session, its declared capability and the pending
