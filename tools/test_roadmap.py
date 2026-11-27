@@ -49,7 +49,7 @@ class RoadmapTest(unittest.TestCase):
         self.assertEqual(rm.main(["roadmap.py"]), 0)
         text = self.read("roadmap.md")
         self.assertIn(
-            "| FS7 | Install a big Z: | 🔵 active | 2026-11-26 | step 0 done | [Storage](storage/filesystem.md) |",
+            "| FS7 | Install a big Z: | 🔵 active | 2026-11-26 | step 0 done | [storage/filesystem](storage/filesystem.md) |",
             text,
         )
         self.assertNotIn("FS0", text)

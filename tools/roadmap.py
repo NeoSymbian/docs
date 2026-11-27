@@ -45,12 +45,13 @@ def cells(line):
     return [c.strip() for c in line.strip().strip("|").split("|")]
 
 
-def title(path):
-    with open(path, encoding="utf-8") as f:
-        for line in f:
-            if line.startswith("# "):
-                return line[2:].strip()
-    return os.path.basename(path)
+def label(rel):
+    """Short name for the Doc column: the path without .md; a folder's README is the folder."""
+    return (
+        rel[: -len("/README.md")] + "/"
+        if rel.endswith("/README.md")
+        else rel[: -len(".md")]
+    )
 
 
 def area_docs(folder):
@@ -105,7 +106,7 @@ def board(errors):
             rel = os.path.relpath(path, ROOT)
             for stage, what, state, updated, nxt in blocks(path, errors):
                 section.append(
-                    f"| {stage} | {what} | {STATES[state]} | {updated} | {nxt} | [{title(path)}]({rel}) |"
+                    f"| {stage} | {what} | {STATES[state]} | {updated} | {nxt} | [{label(rel)}]({rel}) |"
                 )
         if section:
             out += [
