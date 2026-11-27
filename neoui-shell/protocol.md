@@ -42,7 +42,7 @@ work that has been designed but not built**, so that two designs can't pick the 
 | 1.19 | 2026-11-26 | services: an `APPS` entry with no screen (`dtsrv` = DTSRV.EXE, datetime DT1) started at boot and kept alive; `OPEN` grows `flags` (slot 3, `OPEN_WAKE` 1: screen on, shade closed; only from a service); a service's card taps and actions all arrive in place; `AppEvent::Alarm` retired (Clock gets `Open { page }` + `arg`) | [services](#services-119) |
 | 1.20 | 2026-11-26 | Settings contracts: paged, revisioned `SETTINGS_INFO` kinds 8 `APP_DETAIL`, 9 `BATTERY_CYCLE` (built with their producers D4/D5 in the same run), 13 `JOBS`, 14 `FEATURES`; `SETTINGS_ACTION` 6 confirmed `CLEAR` and 7 `MEASURE_APP` (nonces, tickets); `OWNER_REPORT` = 42 (owner work); `ENTRY_THUMB` = 43; `CONTROL_FEEDBACK` = 44 (D6, touch and dial-key feedback); `REPAINT` = 45 (D2); sessions bound by SID and the spawned process id; `ACTION_PROFILE` tags 6–9 (D6: feedback, your sounds); events 27 `SettingsInfo`, 29 `OwnerWork`, 28 with a ticket (`ClearTicket`), only to 1.20 clients. Kinds 1–6 and the 1.17 event 28 are byte-identical | [Settings snapshots](#settings-snapshots-owner-reports-and-panel-policy-120-121) |
 | 1.21 | 2026-11-27 | Notification channels and the user's policy (TP4/D9): `CHANNEL` = 34; `SETTINGS_INFO` kind 7 `CHANNELS` (paged, Settings only); the registered `notify.*` and `n.<app>` keys; NOTIFY refused (`KErrPermissionDenied`) for an app or channel turned off, its cards gone with `NotifyGone(id, GONE_OFF)`; banners, the shell's chime, Do not disturb in the shell. `REPLY_TEXT`/event 24 stay reserved | [TP4 policy](#tp4-policy-121) |
-| 1.22 | 2026-11-27 | **Contract** for TP3–TP9 and home Part 4 (W0a): `MEDIA` 33 / event 23, `REPLY_TEXT` 35 / event 24, `ACTIVITY` 36 / event 25, `TILE` 37 / event 26, `WIDGET` 46; INFO 12 `TILES`, ACTION 8 `INSTALL_WALLPAPER`, 12 `EDIT_TILES`, 14 `LOCK_DIALOG` codecs; NOTIFY flag `STICKY` (8) and the Call style's Answer/Reject (0xA0/0xA1); home layout v2 (app widgets); the keys `shell.tap`, `shell.media`, `shell.tiles`, `island.on`, `island.deny`, `lock.on`, `lock.pin_set`, `ui.language`, `power.style`. Codecs, constants and `neoapp` helpers only: **the producers and consumers land in W1–W3**; until then the shell checks the caller and the record and answers `KErrNotSupported`, and INFO 14 advertises none of it | [Protocol 1.22](#protocol-122) |
+| 1.22 | 2026-11-27 | **Contract** for TP3–TP9 and home Part 4 (W0a): `MEDIA` 33 / event 23, `REPLY_TEXT` 35 / event 24, `ACTIVITY` 36 / event 25, `TILE` 37 / event 26, `WIDGET` 46, `SHELL_VERSION` 47 (built); INFO 12 `TILES`, ACTION 8 `INSTALL_WALLPAPER`, 12 `EDIT_TILES`, 14 `LOCK_DIALOG` codecs; NOTIFY flag `STICKY` (8) and the Call style's Answer/Reject (0xA0/0xA1); home layout v2 (app widgets); the keys `shell.tap`, `shell.media`, `shell.tiles`, `island.on`, `island.deny`, `lock.on`, `lock.pin_set`, `ui.language`, `power.style`. Codecs, constants and `neoapp` helpers only: **the producers and consumers land in W1–W3**; until then the shell checks the caller and the record and answers `KErrNotSupported`, and INFO 14 advertises none of it | [Protocol 1.22](#protocol-122) |
 
 ## Opcodes (app → shell)
 
@@ -84,7 +84,8 @@ work that has been designed but not built**, so that two designs can't pick the 
 | 44 | `CONTROL_FEEDBACK` | 1.20 | built (D6): `[kind, key]` → 0: a control of the app in front accepted a touch (kind 0; the kit reports it with `neoapp::kit_feedback!`) or a dial pad key (kind 1, key = its ASCII `0`–`9`, `*`, `#`). The shell answers at most once per finger-0 press it delivered to that app: a pulse with `sound.touch_vibrate`, the key's DTMF pair with `sound.keypad_tones` out of a call in an audible profile. `KErrNotReady` without a press to answer or not in front, `KErrArgument` for another kind, `KErrNotSupported` from a client older than 1.20 |
 | 45 | `REPAINT` | 1.20 | built (D2 fix): no arguments → 0: something drew straight onto the screen (the kernel console overlay, just turned off), so the shell copies its whole frame and the front app's whole surface at the next frame. `KErrNotSupported` from an older shell |
 | 46 | `WIDGET` | 1.22 | contract ([1.22](#widget-46)): checked against the catalogue, `KErrNotSupported` until home Part 4. home.md's first `WIDGET = 12` (and the plan's 11) were 1.4's retired `TOOLBAR`/`TITLE`: numbers are never reused |
-| 47 | — | — | next free |
+| 47 | `SHELL_VERSION` | 1.22 | built: no arguments → `major << 8 \| minor`, for any app (a publisher's way to learn the shell reads 1.22; an older shell answers `KErrNotSupported`) |
+| 48 | — | — | next free |
 
 ## AppEvent kinds (shell → app)
 
@@ -189,7 +190,7 @@ duplicate identity, an invalid enum, a reserved bit, trailing bytes or an overfl
 | 1.22 | `REPLY_TEXT=35`, `NotifyReply`, event 24 | `[card_id, Des8 out, 0, 0]` takes the reply text; event `[24, card_id, 0, 0]` tells the owner it is ready | contract ([1.22](#reply_text-35)) |
 | 1.22 | `TILE=37`, `Tile`, event 26 | `[DesC8 offer, 0, 0, 0]`; event `[26, local_id, hold, 0]`, hold 0 tap, 1 hold | contract ([tiles](#tp7-tiles-122)) |
 | 1.22 | `MEDIA=33`/event 23, `ACTIVITY=36`/event 25, `WIDGET=46` | see [Protocol 1.22](#protocol-122) | contract |
-| — | TP2, Store | 31 `BLOB`, 38/39 `REGISTER`/`UNREGISTER` | reserved. 32 `NOTIFY_CLEAR` is built; event 8 stays retired. Next free: opcode 47, event 30 |
+| — | TP2, Store | 31 `BLOB`, 38/39 `REGISTER`/`UNREGISTER` | reserved. 32 `NOTIFY_CLEAR` is built; event 8 stays retired. Next free: opcode 48, event 30 |
 
 **Never to an older client.** The shell drops an event a client can't decode (`AppEvent::needs_minor`: 22 for 23–26;
 20 for 27, 29 and the ticketed 28; 18 for `NotifyGone`) before it queues it, so a 1.19 app never sees one. Owner wakes and hints go
@@ -399,8 +400,16 @@ place. Built-ins: 1 Wi-Fi, 2 Mobile data, 3 Silent, 4 Do not disturb, 5 Airplane
 Bluetooth, 9 Flashlight, 10 Auto-rotate, 11 Hotspot, 12 Cast, 13 Location, 14 NFC, 15 Screen record, 16 Night light;
 1–7 are backed (`tiles::backed`), the rest stay hidden. `shell.tiles` is the ordered LE `u16` words, high bit wide,
 low 15 bits the ID; duplicates and unknown IDs refused, at most 32 placed (`Limit::Tiles` on SET and load); empty is
-the default order (Wi-Fi and Mobile wide, then Silent, DND, Airplane, Battery saver, Dark). Only the shell's editor
-writes it (shell-only, kept by Reset settings).
+the default order (Wi-Fi and Mobile wide, then Silent, DND, Airplane, Battery saver, Dark), so **the editor keeps at
+least one tile** and `tiles::encode_order` refuses an empty, repeated or unrepresentable order (an id past 15 bits never
+turns into a wide tile). Only the shell's editor writes it (shell-only, kept by Reset settings: owner, 2026-11-27).
+
+**Slots and cold owners (TP7, built by W1-B).** On load the shell checks every app tile of `shell.tiles` against its
+persistent slot table: a tile whose slot isn't assigned, or whose local id the slot's owner hasn't offered since,
+stays out of the drawn order (it is dropped from the value at the editor's next save) and never reaches another app.
+A tap or hold on a placed tile whose owner isn't running starts it hidden and holds the event until the owner binds
+with minor ≥ 22; a 1.21 owner gets no `Tile` event (and its tile shows as unavailable). Tests to write with it:
+`tiles_slot_table_drops_unassigned_on_load`, `tile_tap_waits_for_a_1_22_owner`.
 The first stop shows the first four backed, placed tiles. `shell.tap` 0 shade, 1 control centre becomes actionable at
 TP7; `shell.swipehome` as registered.
 
@@ -415,9 +424,13 @@ The contract for the top panel's TP3–TP9 and home Part 4 (W0a, 2026-11-27): `n
 `settings_app/wire.rs` (actions 8 and 14), `settings/registry.rs`; `neoapp` `App::media`, `end_media`, `activity`,
 `end_activity`, `tile`, `widget`, `reply_text`, `watch_font_scale` + `font_scale!`. **Producers and consumers land in
 W1–W3.** Until then SYSSTART binds the caller as for NOTIFY (the session by SID and the spawned process id at its
-first message; each of these opcodes also by the app's catalogue SID, `KErrPermissionDenied`), decodes the record
-(`KErrTooBig` past its maximum, `KErrArgument` malformed; `WIDGET` `KErrNotFound` for a name not in the app's
-catalogue) and answers `KErrNotSupported`. INFO 14 doesn't advertise them until each is built. Encoding as in
+first message), then requires **a positive catalogue SID match** before it reads anything: the app's key has an
+`apps::sid` and the message's SID is it, else `KErrPermissionDenied` (the legacy bridge, which has no catalogue SID,
+publishes none of these). Then it decodes the record (`KErrTooBig` past its maximum, `KErrArgument` malformed; an
+ACTIVITY of kind 4 Media too, which is the shell's own; `WIDGET` `KErrNotFound` for a name not in the app's
+catalogue) and answers `KErrNotSupported` (`neoui_proto::contract::ingress`). `SETTINGS_ACTION` 8, 12 and 14 answer
+`KErrPermissionDenied` to anyone but Settings, `KErrArgument` for a malformed request, else `KErrNotSupported`
+(`contract::settings_action`). INFO 14 doesn't advertise them until each is built. Encoding as in
 [the 1.20 rules](#settings-snapshots-owner-reports-and-panel-policy-120-121); every record starts with a version byte
 1, and decoders refuse a reserved bit, an unknown enum, a long string, a short record and trailing bytes.
 
@@ -436,10 +449,12 @@ caller's card `card_id` after event 24. The rules in [TP4 policy](#tp4-policy-12
 never logged) hold. `KErrNotFound` with none pending once built.
 
 ### `ACTIVITY` (36)
-`[DesC8 activity]` → 0. Activity (≤ 154 bytes): `1:b, id:b, kind:b, flags:b, tint:w, lead:h, page:h, title:s32,
+`[DesC8 activity]` → 0. Activity (≤ 155 bytes, a full Text trail being the widest): `1:b, id:b, kind:b, flags:b, tint:w, lead:h, page:h, title:s32,
 text:s64, trail:b, payload, buttons:b, button:s16*`. Id 0–3 per app. Kinds in the island's order: 1 Call, 2
-Recording, 3 Timer, 4 Media (the shell's own, derived from MEDIA; a player never sends it), 5 Progress, 6 Other. Flags
-(Call only) MUTED 1, SPEAKER 2. `tint` 0xRRGGBB (clamped by the shell), `lead` a kit glyph (0 the app's). Trail 0
+Recording, 3 Timer, 4 Media (the shell's own, derived from MEDIA; an app's is refused with `KErrArgument`), 5
+Progress, 6 Other. Flags
+(Call only) MUTED 1, SPEAKER 2. `tint` 0xRRGGBB (clamped by the shell), `lead` a kit glyph (0 the app's; glyph only
+in 1.22, a BLOB would come as a grown record). Trail 0
 Text `s8`, 1 Since `q`, 2 Until `q` (unix ms; the shell ticks them), 3 Ring `value:h, max:h` (`0 < max`, `value ≤
 max`). At most 2 buttons, each 1–16 bytes. **A Call has no buttons** (O1): the shell draws Mute · Keypad · Speaker · End
 and reports them as `ActivityTap { i }` 0x10, 0x11, 0x12, 0x13. An empty title with every other field zero ends
@@ -450,24 +465,28 @@ activity `id`. `KErrPermissionDenied` for an app in `island.deny` (TP6).
 title:s32, lines:b ≤ 3, line:s48*`), 2 Count (`icon:h, value:w, label:s32`), 3 People (`count:b ≤ 5, (initials:s8,
 tint:w, name:s32)*`). The name and template must match `widget::CATALOGUE` for the caller (`KErrNotFound` for another
 name, `KErrArgument` for another template); the first entry is `clock.next` (Text, 2×2 and 4×1, "Next alarm"). The shell
-keeps the content under `widget.<app>.<name>` (written by the shell only; at most 32 bytes, so `widget::setting_key`
+keeps the content under `widget.<app>.<name>` (written by the shell only: the `widget.` prefix is the shell's, even
+for an app whose key were "widget"; at most 32 bytes, so `widget::setting_key`
 refuses a longer pair). The size is the user's choice on home, not the app's: `home.layout` **version 2** adds the item
 `[2, keyRef, nameLen, name, size]` for a catalogue widget at one of its sizes; a layout without one is still written as
 version 1, and both are read.
 
 ### Cards: `STICKY` and the Call style's keys (O1)
 `Notification::flags` bit 8 `NOTIFY_STICKY`: the banner doesn't time out; an Urgent Call-style card with it gets past
-Do not disturb. A 1.21 shell refuses a card with it (`KErrArgument`), so an app sends it only to a 1.22 shell. On a
-Call-style card the shell draws round Answer and Reject itself and reports them as `Notified { id, action }` with
-`action` 0xA0 (`page::CALL_ANSWER`) and 0xA1 (`CALL_REJECT`); the app's own ≤ 3 actions (Silence, Reply with message)
-stay `i + 1`.
+Do not disturb. A 1.21 shell refuses a card with it (`KErrArgument`), so a publisher asks first: `SHELL_VERSION` (47,
+`neoapp::App::shell_version`) answers the shell's minor, and an older shell answers `KErrNotSupported`. **Fallback
+before 1.22:** no STICKY, and Answer and Reject are the card's own actions (as in 1.21). On a Call-style card the 1.22
+shell draws round Answer and Reject itself and reports them as `Notified { id, action }` with `action` 0xA0
+(`page::CALL_ANSWER`) and 0xA1 (`CALL_REJECT`), only to a publisher connected with minor ≥ 22 (`needs_minor`); the
+app's own ≤ 3 actions (Silence, Reply with message) stay `i + 1`.
 
 ### Keys (1.22, all shell-owned; Settings writes them unless noted)
 `shell.tap` Int 0–1 (0 shade, 1 control centre), `shell.media` Bool on, `shell.tiles` Bytes ([tiles](#tp7-tiles-122);
-shell only, kept by Reset), `island.on` Bool on, `island.deny` Bytes ≤ 272 (`s16` app keys, `activity::encode_deny`),
+shell only, kept by Reset), `island.on` Bool on, `island.deny` Bytes ≤ 272 (`s16` app keys, `activity::encode_deny`; `Limit::AppKeys` checks the structure on SET and
+file load, and a refused SET keeps the value before),
 `lock.on` Bool on, `lock.pin_set` Bool off (**shell only**, kept by Reset: SYSSTART's PIN dialog sets it), `ui.language`
 Str ≤ 8 (`en`; `hy`, `ru`; anything else shows English), `power.style` Int 0–1 (0 the full-screen sheet, O5; 1 the
-short list). The font scale stays `display.font_size` (0–3): `neoapp::App::watch_font_scale` watches it and
+short list; owner, 2026-11-27). The font scale stays `display.font_size` (0–3): `neoapp::App::watch_font_scale` watches it (and returns the watch's error) and
 `neoapp::font_scale!(ui, app)` sets the kit's `Theme.font-size`.
 
 ## Older numbering, now void

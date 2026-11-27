@@ -182,7 +182,7 @@ An empty record ends the session.
 A pill in the middle of the status bar (≤ 200 dp compact) for things happening now. `ACTIVITY` carries:
 - `kind`: Call, Timer, Media, Progress, Recording, Other;
 - `title` ≤ 32 B and `text` ≤ 64 B (the expanded card);
-- `tint` (the shell clamps it to readable colours), `lead` (a BLOB or a system glyph);
+- `tint` (the shell clamps it to readable colours), `lead` (a system glyph; a BLOB is later, [protocol 1.22](protocol.md#activity-36));
 - `trail`: Text (≤ 8 B), Since (ms), Until (ms) or Ring (value, max);
 - up to 2 buttons and a `page`. An empty title ends it.
 
