@@ -1,8 +1,10 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Hardware and drivers
 
+Part of [NeoSymbian docs](../README.md) · Status: active · Updated: 2026-11-26
+
 The hub for everything that drives the phone's hardware. Target: **Pixel 3a XL (bonito, SDM670)**; the Pixel 3a
-(sargo) shares the SoC ([devices](#devices-where-neosymbian-can-go-next)). Each driver has two halves:
+(sargo) shares the SoC, and a OnePlus 6T port started 2026-11-26 ([devices](devices/README.md)). Each driver has two halves:
 - **kernel** (C++, `kernel/baseport/arm64`: `sdm670_assp/` for the SoC, `bonito_variant/` for the board): MMIO,
   interrupts, DMA and buffer lifetime, exposed to the user side through HAL functions (`EHalGroupVariant`, 0x4exx);
 - **user side** (Rust, [NeoSymbian/neohw](https://github.com/NeoSymbian/neohw)): the protocols and the policy, as
@@ -10,17 +12,26 @@ The hub for everything that drives the phone's hardware. Target: **Pixel 3a XL (
 
 `neohw` was `telephony` until 2026-11-18, when it was renamed and `neolink` (Wi-Fi, Bluetooth) was merged into it.
 
-**Details:**
+## Documents
 
-| Document | Covers | Stages |
+| Document | What | Status |
 |---|---|---|
-| [modem.md](modem.md) | The cellular modem: QRTR, QMI, rmtfs, calls, SMS, data | C0–C12 |
-| [audio.md](audio.md) | NeoAudio, media/recording on the ADSP, the jack, the old apps' DevSound | A0–A8 |
-| [wifi.md](wifi.md) | WCN3990 Wi-Fi: firmware, copy engines, WPA2, NEONET (IP) | W0–W7 |
-| [gnss.md](gnss.md) | GNSS: GNSSD.EXE, QMI LOC, XTRA over Wi-Fi | GN0–GN5 |
-| [bluetooth.md](bluetooth.md) | Bluetooth: the Rust host stack and the 2010 facade (design) | B0– |
-| [battery.md](battery.md) | PM660 battery and thermal telemetry | D2 |
-| [verification/](verification/) | Run records: [driver support](verification/driver-support-2026-11-10.md), [TSENS](verification/tsens-2026-11-10.md), [battery](verification/battery-2026-11-11.md), [charger watchdog](verification/charger-2026-11-20.md) | |
+| [modem.md](modem.md) | The cellular modem: QRTR, QMI, rmtfs, calls, SMS, recovery, mobile data | active |
+| [audio.md](audio.md) | NeoAudio, media and recording on the ADSP, the jack, the old apps' DevSound | done |
+| [wifi.md](wifi.md) | WCN3990 Wi-Fi: firmware, copy engines, WPA2, NEONET (IP), ESOCK over NeoNet | done |
+| [gnss.md](gnss.md) | GNSS: GNSSD.EXE, QMI LOC, XTRA over Wi-Fi | active (paused before a first fix) |
+| [gnss-research.md](gnss-research.md) | Why the satellites show no signal yet, and the first-fix plan | research |
+| [bluetooth.md](bluetooth.md) | Bluetooth: the Rust host stack and the 2010 facade | plan |
+| [battery.md](battery.md) | PM660 battery telemetry, its history, the charger watchdog | done |
+| [devices/README.md](devices/README.md) | The phones NeoSymbian runs on and could go to next | reference |
+| [devices/fajita.md](devices/fajita.md) | The OnePlus 6T (SDM845) port | active |
+| [verification/driver-support-2026-11-10.md](verification/driver-support-2026-11-10.md) | The D0 inventory and D1 foundation checks | record |
+| [verification/tsens-2026-11-10.md](verification/tsens-2026-11-10.md) | Read-only TSENS telemetry checks | record |
+| [verification/battery-2026-11-11.md](verification/battery-2026-11-11.md) | Battery telemetry checks | record |
+| [verification/charger-2026-11-20.md](verification/charger-2026-11-20.md) | The charger watchdog after ABL | record |
+| [tools/inspect-bonito.py](tools/inspect-bonito.py) | The sanitized DTB inventory ([evidence](#evidence)); its test is `tools/test_inspect_bonito.py` | tool |
+| [history/modem-bringup.md](history/modem-bringup.md) | The modem's C0–C9 bring-up log | record |
+| [history/wifi-bringup.md](history/wifi-bringup.md) | The Wi-Fi bring-up log | record |
 
 Also: [../developer-tools/debug-access.md](../developer-tools/debug-access.md) (USB console and monitor), [../storage/filesystem.md](../storage/filesystem.md) (eMMC, A/B),
 [../known-issues.md](../known-issues.md), [../roadmap.md](../roadmap.md) track H.
@@ -39,14 +50,14 @@ Also: [../developer-tools/debug-access.md](../developer-tools/debug-access.md) (
 | Battery, TSENS | `qcom_battery.cpp`, `qcom_tsens.cpp`, `qcom_spmi.cpp` | 0x4e1a | neoui (status bar, Settings, Dev tools) | read-only telemetry; no charger control; charger watchdog off after ABL ([checked](verification/charger-2026-11-20.md)) | 2026-11-20 |
 | Haptics | `bv/a64_haptics.cpp` | 0x4e27 | MODEMD (ring, SMS), neoui | bounded pulses | yes |
 | USB debug | `qcom_dwc3.cpp`, `qcom_usbpower.cpp` | 0x4e04/05 | neoui (`usb_debug.rs`) | console on RAM boots; cold-boot power open | RAM boots |
-| Modem (MSS) | `qcom_mss.cpp`, `qcom_pas.cpp`, `qcom_glink.cpp`, `qcom_smp2p.cpp`, `qcom_ipa.cpp`, telhal | 0x4e0d–0x4e13, 0x4e24/25 | HWHUB (boot, QRTR, recovery) + MODEMD (cellular) ([modem.md](modem.md)) | calls, SMS, call log, recovery | 2026-11-18 |
+| Modem (MSS) | `qcom_mss.cpp`, `qcom_pas.cpp`, `qcom_glink.cpp`, `qcom_smp2p.cpp`, `qcom_ipa.cpp`, telhal | 0x4e0d–0x4e13, 0x4e24/25 | HWHUB (boot, QRTR, recovery) + MODEMD (cellular) ([modem.md](modem.md)) | calls, SMS, call log, recovery (accepted 2026-11-21) | 2026-11-21 |
 | ADSP, audio | `qcom_adsp.cpp`, `bv/a64_audio.cpp` (CS35L36 ×2, RT5514), telhal AudioMem | 0x4e14–0x4e18, 0x4e26 | AUDIOD: NeoAudio (MODEMD drives calls/ring over op::CONTROL) ([audio.md](audio.md)) | call audio, media, recording, routes, amp protection | 2026-11-18 |
 | 3.5 mm jack | `bv/a64_jack.cpp` (PM660L/SDM660 codec) | 0x4e18 ops 8–10 | AUDIOD | driver idle-tested; headphones/headset mic untested with a plug | 2026-11-18 |
-| Wi-Fi | `qcom_wcn3990.cpp` (SNOC copy engines, HTC/WMI/HTT) | 0x4e1b–0x4e1f, 0x4e23 PRNG | WIFID (firmware over NeoHub, joining, WPA2, remembered networks) + NEONET (IP) ([wifi.md](wifi.md)) | scan, WPA2, DHCP, TCP/UDP | 2026-11-18 |
+| Wi-Fi | `qcom_wcn3990.cpp` (SNOC copy engines, HTC/WMI/HTT) | 0x4e1b–0x4e1f, 0x4e23 PRNG | WIFID (firmware over NeoHub, joining, WPA2, remembered networks) + NEONET (IP) ([wifi.md](wifi.md)) | scan, WPA2, DHCP, TCP/UDP; back after a modem restart | 2026-11-21 |
 | Bluetooth | — (GENI UART + HCI LDD planned) | — | BTSRV planned ([bluetooth.md](bluetooth.md)) | design | — |
 | Sensors | — (ADSP sensor PD via FastRPC) | — | — | not started (D4) | — |
 | Cameras | — (IMX355 front, IMX363 rear; CCI/CAMSS) | — | — | not started (D5) | — |
-| GNSS | — (QMI LOC on the modem) | — | GNSSD planned ([gnss.md](gnss.md)) | design (D6, GN0) | — |
+| GNSS | — (QMI LOC on the modem) | — | GNSSD (LOC over NeoHub, XTRA over Wi-Fi) ([gnss.md](gnss.md)) | LOC up, engine unlocked; no fix yet (no satellite signal), paused | 2026-11-20 |
 | NFC, fingerprint | — (NXP NCI I2C 0x28; FPC) | — | — | not started (D7) | — |
 
 ## neohw: the processes and their IPC
@@ -60,7 +71,7 @@ The user side of the hardware is a set of daemons, one per driver area, built fr
 | `MODEMD.EXE` | 0xE0003001 | the cellular QMI clients: calls, SMS, call log, blocklist; haptic alerts | NeoModem (`modem-ipc`) |
 | `AUDIOD.EXE` | 0xE0003003 | APR (ADSP ring 2), AudioMem, the mixer, routes, amps, the jack, the call voice path | NeoAudio (`neoaudio`) |
 | `WIFID.EXE` | 0xE0004002 | the Wi-Fi firmware (WLFW over NeoHub), MSA, board data, scan, join, the WPA2 supplicant, saved networks | NeoWifi (`wifi-ipc`) |
-| `GNSSD.EXE` (planned) | 0xE0003004 | the LOC client (NeoHub), fix sessions, XTRA download and inject | NeoLocation (`loc`) |
+| `GNSSD.EXE` | 0xE0003004 | the LOC client (NeoHub, client port 0x28), fix sessions, XTRA download and inject | NeoLocation (`loc`) |
 | `NEONET.EXE` | 0xE0004001 | the IP stack (smoltcp) on the Wi-Fi link | NeoNet (`net`) |
 
 ```
@@ -73,6 +84,8 @@ The user side of the hardware is a set of daemons, one per driver area, built fr
  kernel: qcom_telhal, qcom_mss, qcom_adsp, qcom_glink, a64_audio, qcom_wcn3990
 ```
 
+GNSSD, started by MODEMD, is a NeoHub client of LOC like WIFID and fetches XTRA through NEONET.
+
 **Rules:**
 - **One reader per kernel ring.** The kernel's receive rings pop packets for whoever reads first
   (`qcom_telhal.cpp`), so HWHUB alone reads the QRTR rings and AUDIOD alone reads APR.
@@ -83,32 +96,48 @@ The user side of the hardware is a set of daemons, one per driver area, built fr
   An MSS stop invalidates the Wi-Fi firmware; an ADSP stop clears AudioMem.
 - **PCM never crosses IPC:** it stays in AUDIOD (APR + AudioMem). MODEMD sends AUDIOD intents (call state, ring,
   DTMF, SMS chime) and mirrors AUDIOD's status into NeoModem.
-- **Boot:** SYSSTART starts MODEMD and WIFID. MODEMD starts HWHUB and AUDIOD; WIFID starts NEONET. HWHUB probes: no
-  modem (Syborg) → "no hardware", AUDIOD plays on its clock sink. On the phone HWHUB loads the ADSP, then boots the
-  MSS once IPA and the EFS are ready; MODEMD and WIFID connect to NeoHub and wait for their services.
+- **Boot:** SYSSTART starts MODEMD and WIFID. MODEMD starts HWHUB, AUDIOD and GNSSD; WIFID starts NEONET. HWHUB
+  probes: no modem (QEMU `virt`; Syborg until 2026-11-21) → "no hardware", AUDIOD plays on its clock sink. On the
+  phone HWHUB loads the ADSP, then boots the MSS once IPA and the EFS are ready; MODEMD and WIFID connect to NeoHub
+  and wait for their services.
 - **Contracts keep their names:** `modem-ipc`, `neoaudio`, `phone-rules`, `sms`, `net`, `wpa` are pinned by neoui
   and phone; their package names stay.
 
-Stages (neohw PRs; S4/S5 with neoui #21):
-
-| Stage | Work | Status |
-|---|---|---|
-| S0 | `telephony` renamed `neohw`; these docs centralised | done 2026-11-18 |
-| S1 | `neolink` merged into neohw with its history; one host and one Symbian workspace | done 2026-11-18 (neohw#4) |
-| S2 | modem-proto split into `qrtr`, `hub`, `modem`, `apr` crates and `symbian/sys`; a `Bus` between router and cellular (still one MODEMD.EXE) | done 2026-11-18 (neohw#5), phone: registers, Wi-Fi |
-| S3 | HWHUB.EXE and NeoHub; MODEMD a NeoHub client | done 2026-11-18 (neohw#6), phone: boot, registration over NeoHub, Wi-Fi |
-| S4 | AUDIOD.EXE; MODEMD → AUDIOD over NeoAudio op::CONTROL | 2026-11-18 (neohw#7), phone: media on the DSP; a call's voice path not exercised yet |
-| S5 | WIFID.EXE; the supplicant moves out of neoui's SYSSTART (NeoWifi) | 2026-11-18 (neohw#8, neoui#21), phone: firmware, auto-join of the remembered network, DHCP, internet |
-| S6 | ROM recipe (`neohw/symbian/exes.txt`: MODEMD, HWHUB, AUDIOD, NEONET, WIFID), results here | 2026-11-18 |
+The split into these processes was stages S0–S6 (2026-11-18, neohw#4–#8 and neoui#21); their rows are in the
+[stages block](#program-d0d8-accepted-2026-11-10) below.
 
 ## Program D0–D8 (accepted 2026-11-10)
 
 Native Rust apps first, legacy Symbian adapters later, without changing EKA2's AArch64 ILP32 kernel or the ARMv8-A AArch32
-soft-float user ABI.
+soft-float user ABI. This block also carries the neohw split (S0–S6) from [the processes](#neohw-the-processes-and-their-ipc).
+
+<!-- stages -->
+| Stage | What | State | Updated | Next / evidence |
+|---|---|---|---|---|
+| S0 | telephony renamed neohw; docs centralised | done | 2026-11-18 | this hub |
+| S1 | neolink merged into neohw | done | 2026-11-18 | neohw#4: one host and one Symbian workspace |
+| S2 | modem-proto split into crates; a Bus | done | 2026-11-18 | neohw#5; phone registers, Wi-Fi works |
+| S3 | HWHUB.EXE and NeoHub | done | 2026-11-18 | neohw#6; registration over NeoHub on the phone |
+| S4 | AUDIOD.EXE, NeoAudio CONTROL from MODEMD | done | 2026-11-18 | neohw#7; media on the DSP on the phone |
+| S5 | WIFID.EXE, the supplicant out of SYSSTART | done | 2026-11-18 | neohw#8, neoui#21; auto-join, DHCP, internet |
+| S6 | ROM recipe for the neohw EXEs | done | 2026-11-18 | neohw symbian/exes.txt (five EXEs; GNSSD since 2026-11-20) |
+| D0 | Inventory | done | 2026-11-10 | tools/inspect-bonito.py; verification record of 2026-11-10 |
+| D1 | Foundations | open | 2026-11-10 | bus startup and validation done; resource votes, async streams, device DMA open |
+| D2 | Power | active | 2026-11-20 | TSENS, battery, display done; fuel policy, thermal shutdown, cold USB open |
+| D3 | Audio and haptics | done | 2026-11-18 | NeoAudio A0–A8 (audio.md), DRV2624; no ACDB calibration |
+| D4 | Sensors | open | — | ADSP sensor PD over FastRPC first |
+| D5 | Cameras | open | — | CAMSS, CCI, isolated DMA; IMX355 first |
+| D6 | Connectivity | active | 2026-11-21 | Wi-Fi done (wifi.md); GNSS paused before a fix; Bluetooth designed |
+| D7 | Remaining hardware | open | — | NFC, fingerprint feasibility, torch |
+| D8 | System acceptance | open | — | suspend/resume, overnight idle, a 24-hour run |
+<!-- /stages -->
+
+S2 kept one MODEMD.EXE; S3 made MODEMD a NeoHub client. S4's phone check on 2026-11-18 covered media on the DSP, not
+yet a call's voice path through AUDIOD.
 
 ### Evidence
 
-Reviewed baseline: kernel `326fffcd`, telephony `54a8114`, neoui `ed9202f`, docs
+Reviewed baseline: kernel `326fffcd`, neohw (then `telephony`) `54a8114`, neoui `ed9202f`, docs
 `7f926e7`. The build lock still names kernel `2692bea`: a source checkout and an
 installed image are separate baselines. Re-pin only the deliberately selected,
 validated candidate, preserving other sessions' changes.
@@ -172,7 +201,7 @@ placeholders, not linked working drivers.
 - The ring owners are in [neohw: the processes](#neohw-the-processes-and-their-ipc). Originally MODEMD owned APR and ADSP QRTR exclusively. Independent ADSP/radio
   state machines must pump even after radio failure; support-only routing must
   never advertise dummy RMTFS memory. Use fixed deadlines and bounded work under
-  IPC load. AUDIOD extraction (S4) waits until this passes phone regressions.
+  IPC load. AUDIOD was extracted in S4 (2026-11-18, neohw#7).
 - Versioned native IPC: audio configure/queue/reclaim/start/stop/route/focus;
   sensors enumerate/subscribe/timestamped samples/calibration/drops; camera
   exclusive session/modes/queue/dequeue/controls/capture; power/network/location
@@ -276,108 +305,5 @@ Read for register/protocol facts; preserve the project's licence boundaries:
 
 ## Devices: where NeoSymbian can go next
 
-(Moved here from `devices.md`, 2026-11-19.)
-
-**Status: shortlist (2026-11-09). Ported: the Pixel 3a XL (bonito), and since 2026-11-16 the Pixel 3a (sargo), contributed by idkmaybedeveloper (kernel #18, build #28).** This page lists phones from the mobile
-Linux device lists that NeoSymbian could boot on. They are phones with an unlockable (or no) bootloader, and with
-mainline Linux support to read for register layouts. Each entry says what our port already covers and what would be
-new.
-
-### What a NeoSymbian phone needs
-
-These come from the port's fixed decisions ([../roadmap.md](../roadmap.md), [../kernel/port-map.md](../kernel/port-map.md)):
-
-| Need | Why | Effect on the list |
-|---|---|---|
-| **AArch64 cores that also run 32-bit code at EL0** | The 2010 user side runs unchanged as ARMv8-A AArch32 code at EL0 (ARMv5TE until US3, 2026-11-22) | Cortex-A53/A55/A72–A78 qualify. **Cortex-X2 and later, A715/A720 and A520 are AArch64-only** (most SoCs from 2022 on), so they are out |
-| **A bootloader we can unlock**, or none at all | We boot our own `boot.img` (`fastboot boot` / `flash boot_x`) | Carrier-locked models are out (Verizon Pixels). Xiaomi makes you wait; Fairphone may need a code |
-| **Mainline Linux support** | Mainline drivers and device trees are our register reference (read only, never copied) | The phone should be in Nura's `community` category, or in `testing` with a working device tree |
-| GICv3 interrupt controller | `nkernsmp/arm64` implements GICv3 only | GICv2 phones (Allwinner A64) need a new interrupt back end first |
-| Storage we can drive | `sdm670_assp` has SDHCI-msm (eMMC) | UFS phones need a new UFS host driver (UFSHC + its PHY) before `C:` and `Z:` work |
-| A modem we can talk to | `neohw` speaks QMI over QRTR/GLINK (Qualcomm) | Qualcomm phones reuse it; a Quectel EG25 phone needs an AT-command path instead |
-
-### Sources and how this was checked (2026-11-09)
-
-- **Nura**, formerly postmarketOS: the project renamed itself in September 2026 ([announcement](https://nura.eco/blog/2026/09/27/nura-rename/)); `wiki.postmarketos.org` and `gitlab.postmarketos.org` now redirect to `*.nura.eco`.
-  - The **category** and the **device tree name** (which names the SoC) of each phone below are taken from `pmaports`
-    (`device/<category>/device-<codename>/deviceinfo`), read through the GitLab API at `gitlab.nura.eco` on
-    2026-11-09.
-  - The wiki pages (`wiki.nura.eco`) block automated readers, so per-device feature tables (calls, SMS, data, Wi-Fi)
-    have **not** been read. Check them in a browser before choosing a device.
-- **Ubuntu Touch** progress figures are from https://devices.ubuntu-touch.io on 2026-11-09. Most Ubuntu Touch ports
-  run on Android kernels (Halium), not mainline, so a high figure says the hardware is well understood, not that
-  mainline drivers exist. The PinePhones are the exception: they run native.
-- **Fairphone unlock rules:** from https://www.fairphone.com/bootloader-unlocking-code-for-fairphone, which disagrees
-  with the shop version of that page (details in the FP5 row).
-- **Unverified:** CPU core types, storage type (UFS or eMMC), RAM and the modem are taken from public spec sheets as
-  remembered, not checked today. Check each against the device tree (`ufshc@`/`sdhci@`, `cpu@` `compatible`)
-  before porting.
-
-### The shortlist
-
-#### Same SoC as ours
-
-| Phone (codename) | SoC, cores | Nura | UT | Bootloader | Reuse | New work |
-|---|---|---|---|---|---|---|
-| **Google Pixel 3a (sargo)** | SDM670 (`qcom/sdm670-google-sargo`), Kryo 360 = A75 + A55 | community | 97.3% | Unlockable (`fastboot flashing unlock`), except Verizon | `sdm670_assp` entirely, the modem firmware layout and the whole `neohw` stack | **Ported 2026-11-16** (kernel #18): `sargo_variant` = its board file (1080 x 2220 framebuffer, I/O map) and the Samsung S6E3FA7 OLED panel; every other driver is bonito's (touch, keys, haptics with sargo's clamp 0x5d, audio, eMMC, USB, modem). Builds with `neo kernel sargo` and the phone's own DTB. Not yet run on a sargo by the main streams: what works there is unconfirmed |
-
-#### SDM845 family (2018–2020): our closest relatives
-
-Our docs already use the Linux sdm845 drivers as a reference (`gcc-sdm845.c`, the `sdm845_mss` modem flow, IPA
-v3.5.1). All of these have **UFS** storage (unverified), so a UFS driver is the main cost of the whole family.
-
-| Phone (codename) | SoC | Nura | UT | Bootloader | Notes |
-|---|---|---|---|---|---|
-| **OnePlus 6 (enchilada)** | SDM845 (`qcom/sdm845-oneplus-enchilada`), A75 + A55 | community | 93.8% | `fastboot oem unlock`, no wait | Best-supported SDM845 phone in mainline Linux. Cheap used |
-| **OnePlus 6T (fajita)** | SDM845 (`qcom/sdm845-oneplus-fajita`) | community | 93.8% | As OnePlus 6 | Same board as the 6 with a different panel and an optical fingerprint reader. One port covers both. **Port started 2026-11-26:** [fajita.md](devices/fajita.md) |
-| **Xiaomi Poco F1 (beryllium)** | SDM845 | community | 91.2% | Xiaomi Mi Unlock: account binding and a waiting period | Two panel variants (Tianma, EBBG) |
-| **SHIFT6mq (axolotl)** | SDM845 (`qcom/sdm845-shift-axolotl`) | community | 82.1% | Unlockable | Small maker, fewer units around |
-| **Google Pixel 3 (blueline)** | SDM845 (`qcom/sdm845-google-blueline`) | testing | — | Unlockable, except Verizon | Mainline support behind the OnePlus 6 |
-
-#### Newer Qualcomm (2020–2024): still AArch32-capable
-
-| Phone (codename) | SoC | Nura | UT | Bootloader | Notes |
-|---|---|---|---|---|---|
-| **Fairphone 4 (fp4)** | SM7225 (`qcom/sm7225-fairphone-fp4`), A76 + A55 | community | 97.3% | Official; may need a Fairphone code (see FP5) | Repairable, long support. UFS; newer clock and power blocks |
-| **Fairphone 5 (fp5)** | QCM6490 (`qcom/qcm6490-fairphone-fp5`), A78 + A55 | testing | 97.4% | Official. Fairphone is dropping the unlock code ("enable it in Developer options"), but the shop page still offers codes for FP4/FP5 and says the change so far covers the FP3 only. **Has anti-rollback: never relock with our image** | The best long-term daily phone. UFS. Shares QCM6490 with the SHIFTphone 8 |
-| **SHIFTphone 8 (otter)** | QCM6490 (`qcom/qcm6490-shift-otter`) | testing | — | Unlockable | Same SoC as the FP5: one `qcm6490_assp` would serve both |
-| **Nothing Phone (1) (spacewar)** | SM7325 (`qcom/sm7325-nothing-spacewar`), A78 + A55 | testing | 95.6% | Unlockable | A close relative of the QCM6490 (both are Kodiak/SC7280 family) |
-| **OnePlus 8T (kebab), 8 Pro (instantnoodlep)** | SM8250, A77 + A55 | testing | — | Unlockable | Flagship-class SoC; more blocks to bring up |
-
-#### Open by default (no bootloader lock at all)
-
-| Phone (codename) | SoC | Nura | UT | Reuse | New work |
-|---|---|---|---|---|---|
-| **PinePhone Pro (pinephonepro)** | RK3399 (`rockchip/rk3399-pinephone-pro`), A72 + A53 | community | 69% (native) | GICv3 (GIC-500); eMMC on a standard SDHCI (Arasan), so the generic parts of our SDHCI code carry over | A new `rk3399_assp` (clocks, I2C, display). The **Quectel EG25-G** modem is driven by AT commands (unverified: over UART and USB), not QMI |
-| **PinePhone (pinephone)** | Allwinner A64 (`allwinner/sun50i-a64-pinephone-1.x`), A53 | **testing** (was main) | 67.3% (native) | Phorepoc already has an A64 board bootstrap (`os/src/phorepoc-arm/a64/bootstrap`, [../reference/symbian-sources.md](../reference/symbian-sources.md)) | **GICv2 (GIC-400)**: a new interrupt back end; a slow CPU; 2–3 GB RAM; EG25-G modem |
-| **Purism Librem 5 (librem5)** | i.MX8MQ (`freescale/imx8mq-librem5-r2..r4`), A53 | community | — | GICv3; eMMC (uSDHC) | A new SoC; slow; expensive; the modem is a plug-in M.2 card |
-
-### Out, and why
-
-- **Fairphone (Gen. 6)** (`qcom/milos-fairphone-fp6`, Nura testing): its Snapdragon 7s Gen 3 has Cortex-A720 + A520
-  cores, which are AArch64-only (unverified), so the 32-bit user side can't run.
-- **Most phones from 2022 on** (Snapdragon 8 Gen 1 and later, Dimensity 9000 and later): the big cores, and often all
-  cores, are AArch64-only. A big.LITTLE phone with some 32-bit-capable cores would need the scheduler to keep every
-  user thread on them; that isn't worth it.
-- **MediaTek and Exynos phones:** mainline Linux support is thin, so there is little register reference to read.
-  Ubuntu Touch runs them on Android kernels.
-- **Carrier-locked models** (Verizon Pixels, many US OnePlus carrier units): the bootloader can't be unlocked.
-
-### Recommendation
-
-1. **Pixel 3a (sargo):** a second board for almost no work. It proves that the board/SoC split in
-   `kernel/baseport/arm64` holds and gives us a cheap spare test phone.
-2. **OnePlus 6 / 6T:** the second SoC (`sdm845_assp`; we have a 6T since 2026-11-26, [fajita.md](devices/fajita.md): a new SoC folder, drivers copied in stage by stage). Build the **UFS driver** here; it then serves every later
-   Qualcomm phone. `neohw` carries over mostly unchanged.
-3. **Fairphone 5** (or SHIFTphone 8, same SoC): the long-term daily phone. It reuses the UFS driver and the QMI stack.
-4. **PinePhone Pro:** only if "open hardware, no bootloader lock" matters more than reuse. It means a new SoC and an
-   AT-command modem path.
-
-### Adding a device
-
-- **Kernel:** a new `kernel/baseport/arm64/<board>_variant` (+ `<soc>_assp` for a new SoC), as in the baseport
-  README. Keep the phone's DTB out of git, like `private/bonito.dtb`.
-- **Before buying:** check the Nura wiki page's feature table in a browser, and the exact model number (carrier lock,
-  regional variant).
-- **When a port lands:** move its row to a "Ported" table in this section, and update [../roadmap.md](../roadmap.md) and the org
-  profile.
+Ported: the Pixel 3a XL (bonito) and the Pixel 3a (sargo, 2026-11-16); in progress: the OnePlus 6T
+([devices/fajita.md](devices/fajita.md)). The shortlist and what a port needs: [devices/README.md](devices/README.md).

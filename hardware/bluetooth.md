@@ -1,13 +1,13 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Bluetooth on the Pixel 3a XL
 
-Part of [hardware.md](README.md), the hardware and drivers hub (status of every driver, the neohw processes). Neighbours: [modem](modem.md), [audio](audio.md), [wifi](wifi.md), [battery](battery.md).
+Part of [Hardware](README.md) · Status: plan · Updated: 2026-11-15 · Neighbours: [modem](modem.md), [audio](audio.md), [wifi](wifi.md), [gnss](gnss.md), [battery](battery.md)
 
-Written 2026-11-15. This is the Bluetooth part of [driver-support.md](README.md) D6 (roadmap P4), next to
+Written 2026-11-15. This is the Bluetooth part of the hardware hub's [D6](README.md#milestones-and-gates) (roadmap P4), next to
 [wifi.md](wifi.md): from a silent WCN3990 Bluetooth core to BLE devices, file transfer, headsets and old S60 apps that
 use Bluetooth. It is a design and an estimate; nothing here is built yet.
 
-Sources: a read of our kernel, neolink, telephony and build trees; the 2010 Symbian Bluetooth sources on GitHub
+Sources: a read of our kernel, neolink, telephony (both in neohw since 2026-11-18) and build trees; the 2010 Symbian Bluetooth sources on GitHub
 (`SymbianSource/oss.FCL.sf.os.bt` at `ba9e7d24a7`, `oss.FCL.sf.mw.remoteconn`, `oss.FCL.sf.mw.btservices`); the
 phone's DTB; mainline Linux `drivers/bluetooth/hci_qca.c` and `btqca.c`; a Codex (gpt-6-astra) architecture review.
 
@@ -84,7 +84,7 @@ From the phone's DTB (`private/bonito.dtb`, facts only) and our kernel:
   wrapper-0 AHB at GCC `+0x5200c` bits 6/7 and SE6 at bit 16; the serial engine's clock (RCG and divider for
   3.2 Mbaud) needs a facts spec.
 - **Firmware:** not checked yet. Look in `vendor_a` (where MODEMD already reads the Wi-Fi files) and the
-  `bluetooth_a` partition ([telephony.md](modem.md) lists it; our backup copy is all zeros). The file names follow
+  `bluetooth_a` partition ([modem C0](history/modem-bringup.md#c0-recon-and-backups) lists it; our backup copy is all zeros). The file names follow
   the chip's ROM version (WCN3990: `crbtfw<ver>.tlv` + `crnv<ver>.bin`); read the version at B0, don't assume `21`.
 - **Call audio:** stock Android on bonito routes Bluetooth calls through SLIMbus (`SLIM_7_RX_Voice`,
   `SLIM_7_TX_MMode1`, 16 kHz) between the ADSP and the WCN3990. The missing DTB nodes don't mean the hardware is
@@ -138,6 +138,10 @@ from that spec, the same way as `qcom_wcn3990.cpp`.
 
 MODEMD keeps owning the ADSP and the call-audio route. It also reads the firmware files for BTSRV. BTSRV owns
 everything Bluetooth: the controller, connections, security, profiles and stored state. Nothing else talks HCI.
+
+**Since neohw S3–S5 (2026-11-18)** HWHUB boots the ADSP, AUDIOD owns APR and the audio routes, MODEMD keeps the call
+state, and WIFID reads the Wi-Fi files ([the processes](README.md#neohw-the-processes-and-their-ipc)). This design
+predates that split: where it gives MODEMD the ADSP or audio, the owner is now AUDIOD.
 
 ## Design decisions
 
@@ -242,7 +246,7 @@ neoui and old apps.
 - **A2DP Source**, AVDTP signalling, SBC packetisation, AVRCP controls.
 - A **fixed-point Rust SBC encoder**, checked against test vectors and timed under ARMv8 softfp.
 - PCM comes from the mixer **before** ADSP playback, through a shared routing and focus interface. The ringtone path
-  ([telephony.md](modem.md), 2026-11-14) proves playback only; a general PCM producer is new work.
+  ([modem C8](history/modem-bringup.md#c8-call-log-and-contacts), 2026-11-14) proves playback only; a general PCM producer is new work.
 - A call suspends music; focus policy restores it afterwards.
 
 ### HFP (calls)
@@ -273,7 +277,22 @@ neoui and old apps.
 
 ## Milestones
 
-Each has an exit test on the real phone (RAM boots, as for Wi-Fi). QEMU coverage needs a **Syborg virtual HCI** backed
+<!-- stages -->
+| Stage | What | State | Updated | Next / evidence |
+|---|---|---|---|---|
+| B0 | GENI UART, HCI LDD, power pulses | open | — | a valid version answer after cold boot |
+| B1 | Firmware download, baud, address, IBS | open | — | LE scan and inquiry without hurting LTE or Wi-Fi |
+| B2 | TrouBLE behind bt-core | open | — | executor and atomics gates first |
+| B3 | Pairing, SSP, LESC, bonds | open | — | pair, reboot, reconnect |
+| B4 | L2CAP, RFCOMM, SDP, NEOBT.PRT | open | — | an unchanged 2010 client transfers |
+| B5 | OBEX and old-app contracts | open | — | files both ways, equal hashes |
+| B6 | A2DP, SBC, AVRCP | open | — | 30 minutes of music |
+| B7 | HFP AG | open | — | a two-way CVSD call, then mSBC |
+| B8 | HID over GATT, watch services | open | — | keyboard and mouse |
+| B9 | Acceptance | open | — | Wi-Fi, BT and LTE together; a 24-hour run |
+<!-- /stages -->
+
+Each has an exit test on the real phone (RAM boots, as for Wi-Fi). QEMU coverage needs a **virtual HCI** on QEMU `virt` (written for Syborg, retired 2026-11-21) backed
 by a host-socket controller simulator; it tests the guest stack and old clients, not GENI, IBS or ADSP routing.
 
 | Stage | What | Exit on the phone | QEMU |

@@ -1,9 +1,11 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # OnePlus 6T (fajita): the second SoC
 
+Part of [Hardware](../README.md) · Status: active · Updated: 2026-11-26
+
 Written 2026-11-26, the day we got the phone. This is the port plan for the OnePlus 6T (fajita, Qualcomm SDM845): the
 facts read from the phone, the decisions, and the stages OP0–OP13. The 6T was item 2 of the device recommendation in
-[../README.md](../README.md#recommendation). The OnePlus 6 (enchilada) is the same board with another panel, so this
+[README.md](README.md#recommendation). The OnePlus 6 (enchilada) is the same board with another panel, so this
 port should serve it too (untested).
 
 **Status (2026-11-26):** OP0–OP6 done, and **neoui runs on the 6T** (RAM boot): the launcher, apps, touch, keys, the USB console, CPU clocks with touch boost, and temperatures all work. Since `ROFS=ramdisk` (kernel#45), Z:'s ROFS rides as the boot image's ramdisk, which takes the image past the bootloader's ~49.5 MB kernel limit: the Files app is back in it. UFS reads work (read-only, OP6).
@@ -93,6 +95,25 @@ reference only. No code was copied.
 
 Each stage is a RAM boot on the 6T; a stage is done when its exit check passes there. The gates in the workspace's
 CLAUDE.md apply too: the build on atlas, CI green, bonito unaffected.
+
+<!-- stages -->
+| Stage | What | State | Updated | Next / evidence |
+|---|---|---|---|---|
+| OP0 | Device facts and DTB | done | 2026-11-26 | private/fajita.dtb; boot header facts on this page |
+| OP1 | ABL probes | done | 2026-11-26 | green and blue on the 6T's screen |
+| OP2 | The board | done | 2026-11-26 | fajita_variant; neoui launcher up |
+| OP3 | Debug link | done | 2026-11-26 | USB console, AUTOFASTBOOT, phone.py (kernel 58470a68) |
+| OP4 | Input | done | 2026-11-26 | keys and RMI4 touch |
+| OP5 | Clocks | done | 2026-11-26 | cpufreq 4 + 4, touch boost, TSENS |
+| OP6 | UFS, read-only | done | 2026-11-26 | every LUN's GPT read; PRs kernel#46 build#67 docs#79 |
+| OP7 | C: and E: on UFS | open | — | the owner's call (Ubuntu Touch owns userdata) |
+| OP8 | Panel | open | — | DCS to the S6E3FC2X01 |
+| OP9 | Battery | open | — | bq27xxx gauge, PMI8998 charger |
+| OP10 | Modem | open | — | LLCC slice table, then MSS on OnePlus firmware |
+| OP11 | Wi-Fi | open | — | WCN3990 with OnePlus board data |
+| OP12 | Audio and haptics | open | — | SLIMbus, WCD9340, TFA9894, PMI8998 haptics |
+| OP13 | Install | open | — | A/B install on UFS: the owner's call |
+<!-- /stages -->
 
 | Stage | Work | Exit |
 |---|---|---|

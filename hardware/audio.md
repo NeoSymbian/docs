@@ -1,15 +1,15 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Audio: NeoAudio, media on the ADSP, and the old apps' DevSound
 
-Part of [hardware.md](README.md), the hardware and drivers hub (status of every driver, the neohw processes). Neighbours: [modem](modem.md), [wifi](wifi.md), [bluetooth](bluetooth.md), [battery](battery.md).
+Part of [Hardware](README.md) · Status: done · Updated: 2026-11-20 · Neighbours: [modem](modem.md), [wifi](wifi.md), [gnss](gnss.md), [bluetooth](bluetooth.md), [battery](battery.md)
 
 Started 2026-11-17 (research: `private/audio/codex-audio-report-20261117.md`, a Codex review with line-level
-references into the 2010 sources). Continues [driver-support.md](README.md) D3 and
+references into the 2010 sources). Continues the hardware hub's [D3](README.md#milestones-and-gates) and
 [legacy.md](../user-side/legacy.md) L2.
 
 ## What there was
 
-Call audio (telephony C6/C7) and the ringtone work on the Pixel:
+Call audio (modem C6/C7) and the ringtone work on the Pixel:
 
 | Part | Chip | Before this work |
 |---|---|---|
@@ -22,7 +22,7 @@ Call audio (telephony C6/C7) and the ringtone work on the Pixel:
 | Amp protection | CS35L36 IRQs (TLMM 79/80) | ignored; faults logged at start |
 | Calibration | ACDB | none: the ADSP's built-in topologies |
 
-MODEMD's APR ([telephony.md](modem.md) C6) ran three things: the call's voice path, the loopback test and a
+MODEMD's APR ([modem.md](modem.md#c6-call-audio--roadmap-h5-for-voice) C6) ran three things: the call's voice path, the loopback test and a
 2-second ringtone looped from one 256 KB DMA region. No app could play or record sound; the old apps' DevSound had
 no server (Frozen Bubble ran silent, [legacy.md](../user-side/legacy.md)).
 
@@ -37,14 +37,15 @@ flowchart LR
   L --> DS[DevSound client + audio server<br/>2010 sources]
   DS --> SH[mmfdevsoundadaptor.dll<br/>our replacement, legacy repo]
   N --> NA
-  SH --> NA[NeoAudio server<br/>in MODEMD]
+  SH --> NA[NeoAudio server<br/>in AUDIOD]
   NA --> MX[mixer + resampler<br/>48 kHz mono]
   MX -->|media runs| ASM[ADSP ASM/ADM periods] --> AMP[CS35L36 amps]
   MX -->|call, ringtone, QEMU| CLK[clock sink: consumed in real time]
 ```
 
-- **NeoAudio lives in MODEMD** because MODEMD owns the ADSP's APR channel (one receive owner per kernel ring). The
-  logic is its own crate (`neohw/crates/neoaudio`), so a later AUDIOD (or the `neohw` split) takes it as is.
+- **NeoAudio lived in MODEMD** at first, because MODEMD owned the ADSP's APR channel (one receive owner per kernel
+  ring). The logic is its own crate (`neohw/crates/neoaudio`); since neohw S4 (2026-11-18) it runs in AUDIOD, which
+  owns APR (ring 2), and MODEMD drives calls and the ring over NeoAudio op::CONTROL.
 - **One session = one stream.** Any rate 8–96 kHz, mono or stereo, S16LE. Each stream has a 250 ms queue; WRITE
   waits while it is full (flow control); an underrun is counted once per dry spell (DevSound reports the end of
   data that way).
@@ -58,9 +59,9 @@ flowchart LR
 - **The clock sink** consumes the mix in real time whenever the ADSP does not play it: no audio DSP (QEMU), a call,
   the ringtone, or a media start that has not reached the ADSP within 3 s. While media is starting the streams wait
   instead, so the start of a sound is not lost.
-- **QEMU:** MODEMD no longer exits without a modem: it serves NeoAudio on the clock sink and refuses NeoModem
-  connections (KErrNotFound), as if NeoModem were absent. `syborg-virtio-audio` is an unimplemented device in our
-  QEMU board, so nothing is audible there.
+- **QEMU:** with no modem, NeoAudio runs on the clock sink (in MODEMD until S4, which refused NeoModem connections
+  with KErrNotFound; in AUDIOD since). Our QEMU `virt` machine has no audio device (Syborg's `syborg-virtio-audio`
+  was unimplemented too), so nothing is audible there.
 
 ### Kernel
 
@@ -85,6 +86,22 @@ flowchart LR
 
 ## Stages
 
+<!-- stages -->
+| Stage | What | State | Updated | Next / evidence |
+|---|---|---|---|---|
+| A0 | This page and the protocol | done | 2026-11-17 | NeoAudio v1.0 |
+| A1 | NeoAudio with the clock sink | done | 2026-11-18 | QEMU: Dev tools tone, sink clock |
+| A2 | Media periods on the ADSP | done | 2026-11-18 | Pixel: tone through the DSP, routes, preemption |
+| A3 | Old apps' DevSound over NeoAudio | done | 2026-11-18 | Pixel: Frozen Bubble plays; level not checked by ear |
+| A4 | Tones, DTMF, WAV through MMF | done | 2026-11-18 | built into the ROM; not exercised on the phone |
+| A5 | Recording | done | 2026-11-18 | Pixel: 5 s recorded and played back |
+| A6 | Media volume, routes, focus | done | 2026-11-18 | Pixel: Settings and the volume keys |
+| A7 | Amp fault IRQs, mic mapping | done | 2026-11-18 | polling runs; ADSP mixing and a QEMU audio device not done |
+| A8 | 3.5 mm jack, ACDB investigation | done | 2026-11-18 | driver up; headphones untried; no ACDB |
+<!-- /stages -->
+
+What each stage had to show:
+
 | Stage | What | Check |
 |---|---|---|
 | **A0** | This page; the protocol | — |
@@ -99,8 +116,8 @@ flowchart LR
 
 ## Status (2026-11-18)
 
-All of A0–A8 is implemented on the `audio` branches (telephony, kernel, neoui, legacy, docs); host tests, ARM builds
-and clippy pass. Results on the Pixel (RAM boots, nothing flashed) and on QEMU:
+All of A0–A8 was implemented on the `audio` branches (neohw, then `telephony`; kernel, neoui, legacy, docs) and merged
+on 2026-11-18 (neohw#3, kernel#22, neoui#18); host tests, ARM builds and clippy passed. Results on the Pixel (RAM boots, nothing flashed) and on QEMU:
 
 | Stage | Result |
 |---|---|
@@ -114,7 +131,7 @@ and clippy pass. Results on the Pixel (RAM boots, nothing flashed) and on QEMU:
 | A8 | Pixel: the jack driver comes up (`jack ok: unplugged`, no faults); headphones and the headset mic are untested (nothing plugged in) |
 
 **Gaps:**
-- QEMU has no audible device: our board's `syborg-virtio-audio` is unimplemented and VNC carries no sound.
+- QEMU has no audible device: the `virt` machine has none, and VNC carries no sound.
 - No ACDB calibration: the format is proprietary, and the ADSP's built-in topologies stay.
 - Headphones and the headset mic are implemented end to end, but untried: no headset has been plugged in yet.
   - Media on headphones: INT0 MI2S RX, the codec's MCLK, the kernel's op 9.

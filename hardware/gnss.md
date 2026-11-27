@@ -1,9 +1,9 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # GNSS: GNSSD.EXE, QMI LOC on the modem, XTRA over Wi-Fi
 
-Part of [hardware.md](README.md), the hardware and drivers hub (status of every driver, the neohw processes). Neighbours: [modem](modem.md), [audio](audio.md), [wifi](wifi.md), [bluetooth](bluetooth.md), [battery](battery.md).
+Part of [Hardware](README.md) · Status: active · Updated: 2026-11-20 · Neighbours: [modem](modem.md), [audio](audio.md), [wifi](wifi.md), [bluetooth](bluetooth.md), [battery](battery.md)
 
-Started 2026-11-20. D6's GNSS part ([hardware.md](README.md#milestones-and-gates)): the gate is an outdoor
+Started 2026-11-20. D6's GNSS part ([the hardware hub](README.md#milestones-and-gates)): the gate is an outdoor
 standalone fix. Decisions (owner, 2026-11-20): a **separate GNSSD.EXE**, not a module in MODEMD; **XTRA over Wi-Fi**
 in the first version.
 
@@ -83,14 +83,25 @@ status, 0 = success).
 
 ## Stages
 
-| Stage | Work | Gate | Status |
-|---|---|---|---|
-| GN0 | This design | the owner reads it | 2026-11-20 |
-| GN1 | `crates/loc`; hub port 0x28 | host tests: replies built with the QMI builder, a hand-built position report, XTRA parts, the 15-min bound, reset | 2026-11-20: 18 tests |
-| GN2 | GNSSD.EXE, the shared NeoHub client in `sys`, `exes.txt`, MODEMD starts it | phone RAM boot: bind, Register / Lock / Mode answered; WIFID still joins | 2026-11-20, phone |
-| GN3 | XTRA download, cache, inject | phone: validity after the inject; the cache reused after a reboot | code done; phone re-test pending |
-| GN4 | Dev tools row and actions | Syborg ("no modem") and the phone | 2026-11-20, phone |
-| GN5 | First fix, through the GR stages below | GR5 | |
+<!-- stages -->
+| Stage | What | State | Updated | Next / evidence |
+|---|---|---|---|---|
+| GN0 | This design | done | 2026-11-20 | read by the owner |
+| GN1 | crates/loc; hub port 0x28 | done | 2026-11-20 | 18 host tests; neohw#10 |
+| GN2 | GNSSD.EXE, started by MODEMD | done | 2026-11-20 | phone: LOC bound, lock and mode answered; neohw#10 |
+| GN3 | XTRA download, cache, inject | parked | 2026-11-20 | code done (HTTP fetch, neohw 208b878); phone re-test pending |
+| GN4 | Dev tools row and actions | done | 2026-11-20 | phone; neoui#26 |
+| GN5 | First fix | parked | 2026-11-20 | paused by the owner; resume at GR0 below |
+<!-- /stages -->
+
+| Stage | Work | Gate |
+|---|---|---|
+| GN0 | This design | the owner reads it |
+| GN1 | `crates/loc`; hub port 0x28 | host tests: replies built with the QMI builder, a hand-built position report, XTRA parts, the 15-min bound, reset |
+| GN2 | GNSSD.EXE, the shared NeoHub client in `sys`, `exes.txt`, MODEMD starts it | phone RAM boot: bind, Register / Lock / Mode answered; WIFID still joins |
+| GN3 | XTRA download, cache, inject | phone: validity after the inject; the cache reused after a reboot |
+| GN4 | Dev tools row and actions | Syborg ("no modem"; QEMU `virt` since 2026-11-21) and the phone |
+| GN5 | First fix, through the GR stages below | GR5 |
 
 ## Phone results (2026-11-20, RAM boots, kernel c416f22c)
 
@@ -113,7 +124,7 @@ status, 0 = success).
 
 ## Getting a first fix (research 2026-11-20, [gnss-research.md](gnss-research.md))
 
-**Paused 2026-11-20 (owner):** GN0–GN4 are in review; resume at GR0.
+**Paused 2026-11-20 (owner):** GN0–GN4 were merged that day (neohw#10, neoui#26; the kernel stack fix kernel#30); resume at GR0.
 
 Findings (Codex, from Android, Linux and our logs):
 - No Bonito GNSS LNA/antenna rail or GPIO exists in the Android kernel DT, the PM660/PM660L regulators or our DTB

@@ -1,7 +1,9 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # GNSS research: zero C/N0 on bonito and the first-fix plan
 
-Part of [gnss.md](gnss.md) (GNSS in NeoSymbian; its "Getting a first fix" section is the short version). Written by a
+Part of [Hardware](README.md) · Status: research · Updated: 2026-11-20
+
+The long version of [gnss.md](gnss.md)'s "Getting a first fix" section; its G0–G5 are gnss.md's GR0–GR5 (G4a and G4b are GR4). Written by a
 Codex research run on 2026-11-20, from Android, Linux and our own logs; reviewed and published unchanged in substance.
 Paths: `neohw/` = NeoSymbian/neohw at `208b878` (branch `gnss/gn1`), `kernel/` = NeoSymbian/kernel at `6d34d8da`,
 `docs/` = this repository, `private/` = the owner's unpublished captures (not in any repository). Line numbers are
