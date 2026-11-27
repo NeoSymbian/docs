@@ -4,7 +4,7 @@
 Part of [neoui shell](README.md) · Status: active · Updated: 2026-11-27
 
 **Status:** designed 2026-11-21. TP0, TP1, TP2a, TP2b and TP4 are built (the last two in the Settings run of
-2026-11-27, with inline reply deferred); TP7 is next ([its numbers](protocol.md#tp7-tiles-reserved-122) are reserved). Each phase is in the
+2026-11-27, with inline reply deferred); TP7 is next ([its numbers](protocol.md#tp7-tiles-122) are reserved). Each phase is in the
 [Phases](#phases) block. The design comes from the canvas page **Top panel &
 notifications** (18 boards) plus the related boards on the Shell, Navigation, Phone, Messages, Clock, Files, Store,
 Browser and Settings pages. The screen map is at the [end](#screen-map). It replaces the old hub's (`neoui-shell.md`) Part 2 (the
