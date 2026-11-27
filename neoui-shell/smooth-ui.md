@@ -1,7 +1,11 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
 # Smooth UI: from 15 fps redraws to 60 fps on the Pixel
 
+Part of [neoui shell](README.md) · Status: active · Updated: 2026-11-25
+
 **Status: in progress. S1, S2 and S3 are done (2026-11-08; S2's exit check is met by the home swipe, the fades and
-scrolling are 2–3× faster but just over budget); S4–S6 are open.** The plan (2026-11-07) comes from a
+scrolling are 2–3× faster but just over budget); S4 is done (kernel 2026-11-17, the ARMv8 user side 2026-11-25); S5
+and S6 are open.** The plan (2026-11-07) comes from a
 read-through of neoui, e32-rs and the kernel after the R9 speed measurements
 ([rust-integration.md](../user-side/rust-integration.md#r9-neoui-speed-on-the-phone-measured)). Stages S1–S6 below are the work
 list. Each stage has an owner, an exit check, and an **estimate** of what it gains. Estimates are not measurements
@@ -50,10 +54,21 @@ NEON and LDREX gains of S4 still count.
 
 ## Stages
 
+<!-- stages -->
+| Stage | What | State | Updated | Next / evidence |
+|---|---|---|---|---|
+| S1 | Input and frame pacing | done | 2026-11-08 | neoui `f1a844b`, kernel `38eb607`; no lost taps on the Pixel |
+| S2 | Retained layers and a CPU compositor | done | 2026-11-08 | home swipe at budget; fades and scrolling 1–4 ms over |
+| S3 | CPU placement and clocks | done | 2026-11-08 | kernel S3a–S3d; gold 300 → 1996 MHz under touch |
+| S4 | FP/NEON for user code, ARMv8 build | done | 2026-11-25 | kernel#19 (WB1); US4: home renders in 32 ms, was 68–72 |
+| S5 | Display processor: vsync, planes | open | — | not started; needs the panel mode and splash pipe first |
+| S6 | Adreno 615 GPU | parked | — | stretch, not planned (roadmap U4) |
+<!-- /stages -->
+
 ### S1: input and frame pacing
 
 **Owner:** neoui + kernel. **Status: done (2026-11-08)**, in `neoui` `f1a844b` and `kernel` `38eb607`. Checked on
-the Pixel; Syborg CI not run (being rebuilt).
+the Pixel; Syborg CI not run (it was being rebuilt).
 
 - **neoui main loop** (`symbian/src/lib.rs`):
   - after the first event wakes the loop, it takes every queued event without waiting (a fresh `RequestEvent`
@@ -196,10 +211,13 @@ owner: touch boost.
 - **Gain (measured):** gold went from 300 to 1996 MHz under touch; rendering is 1.8× faster per pixel than on silver
   and about 5.6× faster than gold before (R9: about 100 ns/px).
 
-### S4: FP/NEON for user code and an ARMv7/ARMv8-AArch32 build
+### S4: FP/NEON for user code and an ARMv8 AArch32 build
 
 **Owner:** kernel session first, then e32-rs and neoui. **Status:** kernel part done 2026-11-17 (browser WB1,
-kernel#19: eager save/restore, Qualcomm's EL2 does not trap AArch32 FP, tested on the Pixel); the Rust target is open.
+kernel#19: eager save/restore, Qualcomm's EL2 does not trap AArch32 FP, tested on the Pixel); the user side done
+2026-11-25 as ARMv8-A AArch32 softfp ([user-side-smp.md](../user-side/user-side-smp.md#us4-results-2026-11-25) US4:
+`armv8a-neosymbian-eabi`, native atomics; neoui's home screen renders in 32 ms instead of 68–72 ms, 13.8 vs 29–31
+ns/px). The plan as written:
 
 - **Kernel:**
   - set CPACR_EL1.FPEN for EL0;
@@ -260,7 +278,7 @@ kernel#19: eager save/restore, Qualcomm's EL2 does not trap AArch32 FP, tested o
 | 1 | S1 ✅ | neoui (+2 kernel lines) | No lost taps; touch follows the finger (done 2026-11-08) |
 | 2 | S2 ✅ | neoui | Swipe at 60 fps; fades and scroll 2–3× faster, still 1–4 ms over (done 2026-11-08) |
 | 3 | S3 ✅ | kernel session | UI on the fast cores; gold faster than silver (done 2026-11-08) |
-| 4 | S4 | kernel session, then e32-rs/neoui | NEON build; cheap locks |
+| 4 | S4 ✅ | kernel session, then e32-rs/neoui | NEON build; cheap locks (done 2026-11-25, US4) |
 | 5 | S5 | kernel session, then neoui | No tearing; free fades and slides |
 | — | S6 | later | Only if 3D is needed |
 
@@ -268,7 +286,7 @@ kernel#19: eager save/restore, Qualcomm's EL2 does not trap AArch32 FP, tested o
 graph LR
   S1[S1 input + pacing] --> S2[S2 layers + CPU compositor]
   S3a[S3 stopgap: silver affinity] --> S3[S3 cpufreq + placement]
-  S4k[S4 kernel: FP/NEON at EL0] --> S4[S4 ARMv7/v8 NEON build]
+  S4k[S4 kernel: FP/NEON at EL0] --> S4[S4 ARMv8 NEON build]
   S5a[S5 vsync + double buffer] --> S5b[S5 hardware planes]
   S1 -.->|pacing follows vsync| S5a
   S2 --> S5b

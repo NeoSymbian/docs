@@ -1,47 +1,42 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # neoui shell
 
-The hub for everything the shell (`SYSSTART.EXE`, NeoSymbian/neoui) draws and serves, and how apps talk to it.
-Details live in [`neoui-shell/`](./), one document per area, like [../hardware/README.md](../hardware/README.md) and its
-folder. Roadmap stage U3 ([../roadmap.md](../roadmap.md)). Reorganised 2026-11-21: this page was the "shell services"
-design (settings, notifications, home pages, widgets); its parts moved into the folder.
+Part of [NeoSymbian docs](../README.md) · Status: reference · Updated: 2026-11-27
+
+Everything the shell (`SYSSTART.EXE`, NeoSymbian/neoui) draws and serves, and how apps talk to it: the protocol, the
+kit and app API, navigation, the keyboard, the top panel, home, the settings store and the Settings app, system time,
+the design system and smoothness. One document per area, each with its own status and stages; the stage board across
+all areas is in [../roadmap.md](../roadmap.md). Reorganised 2026-11-21 (this page was the "shell services" design:
+settings, notifications, home pages, widgets) and 2026-11-27 (finished plans moved to [history/](history/)).
 
 ## Documents
 
-| Document | Covers | Stages | Status |
-|---|---|---|---|
-| [top-panel.md](top-panel.md) | Status bar, shade, notifications, banners, media session, calls and messages from the panel, live island, control centre, lock screen | TP0–TP9 | designed 2026-11-21 |
-| [protocol.md](protocol.md) | Every NeoUi opcode and event 1.0–1.12, and the numbers reserved for designed work | — | reference |
-| [kit.md](kit.md) | The kit (shared Slint components), the app API `neoapp`, protocols 1.8–1.12 in detail, creating an app | A1–A5 | built |
-| [navigation.md](navigation.md) | Navigation v2: Buttons, Gestures (Thumb map), N9; the recognizer; Open apps, peek, Lanes | G1, NV1–NV12, G2–G5 | NV built 2026-11-17 |
-| [keyboard.md](keyboard.md) | The system keyboard (en, hy, ru, pads, terminal) and the old apps' key pads | — | built |
-| [settings.md](settings.md) | The settings store (Part 1), the apps rebuilt on it, and the Settings app `NEOSET.EXE` (v2, out of the shell): pages, `SETTINGS_INFO`/`ACTION`, who may write what | Part 1, SE0–SE7 | store built 2026-11-09; app designed 2026-11-25 |
-| [settings-data.md](settings-data.md) | The data every Settings board shows: who produces it, the protocol, gates and feasibility | D1–D19 | plan 2026-11-26 |
-| [home.md](home.md) | Home pages, pin and unpin, the dock, widgets (Parts 3–4) | Parts 3–4 | planned |
-| [design-system.md](design-system.md) | Tokens, layout, glyphs, digits, app tiles, components | — | built |
-| [smooth-ui.md](smooth-ui.md) | 60 fps: input pacing, layers, CPU placement, FP/NEON, DPU, GPU | S1–S6 | S1–S3 done |
-| [../apps/datetime.md](../apps/datetime.md#system-time-shell-built-2026-11-13) | The shell's system time: Date & time, network time, time zones (was Parts 5–6) | — | built 2026-11-13 |
-| [../user-side/legacy.md](../user-side/legacy.md) | Old S60 apps through LEGACY.EXE (their key pads are drawn there) | — | — |
-| [../apps/files/README.md](../apps/files/README.md), [../apps/phone.md](../apps/phone.md), [../apps/datetime.md](../apps/datetime.md), [../apps/store.md](../apps/store.md), [../apps/browser/ui.md](../apps/browser/ui.md) | The apps built on the kit | — | — |
+| Document | What | Status |
+|---|---|---|
+| [protocol.md](protocol.md) | Every NeoUi opcode and event, the versions built, and the numbers reserved for designed work | reference |
+| [kit.md](kit.md) | The kit (shared Slint components), the app API `neoapp`, creating an app | done |
+| [navigation.md](navigation.md) | Navigation v2: Buttons, Gestures (Thumb map), N9; the recognizer; Open apps, peek, Lanes | active |
+| [keyboard.md](keyboard.md) | The system keyboard (en, hy, ru, pads, terminal) and the old apps' key pads | done |
+| [top-panel.md](top-panel.md) | Status bar, shade, notifications, banners, media session, calls and messages from the panel, live island, control centre, lock screen | active |
+| [home.md](home.md) | Home pages, pin and unpin, the dock, the home editor, widgets | active |
+| [settings.md](settings.md) | The Settings app `NEOSET.EXE`: pages, `SETTINGS_INFO`/`ACTION`, who may write what, board parity | active |
+| [settings-data.md](settings-data.md) | The data every Settings board shows: who produces it, the protocol, gates and feasibility | active |
+| [settings-store.md](settings-store.md) | The settings store: typed keys, the registry, the file, `SETTING_GET`/`SET`/`WATCH` | done |
+| [system-time.md](system-time.md) | The shell's system time: Date & time, network time, time zones with summer time | done |
+| [design-system.md](design-system.md) | Tokens, layout, glyphs, digits, app tiles, components | done |
+| [smooth-ui.md](smooth-ui.md) | 60 fps: input pacing, layers, CPU placement, FP/NEON, DPU, GPU | active |
+| [history/](history/) | Finished plans kept as written: [step-0.md](history/step-0.md) (who is calling), [settings-plans.md](history/settings-plans.md) (SE1–SE4), [navigation-v1.md](history/navigation-v1.md) (Five places and G1) | record |
+
+Elsewhere: [../user-side/legacy.md](../user-side/legacy.md) (old S60 apps through LEGACY.EXE; their key pads are drawn
+there) and the apps built on the kit: [../apps/files/README.md](../apps/files/README.md),
+[../apps/phone.md](../apps/phone.md), [../apps/datetime.md](../apps/datetime.md), [../apps/store.md](../apps/store.md),
+[../apps/browser/ui.md](../apps/browser/ui.md).
 
 ## Who draws what (K01)
 
 The shell draws the status bar, the key row or the gesture band, dialogs (`QUERY`), toasts, the keyboard, the
 shade and everything in [top-panel.md](top-panel.md), Open apps, the Apps menu, home, the power menu and
 the SIM PIN. An app draws its header, footer and content with the kit ([kit.md](kit.md#who-draws-what)).
-
-## Status by area (2026-11-21)
-
-| Area | Built | Next |
-|---|---|---|
-| Settings store | Part 1, every app on it | — |
-| Kit and app API | 1.8–1.12 | — |
-| Navigation | NV1–NV12 (not installed) | G2–G5 |
-| Keyboard | en/hy/ru, pads, terminal; old-app key pads | — |
-| Top panel | status bar v1, shade with entries (1.8–1.11); TP0 (docs + canvas) | TP1 |
-| Home | live clock; static mock-up cards | Parts 3–4; the Media card in TP3 |
-| Lock screen | none | TP8 (replaces Navigation G6) |
-| Smoothness | S1–S3 | S4 (ARMv7/ARMv8 user side) |
 
 ## Canvas map
 
@@ -79,7 +74,8 @@ The 2026-11-16/17 decisions K01–K04 (kit), D12–D20 (navigation) and the top 
 
 ## Where the code goes
 
-No new crates; this follows the existing split.
+The layers of the 2026-11-09 shell-services plan (the "New" column is what that plan added; some of it has since
+landed under other names, for example `home.rs`). No new crates; this follows the existing split.
 
 | Layer | Path | New |
 |---|---|---|
@@ -87,40 +83,16 @@ No new crates; this follows the existing split.
 | UI server (GPL-3.0) | `neoui/symbian/src/` | `settings.rs` (store and file, after `clock.rs`), `notify.rs`; opcodes in `host.rs` (`impl Service for Host`) |
 | Shell UI | `neoui/ui/` | `screens/home.slint` reworked; `components/widgets.slint`, `components/banner.slint`; the shade list, badges and settings wiring |
 | App helper | `neoui/symbian/neoapp/src/lib.rs` | `setting()`, `set_setting()`, `notify()`, `cancel()`, `widget()` over the app's session |
-| e32 | `e32-rs/crates/e32/src/server.rs` | `Message::client_sid()` (step 0) |
+| e32 | `e32-rs/crates/e32/src/server.rs` | `Message::client_sid()` (step 0; built in SE0) |
 
 Processes outside neoui (Apache-2.0, for example in `neohw`) must not link the GPL `neoapp`. They encode with
 `neoui-proto` and call through `e32::ipc::Session` themselves.
 
 ## Step 0: know who is calling
 
-**Update 2026-11-25:** [settings.md](settings.md#the-settings-app-neoset) SE0 builds the first half: `Message::client_sid()` and a
-check on `SETTING_SET`, so that only `NEOSET.EXE` (SID 0xE0002007) gets `Caller::Settings` and its allowlist of
-user-editable keys. Binding every session by SID at `connect` and `SERVICES` stay as designed below. The version
-bump below is void: NeoUi is 1.12, and minors are assigned in merge order ([protocol.md](protocol.md)).
-
-**Problem.** `Host::connect` (`symbian/src/host.rs`) binds each new session to "the newest launched app without a
-session" (marked `shortcut:` there). Two things follow:
-- a process the shell didn't launch (a background service) is refused;
-- the server can't verify which app a message comes from, so per-app rights (settings namespaces, notification keys)
-  can't be enforced.
-
-**Design.**
-- Add `Message::client_sid() -> Result<u32, i32>` to `e32::server`. Use the `MessageClient` exec call (number from
-  `execs.rs`) to open the client thread, then read its process's secure ID, and close the handle.
-- Extend `APPS` to `(key, exe, uid3)`. The UID3 is the SID; take it from `symbian/exes.txt`.
-- On `connect`, look up the app by SID.
-  - A launched app gets its app record, as today.
-  - A SID listed in a new table `SERVICES: &[(sid, &[keys])]` gets a **service session**: no surface or events, but it
-    may post notifications and widget content under the keys listed for it.
-  - Any other SID is refused with `KErrPermissionDenied`.
-- Keep "the newest app without a session" only as the fallback when `client_sid` fails.
-- Bump `ipc::VERSION` to (1, 1). The new opcodes and events are additive, so apps built for 1.0 still connect (only
-  the major version is checked).
-
-**Not needed at first for phone notifications.** The shell already talks to `NeoModem`, so it can post missed-call
-and SMS notifications itself from modem events. Step 0 is needed for third-party apps and other background services.
-
+The design for binding each session to the app that calls (2026-11-09) is in [history/step-0.md](history/step-0.md).
+It was built in parts: `Message::client_sid()` in SE0, the NOTIFY/BADGE caller check in TP2a, services in protocol 1.19
+and session binding by SID and process id in 1.20.
 
 ## Not in this design (later)
 
@@ -137,9 +109,9 @@ and SMS notifications itself from modem events. Step 0 is needed for third-party
   `cargo build -p neoui-proto -p neoui-render --target thumbv7em-none-eabihf`.
 - `neoui/symbian`: `cargo fmt --all --check && cargo arm --workspace`. UI steps go into `symbian/taps.sh`; neoui's `virt-taps` CI runs them on QEMU
   `virt` (US6b; the kernel's `tools/ui-qemu.py`).
-- `e32-rs` (step 0): its gate, and its `syborg` CI (the name stayed; it runs on QEMU virt).
+- `e32-rs` (step 0): its gate, and its `virt` CI (named `syborg` until 2026-11-25).
 - Phone, after part 1 and part 3: install via the ROFS installer path (CLAUDE.md "The phone"). Check that brightness
   changes the backlight and that the home layout survives a power cycle.
 
-When a part lands, mark it **Done** in the table at the top, and update [../roadmap.md](../roadmap.md) U3 and the org
-profile's status list.
+When a stage lands, mark it in its document's stages block (`tools/roadmap.py` rebuilds [../roadmap.md](../roadmap.md)'s
+board from them) and update the org profile's status list.

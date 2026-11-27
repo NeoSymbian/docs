@@ -1,6 +1,8 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # The NeoUi protocol: every opcode and event
 
+Part of [neoui shell](README.md) · Status: reference · Updated: 2026-11-27
+
 The protocol between an app and the shell (`SYSSTART.EXE`, server `NeoUi`), in one table. The source of truth is
 `neoui/crates/neoui-proto/src/ipc.rs`: its module doc has the version history, and the constants have the wire
 details. The app side is `neoapp` ([kit.md](kit.md#the-app-api-neoapp)). This page also **reserves the numbers for
@@ -19,8 +21,8 @@ work that has been designed but not built**, so that two designs can't pick the 
 | Version | Date | What came | Where it is described |
 |---|---|---|---|
 | 1.0 | 2026-11-06 (R6) | geometry, surface, damage, events, keyboard, nav, power | `ipc.rs` |
-| 1.1 | 2026-11-09 | the settings store | [settings.md](settings.md) |
-| 1.2 | 2026-11-10 | the shell wakes Clock for an alarm | [settings.md](settings.md#clock-neoclockexe-neoui-872e6dc) |
+| 1.1 | 2026-11-09 | the settings store | [settings-store.md](settings-store.md) |
+| 1.2 | 2026-11-10 | the shell wakes Clock for an alarm | [settings-store.md](settings-store.md#clock-neoclockexe-neoui-872e6dc) |
 | 1.3 | 2026-11-12 | keyboard modes and height changes | [keyboard.md](keyboard.md) |
 | 1.4 | 2026-11-14 | title, toolbar, pages (title and toolbar retired in 1.8) | `ipc.rs` |
 | 1.5 | 2026-11-14 | number and phone pads | [keyboard.md](keyboard.md) |
@@ -29,7 +31,7 @@ work that has been designed but not built**, so that two designs can't pick the 
 | 1.8 | 2026-11-17 | Navigation v2 and Shell v2: the app draws header and footer; toasts, shade entries, badges, clipboard, the area event | [kit.md](kit.md#protocol-18-neoui-proto) |
 | 1.9 | 2026-11-17 | apps open each other; notification actions | [kit.md](kit.md#protocol-19-apps-open-each-other) |
 | 1.10 | 2026-11-17 | haptic pulses; input reset | [../user-side/legacy.md](../user-side/legacy.md) |
-| 1.11 | 2026-11-18 | a progress bar on a shade entry | [kit.md](kit.md#status-2026-11-17) |
+| 1.11 | 2026-11-18 | a progress bar on a shade entry | [kit.md](kit.md#status) |
 | 1.12 | 2026-11-20 | files between apps by handle; the clipboard's kind | [kit.md](kit.md#protocol-19-apps-open-each-other) (its 1.12 part), [../apps/files/README.md](../apps/files/README.md) FA8 |
 | 1.13 | 2026-11-26 | Settings is an app (NEOSET): `SETTINGS_INFO`, `SETTINGS_ACTION`; shell keys writable by NEOSET's secure ID | [settings.md](settings.md#the-settings-app-neoset) |
 | 1.14 | 2026-11-26 | `INFO_APPS` (the old apps), `ACTION_OPEN_ENTRY` (SE1d) | settings.md |
