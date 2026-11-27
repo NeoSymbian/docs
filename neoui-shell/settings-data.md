@@ -26,6 +26,34 @@ Codex inspected the local `origin/main` trees, including `docs b1e2d91`, `neoui 
 | D18 | About: "Slot a · Update service unavailable" | a signed feed (INFO 11, CHECK_UPDATE) |
 | D12–D17, D19 | honest "Not yet (Dxx)" rows on Wi-Fi, Mobile, Bluetooth, root, Notifications, Reset | their stages |
 
+### Open after the run (Codex review, 2026-11-27)
+
+- **D11 PIN changes are held back.** MODEMD answers `SET_PIN_PROTECTION` / `CHANGE_PIN` with `KErrNotSupported`, and
+  the SIM lock page only reads the card. They come back once these are fixed:
+  - Settings and MODEMD authenticate their NeoModem and NeoHub servers by SID.
+  - HWHUB restricts destinations to the owning daemon.
+  - The sheet freezes the target card and the selected application.
+  - The observed try count is checked at dispatch.
+  - PIN fields use wipeable fixed storage, and the kernel HAL scrubs its copy.
+- **Partial fixes to finish:**
+  - **Settings store:** treat a partial decode (records dropped) as unresolved.
+  - **Dev tools Clear data:** keep the verified file's identity through deletion, using a private quarantine instead
+    of a public `.del` name.
+  - **Tone import:** reserve durably and never overwrite an occupied PCM; one staging path per import.
+  - **MODEMD `settings.bin`:** start unresolved on a file-server connect failure; invalid bytes are not absence.
+  - **Cycle checkpoints:** keep replay through late resolution.
+  - **`channels.dat`:** a decode failure refuses writes.
+  - **Owner FINISH:** keep the receipt until it is acknowledged; a dead D4 worker must fail its ticket.
+  - **INFO 8 / INFO 13:** publish them together after a save.
+  - **Badge exclusions at boot:** apply them before the modem's counts.
+  - **Banner overlay:** apply it on fade and drag frames too.
+  - **Old `sound.tones` pairs:** convert them on the next save.
+  - **Phone card actions:** bind them to a posting token.
+  - **Storage rescan:** keep it pending until the new tally lands.
+  - **virt-taps:** pin Phone's branch.
+  - **Notifications:** controls stay disabled while a policy can't be read.
+  - **Accessibility:** keyboard focus for the secondary actions.
+
 ## Protocol and delivery order
 
 The D-numbers order the data work. The SE, TP, G, B, C, H and FS numbers retain their existing owners and gates. Independent stages can proceed once their stated dependencies are met. **S** means an existing producer can be exposed directly, **M** means a new bounded feature in known components, and **L** means a substantial cross-repo, hardware or recovery effort.
