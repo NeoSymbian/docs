@@ -73,7 +73,7 @@ board below, so check the board when they differ.
 | Stage | What | State | Updated | Next / evidence | Doc |
 |---|---|---|---|---|---|
 | L0 | Ownership and inventory | ✅ done | 2026-11-14 | the legacy repo, the runtime in compsupp, honest audit reports | [user-side/legacy](user-side/legacy.md) |
-| L0.5 | The AppArc launcher and Old apps grid | ✅ done | — | X-plore and Frozen Bubble listed with their icons, protocol 1.6 | [user-side/legacy](user-side/legacy.md) |
+| L0.5 | The AppArc launcher and the grid (now Classic apps) | ✅ done | — | X-plore and Frozen Bubble listed with their icons, protocol 1.6 | [user-side/legacy](user-side/legacy.md) |
 | L1 | A stable runtime and desktop | 🔵 active | 2026-11-20 | desktop persists, AknCapServer first; open: the explicit guest handshake | [user-side/legacy](user-side/legacy.md) |
 | L2 | Two usable apps | 🔵 active | 2026-11-20 | Frozen Bubble done (legacy#4, #5); X-plore copy, rename, kept settings open | [user-side/legacy](user-side/legacy.md) |
 | L3 | Shell integration, several apps at once | ⬜ open | — | not started: damage-based drawing, a task protocol | [user-side/legacy](user-side/legacy.md) |
@@ -216,6 +216,8 @@ board below, so check the board when they differ.
 | A1 | The kit, tokens, glyphs, gallery | ✅ done | 2026-11-17 | `snapshots/kit-*.png`; installed on slot a 2026-11-17 | [neoui-shell/kit](neoui-shell/kit.md) |
 | A2–A3 | Apps and the shell's screens on the kit | ✅ done | 2026-11-17 | Clock, Files, Dev tools, Terminal, NEOKIT, NEOPHONE ported | [neoui-shell/kit](neoui-shell/kit.md) |
 | A5 | Protocol 1.8, `nav.mode` 0..=2 | ✅ done | 2026-11-17 | with Navigation v2 (NV1) | [neoui-shell/kit](neoui-shell/kit.md) |
+| MV1 | Terminal moves to NeoSymbian/neoterm | ⬜ open | 2026-11-27 | O3: `NEOTERM.EXE` 0xE0002003, crate `neoui-term` (GPL), history kept; neoui's `virt-taps` clones it | [neoui-shell/kit](neoui-shell/kit.md) |
+| MV2 | Old apps become Classic apps in legacy | ⬜ open | 2026-11-27 | O3: kit app `CLASSIC.EXE` reads INFO kind 4, opens with `ACTION_OPEN_ENTRY`; the shell keeps the entries | [neoui-shell/kit](neoui-shell/kit.md) |
 | G1 | Edge recognizer and gesture mode | ✅ done | 2026-11-16 | Back, Open apps, Home, Apps menu by edge swipe; an edge hint | [neoui-shell/navigation](neoui-shell/navigation.md) |
 | P | v1 Five places: strip and Page API | ✅ done | 2026-11-17 | built 2026-11-16, replaced by Navigation v2 on 2026-11-17 | [neoui-shell/navigation](neoui-shell/navigation.md) |
 | NV1–NV12 | Navigation v2, Gestures the default | ✅ done | 2026-11-17 | protocol 1.8, kit header, key row and band, both maps; installed on slot a | [neoui-shell/navigation](neoui-shell/navigation.md) |
@@ -225,11 +227,11 @@ board below, so check the board when they differ.
 | G5 | Lanes home: Events, Home, Open apps | ✅ done | 2026-11-27 | neoui#61 (D10): `home.style`; not run on the phone yet | [neoui-shell/navigation](neoui-shell/navigation.md) |
 | D1 | Shared row values, search, both roots | ✅ done | 2026-11-27 | neoui#61: one row model; left: dynamic instances, scroll to a hit | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
 | D2 | Wi-Fi details, console overlay, slot | ✅ done | 2026-11-27 | neoui#61: WIFID link record, HAL 0x4e02/03, active slot | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
-| D3 | Drive totals, per-drive kinds, C: free | ✅ done | 2026-11-27 | neoui#61; the per-drive kinds page waits for FS6 | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
+| D3 | Drive totals, per-drive kinds, C: free | ✅ done | 2026-11-27 | neoui#61; left: the per-drive kinds page, shell work (finishing plan W1), not FS6 (that is USB sharing, D17) | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
 | D4 | App identity, size by owner, Clear data | ✅ done | 2026-11-27 | neoui#61 (INFO 8, OWNER_REPORT, INFO 13); owners in other apps left | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
 | D5 | Screen-on time since full charge | ✅ done | 2026-11-27 | neoui#61: charge-cycle recorder, INFO 9 | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
 | D6 | Profile feedback, previews, your own ringtones | ✅ done | 2026-11-27 | neoui#61, neohw#21 (modem-ipc 2.8, NeoAudio 1.1); WAV import not run on the phone | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
-| D7 | Wallpaper, font scale, display language | 🔵 active | 2026-11-27 | colours and font size built; left: pictures, language strings, other apps' font scale | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
+| D7 | Wallpaper, font scale, display language | 🔵 active | 2026-11-27 | colours and font size built; left: pictures (INSTALL_WALLPAPER, protocol 1.22), language strings (settings.md L0–L2), other apps' font scale | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
 | D8 | Clipboard notice, permissions, diagnostics | ✅ done | 2026-11-27 | toast and diagnostics built; read-only app permissions deferred | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
 | D9 | Notification policy and pages | ✅ done | 2026-11-27 | with TP4, protocol 1.21; left: MODEMD's alert policy, inline reply | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
 | D10 | Navigation settings and Edit home | ✅ done | 2026-11-27 | G3–G5 and the home editor; left: Add to home from the menu, 2×2 widgets | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
@@ -237,7 +239,7 @@ board below, so check the board when they differ.
 | D12 | Hidden Wi-Fi join | ⬜ open | 2026-11-27 | "Not yet" row; needs the kernel's directed scan (SE1c-2) | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
 | D13 | Mobile bearer, mode, APNs, traffic | ⬜ open | 2026-11-27 | "Not yet" row; waits for C10 | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
 | D14 | Bluetooth discovery, pairing, profiles | ⬜ open | 2026-11-27 | "Not yet" row; waits for B0–B8 | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
-| D15 | Lock policy, device PIN, double-tap wake | ⬜ open | 2026-11-27 | "Not yet" row; waits for TP8/TP9 | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
+| D15 | Lock policy, device PIN, double-tap wake | ⬜ open | 2026-11-27 | "Not yet" row; TP8/TP9 are shell software (finishing plan W2); only double-tap wake needs the kernel | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
 | D16 | Attributed battery estimates | ⬜ open | 2026-11-27 | "Not yet" row; after D5 and radio instrumentation | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
 | D17 | Eject E: and share over USB | ⬜ open | 2026-11-27 | "Not yet" row; waits for FS6 | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
 | D18 | Check for OS updates | 🔵 active | 2026-11-27 | status row built ("Update service unavailable"); a signed feed is open | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
@@ -248,7 +250,10 @@ board below, so check the board when they differ.
 | SE2c-2 | Ringtones longer than 2 s | ⏸ parked | 2026-11-26 | needs a kernel audio-buffer change; the owner's call | [neoui-shell/settings](neoui-shell/settings.md) |
 | SE3 | Battery, input, storage, font size, wallpaper | ✅ done | 2026-11-27 | neoui#47 #48; font size and colours as D7 (neoui#61); pictures wait (D7) | [neoui-shell/settings](neoui-shell/settings.md) |
 | SE4 | Stop, Clear data, resets, notification pages | 🔵 active | 2026-11-27 | SE4a neoui#49 neohw#20; TP4 + D9 neoui#61; left: TP7, the capabilities view | [neoui-shell/settings](neoui-shell/settings.md) |
-| SE5 | Language, SIM PIN, panel, navigation rows | 🔵 active | 2026-11-27 | G3–G5 rows (D10), SIM lock page read-only (D11); left: display language, PIN changes | [neoui-shell/settings](neoui-shell/settings.md) |
+| SE5 | Language, SIM PIN, panel, navigation rows | 🔵 active | 2026-11-27 | G3–G5 rows (D10), SIM lock page read-only (D11); left: display language (L0–L2), PIN changes | [neoui-shell/settings](neoui-shell/settings.md) |
+| L0 | Prove Slint `@tr` in our `no_std` build | ⬜ open | 2026-11-27 | O2; bundled translations and a runtime switch through `neoui_kit::compile` | [neoui-shell/settings](neoui-shell/settings.md) |
+| L1 | `ui.language` and the string catalogue | ⬜ open | 2026-11-27 | O2; SYSSTART, NEOSET and kit strings; a Rust catalogue (~600 strings) | [neoui-shell/settings](neoui-shell/settings.md) |
+| L2 | Armenian and Russian | ⬜ open | 2026-11-27 | O2; hy + ru; the Display language row goes live; NeoSans glyph check | [neoui-shell/settings](neoui-shell/settings.md) |
 | SE6 | Hardware pages and lock | ⬜ open | 2026-11-27 | update status row only (D18); waits for TP8/TP9, B3, C10, FS6 | [neoui-shell/settings](neoui-shell/settings.md) |
 | SE7 | Erase C: through recovery | ⬜ open | — | waits for recovery support (D19) | [neoui-shell/settings](neoui-shell/settings.md) |
 | V0 | Board check tool | ✅ done | 2026-11-26 | neoui#53, docs#74 | [neoui-shell/settings](neoui-shell/settings.md) |
@@ -264,7 +269,7 @@ board below, so check the board when they differ.
 | TP0 | Docs and canvas boards | ✅ done | 2026-11-21 | canvas version 67; this folder | [neoui-shell/top-panel](neoui-shell/top-panel.md) |
 | TP1 | Status bar v2 and the shade's first stop | ✅ done | 2026-11-26 | neoui#50; Pixel run on image 33 | [neoui-shell/top-panel](neoui-shell/top-panel.md) |
 | TP2 | Cards; Phone and Messages post their own | ✅ done | 2026-11-27 | TP2a neoui#51 (protocol 1.18); TP2b neoui#61, phone#12 | [neoui-shell/top-panel](neoui-shell/top-panel.md) |
-| TP2c | Files' copy job as Progress style | ⬜ open | 2026-11-26 | waits for files' repin (files#15) | [neoui-shell/top-panel](neoui-shell/top-panel.md) |
+| TP2c | Files' copy job as Progress style | ⬜ open | 2026-11-27 | needs a Files repin to 1.22 (files is at neoui 4e50da2 = 1.17); files#15 is merged | [neoui-shell/top-panel](neoui-shell/top-panel.md) |
 | TP3 | Media session, background playback | ⬜ open | — | with Files FA9 M1b | [neoui-shell/top-panel](neoui-shell/top-panel.md) |
 | TP4 | Channels, banners, DND, Settings pages | ✅ done | 2026-11-27 | neoui#61, phone#12 (protocol 1.21, with D9); inline reply deferred | [neoui-shell/top-panel](neoui-shell/top-panel.md) |
 | TP5 | Calls in the panel | ⬜ open | — | uses TP2/TP4 | [neoui-shell/top-panel](neoui-shell/top-panel.md) |
@@ -272,6 +277,7 @@ board below, so check the board when they differ.
 | TP7 | Control centre and tiles | ⬜ open | 2026-11-27 | next; its numbers are reserved in protocol.md (TP7 tiles) | [neoui-shell/top-panel](neoui-shell/top-panel.md) |
 | TP8 | Lock screen | ⬜ open | — | replaces Navigation G6 | [neoui-shell/top-panel](neoui-shell/top-panel.md) |
 | TP9 | Screen-lock PIN | ⬜ open | — | after TP8 | [neoui-shell/top-panel](neoui-shell/top-panel.md) |
+| POWER | Power menu v2: the full-screen sheet | ⬜ open | 2026-11-27 | board `sh-power-menu-v2` (O5); the design is in top-panel.md, Power menu v2 | [neoui-shell/top-panel](neoui-shell/top-panel.md) |
 
 ### Apps
 

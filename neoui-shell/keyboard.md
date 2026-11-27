@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # System keyboard and old-app key pads
 
-Part of [neoui shell](README.md) · Status: done · Updated: 2026-11-21
+Part of [neoui shell](README.md) · Status: done · Updated: 2026-11-27
 
 **Status: languages built 2026-11-12; Keyboard v2 boards (`kb2-*`) and the old-app key pads (`pad-*`) are on the
 canvas's Keyboard page.** Moved here from `neoui-shell.md` on 2026-11-21; the hub is [README.md](README.md).
@@ -60,6 +60,9 @@ in only the glyphs that appear in that crate's string literals, and fills missin
 - **DejaVu Sans** (Latin, Cyrillic and Armenian in one face) draws the Armenian keys, and the typed text in Files
   (the name field and the list).
 - **DejaVu Sans Mono** draws the Terminal.
+- **NeoSans**, the app font, already includes Noto Sans Armenian ([design-system.md](design-system.md#principles-kept-from-designmd)),
+  but the Armenian keys (`layouts/hy.slint`) and the typed text (`controls.slint`) still name DejaVu Sans. Moving them
+  to NeoSans is keyboard work in the finishing plan (W1).
 - **`Alphabets {}`** goes in every window that shows typed text, so that its letters are baked in.
 
 ### Adding a language
@@ -79,9 +82,14 @@ If the language's font is not DejaVu Sans, import it in `shell.slint` and in eac
 - **Syborg CI** (until 2026-11-25; the UI checks now run on QEMU `virt` in `virt-taps`): typed `dir` in the Terminal and `neo` in Files. Then it pressed the globe twice and made a folder
   named дом.
 
+### Key vibration (SE3a, 2026-11-26)
+With `keyboard.vibrate` on (Settings → Sounds), each key of the system keyboard gives one 12 ms pulse at amplitude 70
+(`neoui-proto/src/effects.rs` `key_pulse`, played through the shell's `haptic()`); neoui#47.
+
 ### Not yet
-Key repeat, long-press (accents, ё/ъ for Russian), Ctrl, suggestions, Western Armenian, layouts for hardware keys,
-and translating the UI itself.
+Key repeat, long-press (accents, ё/ъ for Russian), Ctrl, suggestions, Western Armenian, layouts for hardware keys
+(all keyboard work in the finishing plan's W1, [README.md](README.md#finishing-plan-2026-11-27)), and translating the
+UI itself ([settings.md](settings.md#o-display-language-l-se5) L0–L2).
 
 
 ## Canvas: the Keyboard page (29 boards)

@@ -39,6 +39,13 @@ document.
 | P05 | **One media session system-wide:** the last app that played owns the shade, lock-screen and island player |
 | P06 | **App tiles are placed by the user:** TILE only offers a tile, and nothing appears in the control centre until the user adds it |
 
+**The owner's decisions (2026-11-27)** for finishing the shell (all six are in [README.md](README.md#finishing-plan-2026-11-27)):
+
+| # | Decision |
+|---|---|
+| O1 | **Call style draws fixed keys.** A Call-style NOTIFY card gets round Answer and Reject drawn by the shell; the app's ≤ 3 actions are Silence and Reply with message. A Call-kind ACTIVITY gets the shell's own Mute · Keypad · Speaker · End. A new **STICKY** flag (8) means the banner never times out. Urgent calls get past Do not disturb. The protocol's caps stay as they are |
+| O5 | **Power menu v2** is a full-screen sheet ([below](#power-menu-v2-power)) |
+
 ## What exists today (2026-11-21)
 
 **Status bar** (`neoui/ui/components/frame.slint` `StatusBar`, fed by `symbian/src/{phone,wifi,battery}.rs`):
@@ -67,8 +74,9 @@ action `i` sends `Notified { id, i + 1 }`.
 - **NEOMSG:** one card per unread conversation (Reply, plus Call for a real number); there is no Mark read.
 - **NEOFILES:** the copy/move job (progress + Cancel, re-posted every second).
 - **Nobody else.**
-  - Alarms ring through `clockwork.rs` → `ui.show("clock")`. They don't wake the screen.
-  - The shell pulls NEOPHONE full screen when a call rings (`phone.rs:269-287`).
+  - Alarms ring through `clockwork.rs` → `ui.show("clock")`. They didn't wake the screen then; since protocol 1.19
+    DTSRV's `OPEN` with `OPEN_WAKE` does (neoui `host.rs:239`).
+  - The shell pulls NEOPHONE full screen when a call rings (`phone.rs:319-320`, `ui.show("phone", "call")`).
 
 **What does not exist:**
 - the lock screen, a device PIN, banners, the island, a media session and audio focus;
@@ -90,6 +98,7 @@ action `i` sends `Notified { id, i + 1 }`.
 | Lock screen | shell | NOTIFY (with privacy), ACTIVITY, MEDIA | TP8 |
 | Volume HUD | shell | volume keys, `sound.*` | TP3 |
 | Settings pages (Panel & notifications, per-app channels, Lock screen) | Settings app | the shell's keys below | TP4, TP8 |
+| Power menu | shell | a 1-s hold of the power key, ⏻ in the shade | POWER |
 | The full-screen call, the alarm ringing | the app (NEOPHONE, Clock / DTSRV) | MODEMD, DTSRV | as today |
 
 **The flow (`api-notify-model`):**
@@ -124,7 +133,10 @@ One card model for the shade, the banner and the lock screen (`nt-anatomy`):
 Chrono { since or until }.
 
 **Flags:** ONGOING (can't be swiped; Live section), SILENT_UPDATE (no sound or banner, and no rate cost), PRIVATE
-(text hidden on the lock screen).
+(text hidden on the lock screen), STICKY (8: the banner has no timeout; O1).
+
+**Call style (O1):** the shell draws round Answer and Reject itself; the card's own ≤ 3 actions are Silence and
+Reply with message.
 
 **Rules:**
 - Posting the same `id` again **replaces** the card in place, silently unless asked.
@@ -139,14 +151,14 @@ An app declares channels (`CHANNEL`: id, name ≤ 32 B, importance); the user's 
 
 | Importance | Sound / vibrate | Banner | Status glyph | Shade | Lock screen | Island | For |
 |---|---|---|---|---|---|---|---|
-| Urgent 4 | yes | yes, 5 s | yes | top | yes | 2 s alert | conversations, calls, alarms, timers done |
+| Urgent 4 | yes | yes, 5 s (STICKY: until answered) | yes | top | yes | 2 s alert | conversations, calls, alarms, timers done |
 | Default 3 | yes | — | yes | by time | yes | — | a missed call, an update ready |
 | Low 2 | — | — | — | by time | glyph only | — | delivery reports, sync done |
 | Min 1 | — | — | — | the Silent fold | — | — | tips, background info |
 | Ongoing | — | — | yes | Live, top | yes | the activity | calls, downloads, recording: can't be swiped |
 
-- **Do not disturb** holds sound, vibration and banners for everything except alarms, calls from favourites and
-  repeated callers; the cards still reach the shade.
+- **Do not disturb** holds sound, vibration and banners for everything except alarms, Urgent calls (O1), calls from
+  favourites and repeated callers; the cards still reach the shade.
 - **Rate limit:** 5 alerting posts per minute per app; SILENT_UPDATE posts are free.
 - With an app's notifications turned off, NOTIFY answers `KErrPermissionDenied` (the app may ignore it).
 
@@ -177,8 +189,8 @@ A pill in the middle of the status bar (≤ 200 dp compact) for things happening
 Behaviour:
 - **Compact:** one activity, or two (a pill plus a circle). **Transient system alerts** for 2 s: the ringer to
   Silent, the charger plugged in, a headset connected.
-- **Expanded (hold):** opens in place over the status bar. A call has Mute · Keypad · Speaker · End (`di-call`); a
-  timer Pause · Cancel; a download Pause · Cancel; media the player (`di-home`).
+- **Expanded (hold):** opens in place over the status bar. A Call-kind activity gets the shell's own Mute · Keypad ·
+  Speaker · End (O1, `di-call`), not the app's buttons; a timer Pause · Cancel; a download Pause · Cancel; media the player (`di-home`).
 - **Gestures:** a tap opens the activity's app at its page; a hold expands; a sideways swipe swaps the pill and the
   circle; a swipe up folds; pulling down past it opens the shade with the activity at the top of Live.
 - **Order:** Call › Recording › Timer › Media › Progress › other. The two highest show; the rest wait in the
@@ -200,8 +212,8 @@ Behaviour:
 - **Details (`tp-wifi`):** every wide tile opens a detail sheet (Wi-Fi networks, Bluetooth devices, data SIM).
 - **Edit (`tp-edit`):** drag to reorder, hold to make a tile wide or small, drag to remove. Labelled tiles come
   from apps.
-- **A tile shows only when something backs it.** Flashlight, Auto-rotate, Hotspot, Battery saver, Cast, NFC and
-  screen record have no driver or service yet; they are hidden, not drawn dead.
+- **A tile shows only when something backs it.** Battery saver is backed (`battery.saver`, SE3a). Flashlight,
+  Auto-rotate, Hotspot, Cast, NFC and screen record have no driver or service yet; they are hidden, not drawn dead.
 - **App tiles (`TILE`):** label ≤ 16 B, sub ≤ 24 B, glyph, kind Toggle · Action · Detail (opens `page`), on, page;
   at most 4 per app. A tap sends `Tile { id, hold: 0 }`; a hold sends `hold: 1` (its settings page).
   - Examples on the board: Stopwatch (Clock), SSH home (Terminal), Shuffle (Music), Speed dial (Phone).
@@ -213,8 +225,8 @@ Shown when the screen comes on after it went off (`nt-lock`):
 - "+3 more", and Swipe up to unlock. In Gestures and N9 modes any edge also unlocks (Navigation's old G6).
 
 Rules:
-- **What wakes the screen:** the power key, an incoming call (as today), a ringing alarm or timer (**new:** the
-  alarm wakes the panel), an Urgent card (only with `notify.lock` = show).
+- **What wakes the screen:** the power key, an incoming call (as today), a ringing alarm or timer (built in 1.19:
+  DTSRV's `OPEN_WAKE`), an Urgent card (only with `notify.lock` = show).
 - A ringing alarm or call shows full screen **over** the lock screen; ending it returns to the lock screen.
 - Double-tap to wake needs the touch controller awake with the panel off (kernel `a64_touch.cpp`); later.
 - **The screen-lock PIN (TP9)** is designed but not built first: a PIN pad over the lock screen, attempts with
@@ -226,9 +238,9 @@ Rules:
 
 | Moment | What the user sees | Who does it |
 |---|---|---|
-| A call rings, phone in use | **Heads-up call banner**: avatar, name, number; Answer · Reject · Reply with message. It does not time out; a tap expands it to the full call screen | NEOPHONE posts an Urgent Call-style card with a sticky flag; the shell draws the banner. Answer and Reject come back as `Notified` actions and NEOPHONE calls MODEMD |
+| A call rings, phone in use | **Heads-up call banner**: avatar, name, number; round Answer and Reject, then Silence · Reply with message. It does not time out; a tap expands it to the full call screen | NEOPHONE posts an Urgent Call-style card with STICKY (O1); the shell draws the banner and its fixed Answer and Reject keys, and the card's actions are Silence and Reply with message. All four come back as `Notified` and NEOPHONE calls MODEMD |
 | A call rings, screen off, locked or on home | the full-screen incoming call (`p2-call-incoming`), as today | the shell keeps `ui.show("phone","call")` for these cases only |
-| In a call, user left the call screen | the **island** (green, time ticking; hold = Mute · Keypad · Speaker · End, `di-call`) and a Live card in the shade (`nt-shade`). The in-app "Return to call" bar stays | NEOPHONE: ACTIVITY (TP6) + an ONGOING Call card (TP2) |
+| In a call, user left the call screen | the **island** (green, time ticking; hold = the shell's Mute · Keypad · Speaker · End, `di-call`) and a Live card in the shade (`nt-shade`). The in-app "Return to call" bar stays | NEOPHONE: ACTIVITY (TP6) + an ONGOING Call card (TP2) |
 | A missed call | a card "2 missed calls · Ben Okafor, +1 555 0123" with Call back · Message (Default channel) | NEOPHONE posts it (TP2); the shell's row goes |
 
 **Messages (TP2, TP4):**
@@ -292,7 +304,7 @@ neoui (Apache, such as neohw) encode with `neoui-proto` and do not link the GPL 
 | TP0 | Docs and canvas boards | done | 2026-11-21 | canvas version 67; this folder |
 | TP1 | Status bar v2 and the shade's first stop | done | 2026-11-26 | neoui#50; Pixel run on image 33 |
 | TP2 | Cards; Phone and Messages post their own | done | 2026-11-27 | TP2a neoui#51 (protocol 1.18); TP2b neoui#61, phone#12 |
-| TP2c | Files' copy job as Progress style | open | 2026-11-26 | waits for files' repin (files#15) |
+| TP2c | Files' copy job as Progress style | open | 2026-11-27 | needs a Files repin to 1.22 (files is at neoui 4e50da2 = 1.17); files#15 is merged |
 | TP3 | Media session, background playback | open | — | with Files FA9 M1b |
 | TP4 | Channels, banners, DND, Settings pages | done | 2026-11-27 | neoui#61, phone#12 (protocol 1.21, with D9); inline reply deferred |
 | TP5 | Calls in the panel | open | — | uses TP2/TP4 |
@@ -300,6 +312,7 @@ neoui (Apache, such as neohw) encode with `neoui-proto` and do not link the GPL 
 | TP7 | Control centre and tiles | open | 2026-11-27 | next; its numbers are reserved in protocol.md (TP7 tiles) |
 | TP8 | Lock screen | open | — | replaces Navigation G6 |
 | TP9 | Screen-lock PIN | open | — | after TP8 |
+| POWER | Power menu v2: the full-screen sheet | open | 2026-11-27 | board `sh-power-menu-v2` (O5); the design is in top-panel.md, Power menu v2 |
 <!-- /stages -->
 
 Each phase ends on the Pixel, with neoui host snapshots for every new board and a step in `taps.sh` (run on QEMU virt from US6b).
@@ -312,8 +325,8 @@ Each phase ends on the Pixel, with neoui host snapshots for every new board and 
 | **TP2** | Cards | NOTIFY grows; BLOB, NOTIFY_CLEAR, NotifyGone; sections, swipe to dismiss, Clear all, groups, history; 24 per app. **NEOPHONE** posts missed calls and the ongoing-call card, and the shell's three rows go. **NEOMSG** posts Conversation cards with Mark read. **Files** moves its job to Progress style | 31, 32 / 22 | neoui-proto, neoui, phone, files | a missed call, an SMS and a Files copy show as `nt-shade` cards; a swipe dismisses and the app hears NotifyGone |
 | **TP3** | Media session | MEDIA + Media events; the shade's media card; the home Media card goes live; the volume HUD; `Visible(false)` when the screen goes off (moved from TP1). **Files FA9 M1b:** Files posts the session, keeps playing in the background, and its footer "Stops when you leave Files." changes | 33 / 23 | neoui-proto, neoui, files | a WAV started in Files plays on with Files in the background; pause, next and seek work from the shade and from home |
 | **TP4** | Channels, banners, reply, DND | CHANNEL, importances, the user's override; the heads-up banner (never over a full-screen call or the keyboard's field); inline reply with the shell keyboard; the rate limit; Do not disturb; tone and vibration per importance (`sound.rs`, haptics); Settings pages and the `notify.*`/`n.<app>` keys. **Messages:** Reply, Mark read and Call from the banner and the shade | 34, 35 / 24 | neoui-proto, neoui, phone | an SMS arrives as a banner while Files is open; Reply sends it and Files stays in front; DND holds the banner |
-| **TP5** | Calls in the panel | NEOPHONE posts the incoming call as a sticky banner while the phone is in use; full screen when the screen is off, locked or on home. Answer and Reject from the banner; Reply with message | (uses TP2/TP4) | phone, neoui | a call rings over Files as a banner; Answer connects; a call to a locked phone is full screen |
-| **TP6** | Live island | ACTIVITY; compact, two, expanded; transient alerts; the order and permission rules; `island.*`. **Producers:** NEOPHONE (the call, `di-call`), the media session (derived), Files (copies), later Clock/DTSRV timers and Browser downloads | 36 / 25 | neoui-proto, neoui, phone, files | in a call, Files shows the green island; a hold gives Mute/Speaker/End; music shows as the circle |
+| **TP5** | Calls in the panel | NEOPHONE posts the incoming call as an Urgent Call-style card with STICKY while the phone is in use; full screen when the screen is off, locked or on home. The shell draws round Answer and Reject; the card's actions are Silence and Reply with message (O1). Urgent calls get past DND | (uses TP2/TP4) | phone, neoui | a call rings over Files as a banner; Answer connects; a call to a locked phone is full screen |
+| **TP6** | Live island | ACTIVITY; compact, two, expanded (a Call kind gets the shell's Mute · Keypad · Speaker · End, O1); transient alerts; the order and permission rules; `island.*`. **Producers:** NEOPHONE (the call, `di-call`), the media session (derived), Files (copies), later Clock/DTSRV timers and Browser downloads | 36 / 25 | neoui-proto, neoui, phone, files | in a call, Files shows the green island; a hold gives Mute/Speaker/End; music shows as the circle |
 | **TP7** | Control centre | The second stop; wide tiles; details (Wi-Fi first); edit mode; `shell.tiles`; TILE for apps; only backed tiles show | 37 / 26 | neoui-proto, neoui | `tp-control`, `tp-edit` and `tp-wifi` match on the phone; the order survives a reboot |
 | **TP8** | Lock screen | Shown at screen-on; cards by `notify.lock`; the activity and the media player; swipe to unlock (any edge in Gestures/N9); alarm wake; ringing over the lock screen; Settings → Lock screen | — | neoui, datetime (alarm wake) | the phone wakes into `nt-lock`; an alarm wakes the screen and rings over it |
 | **TP9** | Screen-lock PIN (later) | PIN pad, back-off, a hashed key; asked on wake | — | neoui | — |
@@ -446,7 +459,8 @@ thread with Reply · Mark read · Call, grouped under Messages. The shell's thre
 calls, new messages) go in the same change. This needs phone's repin to neoui's TP2a rev (it waits today with
 phone#10): **boot.img is measured first; near the limit (an unpacked kernel past ~71.6 MB, boot.img near 27.8 MB), stop and ask the owner.**
 
-**TP2c: Files' copy job as Progress style** with its Cancel, when files repins (waits with files#15).
+**TP2c: Files' copy job as Progress style** with its Cancel, when files repins to 1.22 (files is at neoui `4e50da2`,
+protocol 1.17; files#15 is merged).
 
 **Checks (each part):** host snapshots of the shade (first stop with See all, the list with every section, a group
 open, a swipe in progress), round-trip and limit tests for the record and its old form, the section order and the
@@ -465,6 +479,20 @@ Drawn on 2026-11-21 (canvas version 67, the Top panel page's "TP0" row). The sam
 | `nt-lock-pin` | the PIN pad over the lock screen (marked Later) | TP9 |
 | `nt-files-player` | the Files player with background play: the new footer, the session in the shade | TP3 |
 | `nt-home-media` | the home Media card live, from the session | TP3 |
+
+## Power menu v2 (POWER)
+
+Decided 2026-11-27 (O5); board `sh-power-menu-v2` on the Shell & system UI page, with a play-through board beside
+`sh-power-menu`. It replaces today's small card (`ui/components/powermenu.slint`: the profiles, then Power off ·
+Restart · Cancel).
+- **Opens** as today: a 1-s hold of the power key, or ⏻ in the shade.
+- **A full-screen sheet** over a dimmed background, with big round tiles: Power off, Restart, Lock now, Screenshot,
+  Airplane, Silent/Vibrate.
+- **Recovery and Fastboot** show only with Developer options on.
+- **Hold to confirm:** Power off and Restart fill a ring while held; letting go early does nothing.
+- **A swipe down** dismisses it.
+- **Emergency call** sits at the bottom.
+- Lock now needs the lock screen (TP8). The key `power.style` comes with protocol 1.22 ([protocol.md](protocol.md)).
 
 ## Screen map
 
@@ -488,7 +516,7 @@ replaced by the named phase.
 | `nt-lock` | TP8 | the lock screen |
 | `nt-settings` | TP4 | per-app channels (Messages) |
 | `nt-anatomy` | TP2, TP4 | the card, the templates, the importance table |
-| `di-states` | TP6 | the island's states and rules |
+| `di-states` | TP6 | the island's states and rules; its "proposed 1.9" label is stale: ACTIVITY is opcode 36 ([protocol.md](protocol.md)) |
 | `di-home` | TP6, TP3 | media expanded on home |
 | `di-call` | TP6, TP5 | the call expanded in an app |
 | `api-notify-protocol` | TP2–TP7 | → [protocol.md](protocol.md) (renumbered in TP0) |
@@ -500,7 +528,7 @@ replaced by the named phase.
 | `nt-files-player` | TP3 | new in TP0: Files with background play |
 | `nt-home-media` | TP3 | new in TP0: the live home Media card |
 
-**Shell & system UI page, the boards this design replaces (8):**
+**Shell & system UI page, the boards this design replaces or adds (9):**
 
 | Board | Phase |
 |---|---|
@@ -510,7 +538,8 @@ replaced by the named phase.
 | `sh-shade-app-notify` | baseline (1.8 NOTIFY) → TP2 |
 | `sh-toast` | built (NOTE 1.8); stays |
 | `sh-badges` | built (BADGE 1.8); stays, and the count follows the cards in TP2 |
-| `sh-power-menu` | built; stays |
+| `sh-power-menu` | built (Power off · Restart · Cancel, the profiles above them); replaced by `sh-power-menu-v2` (POWER) |
+| `sh-power-menu-v2` | POWER: the full-screen sheet (O5), new 2026-11-27 |
 | `sh-sim-pin` | built; stays (the SIM PIN, not the screen lock) |
 
 The rest of the Shell page maps to [kit.md](kit.md), [home.md](home.md), [navigation.md](navigation.md) and
@@ -538,10 +567,11 @@ The rest of the Shell page maps to [kit.md](kit.md), [home.md](home.md), [naviga
 |---|---|---|
 | Headset and media buttons (no key path) | TP3 | neohw A8, kernel |
 | Privacy dots: camera or mic in use, location | TP1 | AUDIOD (mic), GNSSD (location); no camera yet |
-| Flashlight, auto-rotate, hotspot, battery saver | TP7 | kernel and neohw (none exist) |
+| Flashlight, auto-rotate, hotspot, cast | TP7 | kernel and neohw (none exist; battery saver is backed since SE3a) |
 | Double-tap to wake | TP8 | kernel touch driver |
 | Ringtone/notification tones per importance | TP4 | AUDIOD (ringtone stream exists) |
-| Clock alarms waking the screen | TP8 | neoui `screen.rs` + datetime DT1 |
+
+Closed since: clock alarms wake the screen (protocol 1.19, DTSRV's `OPEN` with `OPEN_WAKE`).
 
 ## Not in this design (later)
 - Notifications that survive a reboot.

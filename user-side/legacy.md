@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Legacy apps: old S60 apps inside neoui
 
-Part of [User side](README.md) · Status: active · Updated: 2026-11-21
+Part of [User side](README.md) · Status: active · Updated: 2026-11-27
 
 **Goal:** old, unmodified Symbian S60 apps run inside neoui. These are 3rd and 5th edition `.sis` packages: first X-plore 1.64 and Frozen Bubble, later a wider corpus.
 
@@ -43,7 +43,7 @@ unmodified S60 app processes
 | LEGACY.EXE, the legacy component list, the `.sis`/icon/skin tools, `sis.lock` | [legacy](https://github.com/NeoSymbian/legacy). `build` pins it as `src/legacy` and merges its `components.py`. |
 | Fixes to Symbian code | The fork that owns the file, on `main`: graphics (guest wserv), classicui (Avkon/Uikon), appsupport (AppArc, view server), uiresources (icons, skins), cellularsrv (ETel), svgt (SVG icons). |
 | C++ run time of RVCT-built binaries (`drtaeabi`, `dfpaeabi`) | kernel `kernel/eka/compsupp/gcce` |
-| The launcher protocol (1.6 `ENTRY`, `FRONT`, `Entry` event) and the Old apps grid | neoui |
+| The launcher protocol (1.6 `ENTRY`, `FRONT`, `Entry` event) and the Classic apps grid | neoui today; the grid moves here as `CLASSIC.EXE` (MV2) |
 | Telephony for old apps (ETel TSY over MODEMD) | neohw (was telephony) |
 | The key pads (Navigator, Gamepad, Number, Abc, Hidden, the console) | legacy `host/pad.cpp` (legacy#4); the page, haptics and Settings → Old apps in neoui (protocol 1.10, neoui#15) |
 | Sound for old apps (DevSound, the audio server, the WAV player's MMF plugins) | legacy (legacy#5: our `mmfdevsoundadaptor.dll` over NeoAudio); the DSP side is AUDIOD in neohw ([audio.md](../hardware/audio.md)) |
@@ -70,10 +70,16 @@ unmodified S60 app processes
 
   Runtime loader and ECom traces cover what the static scan can't see.
 
-## The Old apps launcher (protocol 1.6)
+## The Classic apps launcher (protocol 1.6)
+<a id="the-old-apps-launcher-protocol-16"></a>
+
+**Renamed (owner, O3, 2026-11-27):** the user-visible "Old apps" launcher becomes **Classic apps**, a kit app
+`CLASSIC.EXE` in this repo (a new UID from legacy's block) that reads INFO kind 4 and opens an entry with
+`ACTION_OPEN_ENTRY`. The shell keeps only the entries (`host.entries("legacy")`). Stage MV2 in
+[kit.md](../neoui-shell/kit.md#status); until it lands the grid is neoui's `ui/screens/oldapps.slint`.
 
 1. **Listing:**
-   - neoui starts LEGACY in the background when the Old apps screen opens.
+   - neoui starts LEGACY in the background when the Classic apps screen opens.
    - LEGACY lists AppArc's apps, skipping hidden ones.
    - Avkon's icon server rasterizes each app's icon from its MIF (SVG) or MBM.
    - LEGACY sends each app as `ENTRY {uid, caption, icon}`. With no icon, neoui shows a generic tile.
@@ -162,7 +168,7 @@ pad states, console, settings; the spec sheets "Pad keys", "Touch & hold", "Pad 
 | Stage | What | State | Updated | Next / evidence |
 |---|---|---|---|---|
 | L0 | Ownership and inventory | done | 2026-11-14 | the legacy repo, the runtime in compsupp, honest audit reports |
-| L0.5 | The AppArc launcher and Old apps grid | done | — | X-plore and Frozen Bubble listed with their icons, protocol 1.6 |
+| L0.5 | The AppArc launcher and the grid (now Classic apps) | done | — | X-plore and Frozen Bubble listed with their icons, protocol 1.6 |
 | L1 | A stable runtime and desktop | active | 2026-11-20 | desktop persists, AknCapServer first; open: the explicit guest handshake |
 | L2 | Two usable apps | active | 2026-11-20 | Frozen Bubble done (legacy#4, #5); X-plore copy, rename, kept settings open |
 | L3 | Shell integration, several apps at once | open | — | not started: damage-based drawing, a task protocol |

@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Design system
 
-Part of [neoui shell](README.md) · Status: done · Updated: 2026-11-17
+Part of [neoui shell](README.md) · Status: done · Updated: 2026-11-27
 
 **Status: built (UI v2, 2026-11-17).** It covers the tokens, layout, glyphs, display digits, app tiles and
 components every neoui screen and app uses. The canvas's **Design system** page (7 sheets) follows the code. This
@@ -45,18 +45,18 @@ page replaces `neoui/design/DESIGN.md` (2026-11-06, "Belle, modernized"), which 
 | Frame | `status-h` 25, `strip-h`/`key-row-h` 56, `band-h` 16, `edge-zone` 16, `header-h` 48, `footer-h` 48, `title-h` 52 |
 | Rows and touch | `list-row-h` 56, `list-row-double-h` 72, `action` 48, `action-glyph` 24, `field-h` 44, `search-h` 40, `key-h` 66, `dock-h` 92, `tab-h` 46, `section-h` 34 |
 | Shapes | `margin` 12, `radius` 14 (cards), `radius-small` 8, `pill` 56 × 32, `badge` 16, `menu-w` 220, `avatar` 44 / 104, `app-icon` 72, `app-row-h` 135 |
-| Type (Inter) | `font-status` 13, `font-label` 13.5, `font-body` 16, `font-title` 19, `font-clock-large` 56 |
+| Type (NeoSans) | `font-status` 13, `font-label` 13.5, `font-body` 16, `font-title` 19, `font-clock-large` 56 |
 | Colours | `bg` #000, `bg-raised` #121417, `card` #15181c, `field` #1d2025, `sheet` #1b1e23, `toast` #2a2e35; text #fff / `text-secondary` #b9bec7 / `text-dim` #7d838c; `accent` #3d8bfd; `ok` #22b46a, `warn` #f59e0b, `danger` #e5484d; `scrim` #000000b3; `handle` #ffffff59 |
 | Motion | `fast` 150 ms, `open` 250, `close` 300, `popup` 250, `page` 350; out-quad (Belle's measured timings) |
 
-## Glyphs (`ds-glyphs`, `ui/icons/sys/`, 84 today)
+## Glyphs (`ds-glyphs`, `ui/icons/sys/`, 95 on 2026-11-27)
 - **One grid and one weight:** 24 units, 1.8-unit strokes, round caps and joins; white, tinted in Slint with
   `colorize`.
 - **Rasterised at build time** at 96 px.
-- **The top panel needs these, which don't exist yet:** moon (Do not disturb), airplane, flashlight, rotate,
-  hotspot, cast, nfc, screen record, no-SIM, mark-read. They are added in
-  [top-panel.md](top-panel.md) TP0/TP1. (`bell`, `silent`, `vibrate`, `alarm`, `headset`, `charging`, `location`,
-  `lock`, `privacy`, `bluetooth`, `wifi`, `data` exist.)
+- **Still missing (2026-11-27):** rotate, hotspot, cast, nfc, screen record, no-SIM, mark-read. They are drawn
+  with the control centre (TP7, finishing plan W1) through `tools/make_icons.py`. Drawn since: `plane` (TP1), `dnd` (TP4).
+  `flash`, `battery_saver`, `bell`, `silent`, `vibrate`, `alarm`, `headset`, `charging`, `location`, `lock`,
+  `privacy`, `bluetooth`, `wifi` and `data` exist too.
 
 ## Display digits (`ds-digits`, `ui/icons/digits/`)
 - The big clocks (`BigClock`, the home clock, Clock's TimeHero) use 11 SVGs (0–9, colon), not text: SDF text breaks
@@ -70,7 +70,7 @@ page replaces `neoui/design/DESIGN.md` (2026-11-06, "Belle, modernized"), which 
 - 14 tiles are generated from one base colour each (lit from the top, radius 26 of 96, a faint inner rim):
   - Phone #22b46a, Messages #2f80ed, Contacts #f2994a, Browser #1fa9c4, Camera #5b6472;
   - Photos #14a37f, Music #e04e9b, Calendar #e5484d, Clock #8656e8, Files #e2a92a;
-  - Settings #6b7688, Terminal #2b2f36, Old apps #4f6b8a, Apps (dock) #3a4150.
+  - Settings #6b7688, Terminal #2b2f36, Old apps #4f6b8a (Classic apps after MV2, [kit.md](kit.md#status)), Apps (dock) #3a4150.
 - Dev tools is hand-written.
 - **Sizes:** 72 dp in the grid, 54 in the dock, 22 in small headers.
 

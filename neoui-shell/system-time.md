@@ -15,7 +15,7 @@ is host-tested):
 |---|---|---|
 | Automatic time | `time.auto` (on) | NITZ from MODEMD's status, else the HTTP `Date:` of the internet check |
 | Automatic time zone | `time.auto_zone` (on) | NITZ's zone (quarter hours, daylight saving included) |
-| Time zone | `time.zone` ("") | A World catalogue city (Part 6). A tap steps to the next city. The offset in force stays in the kernel and `clock.dat` |
+| Time zone | `time.zone` ("") | A World catalogue city (Part 6), picked in a searchable city sheet (SE0, [below](#since-then)). The offset in force stays in the kernel and `clock.dat` |
 | 24-hour time | `clock.24h` | Moved here from Display |
 | Seconds in the status bar | `status.seconds` (off) | |
 | Date in the shade | `shade.date` (on) | |
@@ -54,7 +54,7 @@ as a POSIX `TZ` string from IANA tzdata, e.g. Berlin `CET-1CEST,M3.5.0,M10.5.0/3
 
 **Shortcuts:**
 - today's rules only, no history (tzdata 2025): the table needs an update when a country changes its rules;
-- the Time zone row steps through the cities one tap at a time; there is no picker yet.
+- the Time zone row stepped through the cities one tap at a time; the city sheet replaced that in SE0 ([below](#since-then)).
 
 ## Since then
 
