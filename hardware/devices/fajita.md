@@ -10,7 +10,7 @@ port should serve it too (untested).
 
 **Status (2026-11-26):** OP0–OP6 done, and **neoui runs on the 6T** (RAM boot): the launcher, apps, touch, keys, the USB console, CPU clocks with touch boost, and temperatures all work. Since `ROFS=ramdisk` (kernel#45), Z:'s ROFS rides as the boot image's ramdisk, which takes the image past the bootloader's ~49.5 MB kernel limit: the Files app is back in it. UFS reads work (read-only, OP6).
 
-**UFS driver (2026-11-27):** U1–U6 done (kernel branch `fajita`, not pushed yet): our own UFS bring-up, 2 lanes at HS-G3, interrupts with an 8-slot queue (1 GB read at 392 MB/s), and guarded writes into `system_b` only. A test C: on `system_b` keeps files across reboots, and the driver recovers from a dead host or a device reset mid-request (U6). Details: [The UFS driver](#the-ufs-driver-u1u6-2026-11-27).
+**UFS driver (2026-11-27):** U1–U6 done (kernel branch `fajita`, not pushed yet): our own UFS bring-up, 2 lanes at HS-G3, interrupts with an 8-slot queue (1 GB read at 392 MB/s), and guarded writes into `system_b` only. C: on `system_b` is the real C: since OP7 (it keeps files across reboots and never formats over another system's data), and the driver recovers from a dead host or a device reset mid-request (U6). Details: [The UFS driver](#the-ufs-driver-u1u6-2026-11-27).
 
 **The phone changed (2026-11-27).** It no longer runs Ubuntu Touch; the owner had it reinstalled:
 - **Software:** /e/OS 4.5.1 (Android 15, LineageOS-based) on slot a, active. Slot b holds OxygenOS 11.1.2.2 system and
@@ -136,7 +136,7 @@ CLAUDE.md apply too: the build on atlas, CI green, bonito unaffected.
 | U4 | UFS: interrupts + request queue | done | 2026-11-27 | 1 GB at 328 MB/s, 0 errors, `boot_a` hash matches (kernel df7ff8d1) |
 | U5 | UFS: guarded writes, C: on `system_b` | done | 2026-11-27 | guard + wtest; a file survives 3 reboots; 392 MB/s (kernel 18afb83c, 8f21452e) |
 | U6 | UFS: error recovery, own init by default | done | 2026-11-27 | 4 injected faults recovered, data intact (kernel afc16193) |
-| OP7 | C: and E: on UFS | active | 2026-11-27 | a test C: on `system_b` works (U5); the real place is the owner's call (/e/OS owns userdata) |
+| OP7 | C: on UFS | done | 2026-11-27 | C: on `system_b` (2.79 GB); formats only blank space or our own MBR (kernel f762cbec) |
 | OP8 | Panel | open | — | DCS to the S6E3FC2X01 |
 | OP9 | Battery | open | — | bq27xxx gauge, PMI8998 charger |
 | OP10 | Modem | open | — | LLCC slice table, then MSS on OnePlus firmware |
@@ -154,7 +154,7 @@ CLAUDE.md apply too: the build on atlas, CI green, bonito unaffected.
 | **OP4** input ✅ | keys (PM8998 PON + GPIO 5/6), the RMI4 touchscreen on 0xa90000 (its GCC clock, pins, supply, reset) | neoui takes taps and the volume keys |
 | **OP5** clocks ✅ | cpufreq for 4 + 4, TSENS (RPMh came with OP3; the LLCC table moved to OP10, only the modem needs it) | touch boost works; temperatures in Dev tools |
 | **OP6** UFS, read-only ✅ | the UFS host + QMP PHY, link start-up, READ(10) on each LUN, GPT per LUN, `blk` monitor commands | every LUN's GPT listed; read speed measured; no write path built |
-| **OP7** C:/E: on UFS | **the owner's call** (/e/OS owns `userdata` since 2026-11-27): a separate partition, or wipe | files survive a reboot |
+| **OP7** C: on UFS | the owner's call, made 2026-11-27: C: on `system_b` (2.79 GB, no E:), /e/OS keeps `userdata`; never format over another system's data | files survive a reboot |
 | **OP8** panel | DCS over DSI0 to the S6E3FC2X01 (brightness 0–1023, sleep, wake) | brightness slider, screen off and on |
 | **OP9** battery | the bq27xxx gauge, the PMI8998 charger at SID 2 | percentage and charging state in the top panel |
 | **OP10** modem | the LLCC slice table (4 banks on SDM845), then MSS on OnePlus firmware: carve-outs, rmtfs, the SMEM board record | the modem registers; a call and an SMS |
@@ -307,7 +307,7 @@ them up. The QMP PHY tables, link start-up and supplies are not needed and not w
 
 | LUN | Size | Holds |
 |---|---|---|
-| 0 | 116 GB | `ssd`, `persist`, `misc`, `param`, `keystore`, `frp`, `op2`, `config`, `system_a` (4.6 GB), `system_b` (1 GB), `odm_a/b`, `userdata` (110 GB) |
+| 0 | 116 GB | `ssd`, `persist`, `misc`, `param`, `keystore`, `frp`, `op2`, `config`, `system_a`, `system_b` (2.79 GB each on the stock GPT; 4.6 GB and 1 GB under Ubuntu Touch), `odm_a/b`, `userdata` (110 GB) |
 | 1, 2 | 4 MB each | `xbl_a` + `xbl_config_a`; `xbl_b` + `xbl_config_b` |
 | 3 | 32 MB | `cdt`, `ddr` |
 | 4 | 3 GB | the A/B firmware set: `aop`, `tz`, `hyp`, `modem` (120 MB), `abl`, `dsp`, `boot` (64 MB), `vendor` (1 GB), `vbmeta`, `dtbo`, `LOGO`, the `fw_ufs*` images; then `devinfo`, `splash`, `logdump`, `minidump` and others |
@@ -363,9 +363,9 @@ a request queue, and writes only into `system_b`. Kernel branch `fajita` (local 
 |---|---|---|
 | U1–U3 | our own init (`blk reset`) instead of adopting ABL's link; `blk gear` to HS-G3 Rate B on 2 lanes | link up, 6 LUNs; pwrmode 11, lanes 2/2; 231 MB/s polled |
 | U4 | SPI 265 interrupt (ISR masks the line, IDFC wakes the waiter, 10 ms timer as a bound), 8 slots in flight | 1 GB at 328 MB/s, 0 UIC/fatal errors, 0 timeouts; `boot_a`'s hash matches the Ubuntu Touch copy |
-| U5a | WRITE(10) with FUA, 4 KB read-modify-write below FAT's 512-byte sectors; `EMMC_C=2` = monitor writes | `blk guard` refuses sector 0, the last of `system_a`, the first after `system_b`; `blk wtest` passes; 64 MB written at 141 MB/s |
-| U5b | `EMMC_C=1` = C: on `system_b` at boot (medblk's MBR + FAT) | a 3 MB file keeps its SHA-256 across 3 reboots; 1 GB read at 392 MB/s |
-| U6 | error recovery (below); our own init at boot in every build (read-only without `EMMC_C`, C: then the RAM drive) | 4 injected faults, each recovered on the first try; 1 GB at 397 MB/s afterwards |
+| U5a | WRITE(10) with FUA, 4 KB read-modify-write below FAT's 512-byte sectors; `DISK_C=2` = monitor writes | `blk guard` refuses sector 0, the last of `system_a`, the first after `system_b`; `blk wtest` passes; 64 MB written at 141 MB/s |
+| U5b | `DISK_C=1` = C: on `system_b` at boot (medblk's MBR + FAT) | a 3 MB file keeps its SHA-256 across 3 reboots; 1 GB read at 392 MB/s |
+| U6 | error recovery (below); our own init at boot in every build (read-only without `DISK_C`, C: then the RAM drive) | 4 injected faults, each recovered on the first try; 1 GB at 397 MB/s afterwards |
 
 **The write guard:** a write must lie inside `system_b` on LUN 0, found exactly once in the GPT; it is checked in the
 block backend and again in the command builder. Never WRITE BUFFER, purge or write-protect flags.
@@ -396,6 +396,38 @@ reset) while the n-th request from then is in flight. On the 6T:
 - a device reset during `phone.py push`: the write recovers, but the YMODEM transfer overruns while the file server
   waits (about a second) and aborts; pushing again works;
 - `shortcut:` no ABORT TASK first: a timed-out request resets the whole link.
+
+### OP7: the real C: on `system_b` (2026-11-27)
+
+**The owner's decision (2026-11-27):** C: stays on `system_b`, slot b's system partition (2.79 GB on the stock
+GPT): C: only, no E: (too small). /e/OS keeps `userdata` on slot a. Z: on UFS is a later stage.
+
+**The guard:** `system_b` belongs to slot b, so an /e/OS update installed into slot b, or a flash of slot b, puts
+an Android filesystem there. medblk writes an MBR and FAT over a window without one, so the 6T's backend
+(`A64BlkBoard_Window` in `ufshcd.cpp`) first reads `system_b`'s first 4 KB:
+- our MBR (a FAT32 entry): C:, as before;
+- all zero: C: is made there (medblk writes the MBR, FAT formats);
+- anything else (ext4, erofs, f2fs, unknown): left alone, logged, and C: is the RAM drive.
+
+So an /e/OS update into slot b replaces C:'s contents, and our next boot leaves the new system alone. To give
+`system_b` back to C:, a `DISK_C=2` image's `blk head zero` blanks its first 4 KB.
+
+**The build flag is now `DISK_C`** (C: on the phone's storage, eMMC or UFS; `EMMC_C` is its old name and still
+works). The 6T's phone image: `DISK_C=1 ROFS=ramdisk ROFS_CORE='(?i)\.dll$|neofiles\.exe$' USBDEBUG=1
+AUTOFASTBOOT=1500 DTB=…/fajita.dtb neo kernel fajita`.
+
+**Checked on the 6T:**
+- the C: from U5b is taken as ours, its files intact;
+- with a test ext4 magic at `system_b`'s start (`blk head ext4`), the boot logs "an ext4 filesystem: left alone, no
+  C:", C: is the RAM drive, and `system_b`'s first 64 MB hash the same before and after;
+- after `blk head zero`, the boot writes a new MBR. The FAT volume behind it was untouched, so it mounts again with
+  its files;
+- daily use: 16 copies of a 4 MB file plus 60 small files written through fshell all hash right after a reboot;
+  neoui's settings persist; Files shows "C: Phone memory 2.8 GB, 2.7 GB free";
+- `system_a` unchanged throughout. `userdata` changed once between two sessions while the phone was away from the
+  Mac (probably /e/OS running; not confirmed); our writes on C: leave it unchanged (hashed before and after).
+
+**Not done:** UNMAP (`shortcut:` in `ufshcd.cpp`), E:, Z: on UFS.
 
 ## Open questions
 

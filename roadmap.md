@@ -170,7 +170,7 @@ board below, so check the board when they differ.
 | U4 | UFS: interrupts + request queue | ✅ done | 2026-11-27 | 1 GB at 328 MB/s, 0 errors, `boot_a` hash matches (kernel df7ff8d1) | [hardware/devices/fajita](hardware/devices/fajita.md) |
 | U5 | UFS: guarded writes, C: on `system_b` | ✅ done | 2026-11-27 | guard + wtest; a file survives 3 reboots; 392 MB/s (kernel 18afb83c, 8f21452e) | [hardware/devices/fajita](hardware/devices/fajita.md) |
 | U6 | UFS: error recovery, own init by default | ✅ done | 2026-11-27 | 4 injected faults recovered, data intact (kernel afc16193) | [hardware/devices/fajita](hardware/devices/fajita.md) |
-| OP7 | C: and E: on UFS | 🔵 active | 2026-11-27 | a test C: on `system_b` works (U5); the real place is the owner's call (/e/OS owns userdata) | [hardware/devices/fajita](hardware/devices/fajita.md) |
+| OP7 | C: on UFS | ✅ done | 2026-11-27 | C: on `system_b` (2.79 GB); formats only blank space or our own MBR (kernel f762cbec) | [hardware/devices/fajita](hardware/devices/fajita.md) |
 | OP8 | Panel | ⬜ open | — | DCS to the S6E3FC2X01 | [hardware/devices/fajita](hardware/devices/fajita.md) |
 | OP9 | Battery | ⬜ open | — | bq27xxx gauge, PMI8998 charger | [hardware/devices/fajita](hardware/devices/fajita.md) |
 | OP10 | Modem | ⬜ open | — | LLCC slice table, then MSS on OnePlus firmware | [hardware/devices/fajita](hardware/devices/fajita.md) |

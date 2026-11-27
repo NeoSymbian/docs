@@ -304,7 +304,7 @@ fit, and every app will keep growing.
   the ramdisk (62500 KB): this build's" and every hash matching (2026-11-26).
 - `fastboot boot` takes up to `max-download-size` = 0x10000000 (256 MB) on bonito. The C1 Linux test RAM-booted a
   91 MB ramdisk on this phone before.
-- Test images: `ROFS=ramdisk ROFS_CORE='\.dll$' EMMC_C=1 … neo kernel bonito`. Installers can use
+- Test images: `ROFS=ramdisk ROFS_CORE='\.dll$' DISK_C=1 … neo kernel bonito` (`DISK_C`, C: on the phone's storage, was `EMMC_C` until 2026-11-27; the old name still works). Installers can use
   `ROFS=ramdisk ROFS_INSTALL=1` (not tried yet; it writes `system_x`, the owner's call).
 
 **How others do it** (Codex for Android, a Claude agent for the Linux phones, 2026-11-26):
