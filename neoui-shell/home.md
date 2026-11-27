@@ -117,7 +117,7 @@ A table beside `APPS` in the server: `(app, name, template, sizes, label)`.
 ### Protocol
 | Opcode | Arguments | Result |
 |---|---|---|
-| `WIDGET = 12` | `[Des8 name, Des8 encoded content]` | 0; `KErrNotFound` for a name not in the app's catalogue; `KErrArgument` for content that doesn't match the template |
+| `WIDGET = 46` (1.22; 12 was 1.4's retired `TOOLBAR`) | `[Des8 content]`: the name, the template, the page and the payload in one record ([protocol.md](protocol.md#widget-46)) | 0; `KErrNotFound` for a name not in the app's catalogue; `KErrArgument` for content that doesn't match the template |
 
 - The server keeps the latest content per `(app, name)` and redraws only the cards that show it. The damage covers
   just those cards.

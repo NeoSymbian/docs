@@ -42,6 +42,7 @@ work that has been designed but not built**, so that two designs can't pick the 
 | 1.19 | 2026-11-26 | services: an `APPS` entry with no screen (`dtsrv` = DTSRV.EXE, datetime DT1) started at boot and kept alive; `OPEN` grows `flags` (slot 3, `OPEN_WAKE` 1: screen on, shade closed; only from a service); a service's card taps and actions all arrive in place; `AppEvent::Alarm` retired (Clock gets `Open { page }` + `arg`) | [services](#services-119) |
 | 1.20 | 2026-11-26 | Settings contracts: paged, revisioned `SETTINGS_INFO` kinds 8 `APP_DETAIL`, 9 `BATTERY_CYCLE` (built with their producers D4/D5 in the same run), 13 `JOBS`, 14 `FEATURES`; `SETTINGS_ACTION` 6 confirmed `CLEAR` and 7 `MEASURE_APP` (nonces, tickets); `OWNER_REPORT` = 42 (owner work); `ENTRY_THUMB` = 43; `CONTROL_FEEDBACK` = 44 (D6, touch and dial-key feedback); `REPAINT` = 45 (D2); sessions bound by SID and the spawned process id; `ACTION_PROFILE` tags 6–9 (D6: feedback, your sounds); events 27 `SettingsInfo`, 29 `OwnerWork`, 28 with a ticket (`ClearTicket`), only to 1.20 clients. Kinds 1–6 and the 1.17 event 28 are byte-identical | [Settings snapshots](#settings-snapshots-owner-reports-and-panel-policy-120-121) |
 | 1.21 | 2026-11-27 | Notification channels and the user's policy (TP4/D9): `CHANNEL` = 34; `SETTINGS_INFO` kind 7 `CHANNELS` (paged, Settings only); the registered `notify.*` and `n.<app>` keys; NOTIFY refused (`KErrPermissionDenied`) for an app or channel turned off, its cards gone with `NotifyGone(id, GONE_OFF)`; banners, the shell's chime, Do not disturb in the shell. `REPLY_TEXT`/event 24 stay reserved | [TP4 policy](#tp4-policy-121) |
+| 1.22 | 2026-11-27 | **Contract** for TP3–TP9 and home Part 4 (W0a): `MEDIA` 33 / event 23, `REPLY_TEXT` 35 / event 24, `ACTIVITY` 36 / event 25, `TILE` 37 / event 26, `WIDGET` 46, `SHELL_VERSION` 47 (built); INFO 12 `TILES`, ACTION 8 `INSTALL_WALLPAPER`, 12 `EDIT_TILES`, 14 `LOCK_DIALOG` codecs; NOTIFY flag `STICKY` (8) and the Call style's Answer/Reject (0xA0/0xA1); home layout v2 (app widgets); the keys `shell.tap`, `shell.media`, `shell.tiles`, `island.on`, `island.deny`, `lock.on`, `lock.pin_set`, `ui.language`, `power.style`. Codecs, constants and `neoapp` helpers only: **the producers and consumers land in W1–W3**; until then the shell checks the caller and the record and answers `KErrNotSupported`, and INFO 14 advertises none of it | [Protocol 1.22](#protocol-122) |
 
 ## Opcodes (app → shell)
 
@@ -70,11 +71,11 @@ work that has been designed but not built**, so that two designs can't pick the 
 | 30 | `CLIP_KIND` | 1.12 | built |
 | 31 | `BLOB` | — | **reserved:** [top-panel.md](top-panel.md) (moved out of TP2a: no producer yet) |
 | 32 | `NOTIFY_CLEAR` | 1.18 | built: every card of the caller |
-| 33 | `MEDIA` | — | **reserved:** TP3 |
+| 33 | `MEDIA` | 1.22 | contract ([1.22](#media-33)): checked, `KErrNotSupported` until TP3 |
 | 34 | `CHANNEL` | 1.21 | built: TP4 ([policy](#tp4-policy-121)) |
-| 35 | `REPLY_TEXT` | — | **reserved:** TP4 inline reply (constant in `ipc.rs`; not in 1.21) |
-| 36 | `ACTIVITY` | — | **reserved:** TP6 |
-| 37 | `TILE` | — | **reserved:** TP7, 1.22 (constant in `ipc.rs`; [tiles](#tp7-tiles-reserved-122)) |
+| 35 | `REPLY_TEXT` | 1.22 | contract ([1.22](#reply_text-35)): `KErrNotSupported` until TP4's inline reply |
+| 36 | `ACTIVITY` | 1.22 | contract ([1.22](#activity-36)): checked, `KErrNotSupported` until TP6 |
+| 37 | `TILE` | 1.22 | contract ([tiles](#tp7-tiles-122)): checked, `KErrNotSupported` until TP7 |
 | 38 / 39 | `REGISTER` / `UNREGISTER` | — | **reserved:** [../apps/store.md](../apps/store.md) ST4 (store.md said "1.12", which Files FA8 took) |
 | 40 | `SETTINGS_INFO` | 1.13 (paged kinds 1.20) | built (neoui#38): [settings.md](settings.md#the-settings-app-neoset) SE0 (`[kind, cursor, Des8 out]`: a bounded snapshot only the shell has; kinds 1 battery history, 2 Wi-Fi IP/portal, 3 clock sync, 4 old apps (1.14), 5 battery usage (1.16), 6 running apps (1.17, Settings only)). 1.20: kinds 7–15 are paged ([below](#paging)) |
 | 41 | `SETTINGS_ACTION` | 1.13 | built (neoui#38): settings.md SE0 (`[kind, Des8 request]`: 1 sign in to the current network, 2 open an old app (1.14), 3 sound profile (1.15; tags [below](#sound-profile-tags-120)), 4 stop an app, 5 reset (0 network, 1 settings), 6 clear an app's data (1.17; confirmed form 1.20), 7 measure an app (1.20); 8–14 reserved ([below](#requested-settings-actions))) |
@@ -82,7 +83,9 @@ work that has been designed but not built**, so that two designs can't pick the 
 | 43 | `ENTRY_THUMB` | 1.20 | built: [thumbnails](#entry_thumb) |
 | 44 | `CONTROL_FEEDBACK` | 1.20 | built (D6): `[kind, key]` → 0: a control of the app in front accepted a touch (kind 0; the kit reports it with `neoapp::kit_feedback!`) or a dial pad key (kind 1, key = its ASCII `0`–`9`, `*`, `#`). The shell answers at most once per finger-0 press it delivered to that app: a pulse with `sound.touch_vibrate`, the key's DTMF pair with `sound.keypad_tones` out of a call in an audible profile. `KErrNotReady` without a press to answer or not in front, `KErrArgument` for another kind, `KErrNotSupported` from a client older than 1.20 |
 | 45 | `REPAINT` | 1.20 | built (D2 fix): no arguments → 0: something drew straight onto the screen (the kernel console overlay, just turned off), so the shell copies its whole frame and the front app's whole surface at the next frame. `KErrNotSupported` from an older shell |
-| 46 | — | — | next free |
+| 46 | `WIDGET` | 1.22 | contract ([1.22](#widget-46)): checked against the catalogue, `KErrNotSupported` until home Part 4. home.md's first `WIDGET = 12` (and the plan's 11) were 1.4's retired `TOOLBAR`/`TITLE`: numbers are never reused |
+| 47 | `SHELL_VERSION` | 1.22 | built: no arguments → `features << 16 \| major << 8 \| minor` (`ipc::ShellVersion`; 15 feature bits, so it stays positive), for any app: a publisher's way to learn the shell reads 1.22 and what it draws. Bit 0 `SHELL_CALL_KEYS`: the shell draws a Call card's Answer and Reject (clear in this build; W2-J sets it). An older shell answers `KErrNotSupported` |
+| 48 | — | — | next free |
 
 ## AppEvent kinds (shell → app)
 
@@ -92,7 +95,7 @@ work that has been designed but not built**, so that two designs can't pick the 
 | 3 | `Quit` | 1.0 | built |
 | 4 | `Back` | 1.0 | built |
 | 5 | `Options` | 1.0 | kept for LEGACY.EXE only |
-| 6 | `Visible(bool)` | 1.0 | built; TP1 also sends `Visible(false)` when the screen goes off |
+| 6 | `Visible(bool)` | 1.0 | built; `Visible(false)` when the screen goes off moved from TP1 to TP3 (not sent yet) |
 | 7 | `Settings { seq }` | 1.1 | built |
 | 8 | `Alarm { id }` | 1.2 | **retired** in 1.19 (DTSRV opens Clock on its ring page instead); the number stays taken |
 | 9 | `Keyboard { h }` | 1.3 | built |
@@ -107,10 +110,10 @@ work that has been designed but not built**, so that two designs can't pick the 
 | 20 | `Notified { id, action }` | 1.9 | built: 0 = the card, `i + 1` = its action `i` |
 | 21 | `InputReset` | 1.10 | built |
 | 22 | `NotifyGone { id, why }` | 1.18 | built: why 0 swiped, 1 cleared all; 2 channel off (TP4), 3 expired (later); only to a running app |
-| 23 | `Media { cmd, arg }` | — | **reserved:** TP3 (PLAY 1, PAUSE 2, NEXT 3, PREV 4, SEEK 5 = arg ms, SHUFFLE 6, REPEAT 7) |
-| 24 | `NotifyReply { id }` | — | **reserved:** TP4 inline reply (`[24, card_id]`; the text through `REPLY_TEXT`; not in 1.21) |
-| 25 | `ActivityTap { id, i }` | — | **reserved:** TP6 (0 = the island, 1.. = a button) |
-| 26 | `Tile { id, hold }` | — | **reserved:** TP7, 1.22 (`[26, local_id, hold]`, hold 0 tap, 1 hold) |
+| 23 | `Media { cmd, arg }` | 1.22 | contract, sent from TP3: `[23, cmd, arg, 0]`, PLAY 1, PAUSE 2, NEXT 3, PREV 4, SEEK 5 (arg ms), SHUFFLE 6, REPEAT 7 (arg 0 off, 1 on); other commands arg 0 |
+| 24 | `NotifyReply { id }` | 1.22 | contract, sent from TP4's inline reply: `[24, card_id, 0, 0]`; the text through `REPLY_TEXT` |
+| 25 | `ActivityTap { id, i }` | 1.22 | contract, sent from TP6: `[25, id, i, 0]`, id 0–3; i 0 the activity, 1–2 its button, 0x10–0x13 a call's Mute, Keypad, Speaker, End |
+| 26 | `Tile { id, hold }` | 1.22 | contract, sent from TP7: `[26, local_id, hold, 0]`, local id 0–3, hold 0 tap, 1 hold |
 | 27 | `SettingsInfo { kind, rev }` | 1.20 | built: `[27, kind, rev, 0]`, to the Settings session that read that paged kind ([below](#paging)) |
 | 28 | `ClearData` / `ClearTicket { ticket }` | 1.17 / 1.20 | built: `[28, 0, 0, 0]` is the 1.17 event (Settings → Apps → an app → Clear data; the app deletes its own data and quits, SE4a). `[28, ticket, 0, 0]`, ticket nonzero, is 1.20's acknowledged clear, only to a registered 1.20 owner ([owner work](#owner-work)) |
 | 29 | `OwnerWork { ticket }` | 1.20 | built: `[29, ticket, 0, 0]`, to a registered owner: claim a measurement |
@@ -159,7 +162,8 @@ older MODEMD gets the built-in tone in place of the user's own).
 **1.20** (built, neoui `crates/neoui-proto/src/settings_app/{wire,jobs}.rs`, SYSSTART `symbian/src/settings_info.rs`,
 neoapp `symbian/neoapp/src/settings_info.rs`) brings revisioned Settings snapshots and acknowledged owner work.
 **1.21** (built, TP4/D9: neoui `crates/neoui-proto/src/notification_policy.rs`, SYSSTART `symbian/src/notifications.rs`,
-NEOSET `symbian/apps/settings/src/notifications.rs`) activates `CHANNEL` and INFO 7; `REPLY_TEXT` and TP7 stay reserved. A number may be reserved before its producer ships; the
+NEOSET `symbian/apps/settings/src/notifications.rs`) activates `CHANNEL` and INFO 7; `REPLY_TEXT` and TP7 got their contract in
+[1.22](#protocol-122). A number may be reserved before its producer ships; the
 shell advertises a feature (INFO 14) only when it can answer it. 1.19 services, `OPEN_WAKE` and all page IDs keep
 their meanings; DTSRV and the 1.19 phone and files apps keep working against a 1.20 shell.
 
@@ -172,8 +176,8 @@ duplicate identity, an invalid enum, a reserved bit, trailing bytes or an overfl
 
 | Minor | Interface | Slots or event words | State |
 |---|---|---|---|
-| 1.20 | `SETTINGS_INFO=40`, new kinds | `[kind, first_record, Des8 out, expected_rev]`. Kinds 1–6 keep their request and answer | built: 8, 9, 13, 14; 7, 10, 11, 12, 15 reserved (`KErrNotSupported`) |
-| 1.20 | `SETTINGS_ACTION=41` | `[subkind, DesC8 request, 0, 0]`. The older subkinds keep their completions | built: 6 confirmed `CLEAR`, 7 `MEASURE_APP`; 8–14 reserved |
+| 1.20 | `SETTINGS_INFO=40`, new kinds | `[kind, first_record, Des8 out, expected_rev]`. Kinds 1–6 keep their request and answer | built: 8, 9, 13, 14; 7 (1.21); 12 codec (1.22); 10, 11, 15 reserved (`KErrNotSupported`) |
+| 1.20 | `SETTINGS_ACTION=41` | `[subkind, DesC8 request, 0, 0]`. The older subkinds keep their completions | built: 6 confirmed `CLEAR`, 7 `MEASURE_APP`, 9 `EDIT_HOME`; 8, 12, 14 codecs (1.22); 10, 11, 13 reserved |
 | 1.20 | `OWNER_REPORT=42` | `[mode, ticket, descriptor, 0]`: 0 register, 1 claim, 2 finish | built |
 | 1.20 | `ENTRY_THUMB=43` | `[entry_id, Des8 out, expected_app_detail_rev, 0]`, Settings only | built |
 | 1.20 | `REPAINT=45` (D2) | no arguments: a full repaint at the next frame | built |
@@ -183,12 +187,13 @@ duplicate identity, an invalid enum, a reserved bit, trailing bytes or an overfl
 | 1.20 | `OwnerWork`, event 29 | `[29, ticket, 0, 0]`: wakes a registered owner to claim a measurement | built |
 | 1.20 | `ClearData`, event 28 | `[28, 0, 0, 0]` stays the 1.17 event; `[28, ticket, 0, 0]` (`ClearTicket`, nonzero ticket) wakes a registered owner to claim a confirmed clear | built |
 | 1.21 | `CHANNEL=34` | `[DesC8 declaration, 0, 0, 0]`, own publisher only | built |
-| later | `REPLY_TEXT=35`, `NotifyReply`, event 24 | `[card_id, Des8 out, 0, 0]` takes the reply text; event `[24, card_id, 0, 0]` tells the owner it is ready | reserved (not in 1.21) |
-| 1.22 | `TILE=37`, `Tile`, event 26 | `[DesC8 offer, 0, 0, 0]`; event `[26, local_id, hold, 0]`, hold 0 tap, 1 hold | reserved |
-| — | TP2/3/6, Store | 31 `BLOB`, 33 `MEDIA`/event 23, 36 `ACTIVITY`/event 25, 38/39 `REGISTER`/`UNREGISTER` | reserved. 32 `NOTIFY_CLEAR` is built; event 8 stays retired. Next free: opcode 44, event 30 |
+| 1.22 | `REPLY_TEXT=35`, `NotifyReply`, event 24 | `[card_id, Des8 out, 0, 0]` takes the reply text; event `[24, card_id, 0, 0]` tells the owner it is ready | contract ([1.22](#reply_text-35)) |
+| 1.22 | `TILE=37`, `Tile`, event 26 | `[DesC8 offer, 0, 0, 0]`; event `[26, local_id, hold, 0]`, hold 0 tap, 1 hold | contract ([tiles](#tp7-tiles-122)) |
+| 1.22 | `MEDIA=33`/event 23, `ACTIVITY=36`/event 25, `WIDGET=46` | see [Protocol 1.22](#protocol-122) | contract |
+| — | TP2, Store | 31 `BLOB`, 38/39 `REGISTER`/`UNREGISTER` | reserved. 32 `NOTIFY_CLEAR` is built; event 8 stays retired. Next free: opcode 48, event 30 |
 
-**Never to an older client.** The shell drops an event a client can't decode (`AppEvent::needs_minor`: 20 for 27, 29
-and the ticketed 28; 18 for `NotifyGone`) before it queues it, so a 1.19 app never sees one. Owner wakes and hints go
+**Never to an older client.** The shell drops an event a client can't decode (`AppEvent::needs_minor`: 22 for 23–26;
+20 for 27, 29 and the ticketed 28; 18 for `NotifyGone`) before it queues it, so a 1.19 app never sees one. Owner wakes and hints go
 only to the authenticated session they are for: the shell checks the recipient's session when it delivers. 1.20's
 event words are exact: reserved words are 0, a revision is never 0, a ticket is `1..=i32::MAX`, and `[28, 0, 0, 0]`
 is the only 1.17 clear; anything else is no event.
@@ -241,7 +246,7 @@ All are Settings only (its key and SID).
 | **9 `BATTERY_CYCLE`** · D5 | Singleton `flags:b, start_pct:b, end_pct:b, reserved:b, start_utc:t, last_utc:t, on_battery_s:q, screen_on_battery_s:q, gap_s:q`. Bits 0 a full charge then discharge was seen, 1 incomplete coverage, 2 checkpoint failure, 3 screen counter valid. Percent 0–100 or 255 unknown. Empty before the first observation. Durations from monotonic intervals; uncertain intervals go into the gaps | codec built (`wire::BatteryCycle`); **empty collection**, not advertised until D5 |
 | **10 `VOLUME_STATE`** · D17 | `drive:b, state:b, supported:b, debug_state:b, mount_generation:w, last_error:i`. State 0 unknown, 1 mounted, 2 busy, 3 dismounting, 4 dismounted, 5 exported, 6 remounting, 7 failed. Support bits 0 dismount, 1 remount, 2 export. Debug state 0 unknown, 1 off, 2 on, 3 suspended for export. The acknowledged owner state | reserved |
 | **11 `UPDATE_STATUS`** · D18 | Singleton `state:b, valid:b, reserved:h, last_attempt_utc:t, last_success_utc:t, last_error:i, installed_build:s64, available_build:s64`. State 0 no configured service, 1 idle, 2 checking, 3 current, 4 update available, 5 failed. Valid bits 0 attempt, 1 success. A failed check keeps the previous success; a failed read shows "Unknown" | reserved |
-| **12 `TILES`** · TP7 | `global_id:h, owner:s16, local_id:b, kind:b, state_flags:b, glyph:h, page:h, order:h, label:s16, subtitle:s24`. An empty owner is the shell. `order = 0xffff`: offered, not placed. Flags bits 0 on, 1 backed/available, 2 wide. The placed order first, then the offers sorted by `(owner, local_id)` | reserved (1.22) |
+| **12 `TILES`** · TP7 | `global_id:h, owner:s16, local_id:b, kind:b, state_flags:b, glyph:h, page:h, order:h, label:s16, subtitle:s24`. An empty owner is the shell. `order = 0xffff`: offered, not placed. Flags bits 0 on, 1 backed/available, 2 wide. The placed order first, then the offers sorted by `(owner, local_id)` | codec 1.22 (`tiles::Record`); not answered or advertised until TP7 |
 | **13 `JOBS`** · D4/D7/D17/D18 | `ticket:w, action:b, state:b, reserved:h, subject:optional-app, requested_scope:w, committed_scope:w, result:i, finished_utc:t`. State 0 queued, 1 running, 2 committed, 3 partial, 4 failed, 5 interrupted. `result` 0 on a committed success, a negative error on failure. The unfinished jobs (at most 16), then the latest 32 receipts in the order they finished. A record agrees with
 itself: queued and running have no result, committed scope or time; committed has `result = 0` and all that was asked;
 failed `result < 0`; partial and interrupted `result ≤ 0`; `committed_scope ⊆ requested_scope` | built (`wire::Job`, `jobs::Jobs::records`) |
@@ -262,13 +267,13 @@ completion is its ticket, `1..=i32::MAX`; NEOSET reads INFO 13 for the outcome (
 | **5 `RESET`**, D19 | Bytes 0 network, 1 settings stay. Byte 2 (`RESET_ERASE_C`) is the recovery-mediated erase: unsupported until the trusted confirmation, recovery handoff and partition-boundary gates pass | byte 2 reserved |
 | **6 `CLEAR`**, D4 extension | The bare app key keeps its 1.17 meaning. The confirmed form `0xff:b, 1:b, nonce:q, app, scope:w` (`wire::ClearRequest`) → a ticket. `scope` is nonzero, exactly the scope the confirmation named, and still offered by the app's INFO 8 `clear_scope` (`KErrNotSupported` otherwise: **until D4 produces INFO 8 offers, every confirmed clear answers `KErrNotSupported`**). An old app, a service, the legacy bridge or Settings itself has no owner (`KErrNotSupported`). Never downgraded to the 1.17 clear | built |
 | **7 `MEASURE_APP`** | `1:b, nonce:q, app` (`wire::MeasureRequest`) → a ticket for the app. Measurements of the same app while one is unfinished share its ticket. Ordinary enumeration reads cached receipts and starts no app | built |
-| **8 `INSTALL_WALLPAPER`** | Slot 1 `1:b, format:b = 1, width:h = 540, height:h = 1080, stride:h = 1620, bytes:w = 1749600`. Slots 2/3 pass an open RFs/RFile holding exactly that tightly packed RGB888, top-down. Validate the length, the dimensions and the product; adopt the handle, stage privately, install atomically, then publish `display.wallpaper`. A ticket | reserved (D7) |
+| **8 `INSTALL_WALLPAPER`** | Slot 1 `1:b, format:b = 1, width:h = 540, height:h = 1080, stride:h = 1620, bytes:w = 1749600`. Slots 2/3 pass an open RFs/RFile holding exactly that tightly packed RGB888, top-down. Validate the length, the dimensions and the product; adopt the handle, stage privately, install atomically, then publish `display.wallpaper`. A ticket | codec 1.22 (`wire::WallpaperRequest`: format 1, sides 1–4096, stride = 3 × width, bytes = stride × height; the shell checks the size against its own cache); built with D7 |
 | **9 `EDIT_HOME`** | Empty. Opens the shell's Home editor; 0 once entered. Saved through the editor's own Done/Back | reserved (D10) |
 | **10 `VOLUME`** | `1:b, op:b, drive:b, reserved:b = 0, generation:w, nonce:q`. Ops 0 dismount, 1 remount, 2 export, 3 end export/remount. E: only (`drive = 4`); recheck the generation and busy state, confirm in SYSSTART, a ticket | reserved (D17) |
 | **11 `CHECK_UPDATE`** | `1:b, nonce:q`. Checks authenticated release metadata for the deployed board/build. A ticket, or `KErrNotSupported` without a configured verifier/feed. No install | reserved (D18) |
-| **12 `EDIT_TILES`**, 1.22 | Empty. Opens the control-centre editor; 0 once entered; Done commits the whole validated order | reserved |
+| **12 `EDIT_TILES`**, 1.22 | Empty. Opens the control-centre editor; 0 once entered; Done commits the whole validated order | codec 1.22 (`tiles::edit_tiles_request`); built with TP7 |
 | **13 `OPEN_HISTORY`**, 1.21 | Empty. Opens the shell's bounded 24-hour notification history once built. Search indexes the action's title only | reserved |
-| **14 `LOCK_DIALOG`**, TP9 | `1:b, mode:b`, 0 enrol, 1 change, 2 remove. Launches SYSSTART's trusted dialog; digits, verification and backoff stay there | reserved |
+| **14 `LOCK_DIALOG`**, TP9 | `1:b, mode:b`, 0 enrol, 1 change, 2 remove. Launches SYSSTART's trusted dialog; digits, verification and backoff stay there | codec 1.22 (`wire::lock_dialog_request`); built with TP9 |
 
 `clear_scope` bits (`wire::scope`): **0** owner preferences approved for clearing, **1** cache, **2** owner logs, **3**
 Browser history/cookies/site storage, **4** Phone call log, **5** Messages SMS except blocked senders, **6** Clock
@@ -382,20 +387,113 @@ reply per `(owner, card_id)`, gone after 60 s, after a successful copy, a cancel
 the owner's death. A short buffer leaves the text there. Reply text never enters a Settings snapshot, the search
 index or a log.
 
-### TP7 tiles (reserved, 1.22)
+### TP7 tiles (1.22)
 
 `TILE` offer: `1:b, local_id:b, kind:b, on:b, glyph:h, page:h, label:s16, subtitle:s24`. Local IDs 0–3 per publisher.
 Kind 0 withdraw, 1 toggle, 2 action, 3 detail; a withdrawal has zero/empty other fields. Glyph 0 is the publisher's
 catalogue glyph; 1 stopwatch, 2 terminal, 3 shuffle, 4 phone, a generic fallback for later ones. A declaration alone
-never places a tile. `(authenticated publisher SID, local_id)` maps to a persistent shell-wide 15-bit ID: 1–255 for
-built-ins, apps from 256. `shell.tiles` is the ordered LE `u16` words, high bit wide, low 15 bits the ID; duplicates
-refused, at most 32 placed, the mapping kept across reboots, and a new publisher never inherits a removed one's place.
+never places a tile. A withdrawal is kind 0 with an empty label and zeros; an offer needs a label, and only a toggle
+has `on`. `(authenticated publisher, local_id)` maps to a persistent shell-wide 15-bit ID (`tiles::Id`): 1–255 for
+built-ins, apps from 256 as `256 + 4 × slot + local_id`, where the shell hands each publisher a slot once and never
+gives it to another (the slot table is TP7's, kept across reboots), so a new publisher never inherits a removed one's
+place. Built-ins: 1 Wi-Fi, 2 Mobile data, 3 Silent, 4 Do not disturb, 5 Airplane, 6 Battery saver, 7 Dark, 8
+Bluetooth, 9 Flashlight, 10 Auto-rotate, 11 Hotspot, 12 Cast, 13 Location, 14 NFC, 15 Screen record, 16 Night light;
+1–7 are backed (`tiles::backed`), the rest stay hidden. `shell.tiles` is the ordered LE `u16` words, high bit wide,
+low 15 bits the ID; duplicates and unknown IDs refused, at most 32 placed (`Limit::Tiles` on SET and load); empty is
+the default order (Wi-Fi and Mobile wide, then Silent, DND, Airplane, Battery saver, Dark), so **the editor keeps at
+least one tile** and `tiles::encode_order` refuses an empty, repeated or unrepresentable order (an id past 15 bits never
+turns into a wide tile). Only the shell's editor writes it (shell-only, kept by Reset settings: owner, 2026-11-27).
+
+**Slots and cold owners (TP7, built by W1-B).** On load the shell checks every app tile of `shell.tiles` against its
+persistent slot table: a tile whose slot isn't assigned, or whose local id the slot's owner hasn't offered since,
+stays out of the drawn order (it is dropped from the value at the editor's next save) and never reaches another app.
+A tap or hold on a placed tile whose owner isn't running starts it hidden and holds the event until the owner binds
+with minor ≥ 22; a 1.21 owner gets no `Tile` event (and its tile shows as unavailable). Tests to write with it:
+`tiles_slot_table_drops_unassigned_on_load`, `tile_tap_waits_for_a_1_22_owner`.
 The first stop shows the first four backed, placed tiles. `shell.tap` 0 shade, 1 control centre becomes actionable at
 TP7; `shell.swipehome` as registered.
 
-**Compatibility and authority (1.21).** Events 24/26 only to clients of minor ≥ 21 with the matching subscription or
-opt-in. A missing SID mapping fails closed for new owner operations. INFO 4 and the cached legacy thumbnails can still
+**Compatibility and authority (1.22).** Events 23–26 only to clients of minor ≥ 22 (`needs_minor`), and only to the
+app that owns the session, card, activity or tile. A missing SID mapping fails closed for new owner operations. INFO 4 and the cached legacy thumbnails can still
 come from the shell.
+
+## Protocol 1.22
+
+The contract for the top panel's TP3–TP9 and home Part 4 (W0a, 2026-11-27): `neoui-proto` `media.rs`,
+`activity.rs`, `tiles.rs`, `widget.rs`, `page.rs` (STICKY, Call keys, reply text), `home.rs` (layout v2),
+`settings_app/wire.rs` (actions 8 and 14), `settings/registry.rs`; `neoapp` `App::media`, `end_media`, `activity`,
+`end_activity`, `tile`, `widget`, `reply_text`, `watch_font_scale` + `font_scale!`. **Producers and consumers land in
+W1–W3.** Until then SYSSTART binds the caller as for NOTIFY (the session by SID and the spawned process id at its
+first message), then requires **a positive catalogue SID match** before it reads anything: the app's key has an
+`apps::sid` and the message's SID is it, else `KErrPermissionDenied` (the legacy bridge, which has no catalogue SID,
+publishes none of these). Then it decodes the record (`KErrTooBig` past its maximum, `KErrArgument` malformed; an
+ACTIVITY of kind 4 Media too, which is the shell's own; `WIDGET` `KErrNotFound` for a name not in the app's
+catalogue) and answers `KErrNotSupported` (`neoui_proto::contract::ingress`). `SETTINGS_ACTION` 8, 12 and 14 answer
+`KErrPermissionDenied` to anyone but Settings, `KErrArgument` for a malformed request, else `KErrNotSupported`
+(`contract::settings_action`). INFO 14 doesn't advertise them until each is built. Encoding as in
+[the 1.20 rules](#settings-snapshots-owner-reports-and-panel-policy-120-121); every record starts with a version byte
+1, and decoders refuse a reserved bit, an unknown enum, a long string, a short record and trailing bytes.
+
+### `MEDIA` (33)
+`[DesC8 session]` → 0; an empty descriptor ends the caller's session. Session (≤ 171 bytes): `1:b, state:b, caps:b,
+modes:b, title:s48, artist:s48, album:s48, art:w, duration_ms:w, position_ms:w, at:q`. State 0 Stopped, 1 Playing, 2
+Paused, 3 Buffering. Caps bits PLAY 1, PAUSE 2, NEXT 4, PREV 8, SEEK 16, SHUFFLE 32, REPEAT 64. Modes bits shuffle on
+1, repeat on 2. Title 1–48 bytes. `art` a `BLOB` id, 0 none. `duration_ms` 0 unknown (no bar, no seek), else
+`position_ms ≤ duration_ms`. `at` is unix ms; while Playing the shell moves the bar from `position_ms` at `at`
+(`Session::position_at`). One session system-wide: the last app that sent Playing owns it, the previous owner gets
+`Media { PAUSE }`. Event 23 as in the table.
+
+### `REPLY_TEXT` (35)
+`[card_id, Des8 out, 0, 0]` → the text's length: 1–480 bytes of UTF-8 (`page::REPLY_MAX`, `page::reply_text`) for the
+caller's card `card_id` after event 24. The rules in [TP4 policy](#tp4-policy-121) (one pending reply per card, 60 s,
+never logged) hold. `KErrNotFound` with none pending once built.
+
+### `ACTIVITY` (36)
+`[DesC8 activity]` → 0. Activity (≤ 155 bytes, a full Text trail being the widest): `1:b, id:b, kind:b, flags:b, tint:w, lead:h, page:h, title:s32,
+text:s64, trail:b, payload, buttons:b, button:s16*`. Id 0–3 per app. Kinds in the island's order: 1 Call, 2
+Recording, 3 Timer, 4 Media (the shell's own, derived from MEDIA; an app's is refused with `KErrArgument`), 5
+Progress, 6 Other. Flags
+(Call only) MUTED 1, SPEAKER 2. `tint` 0xRRGGBB (clamped by the shell), `lead` a kit glyph (0 the app's; glyph only
+in 1.22, a BLOB would come as a grown record). Trail 0
+Text `s8`, 1 Since `q`, 2 Until `q` (unix ms; the shell ticks them), 3 Ring `value:h, max:h` (`0 < max`, `value ≤
+max`). At most 2 buttons, each 1–16 bytes. **A Call has no buttons** (O1): the shell draws Mute · Keypad · Speaker · End
+and reports them as `ActivityTap { i }` 0x10, 0x11, 0x12, 0x13. An empty title with every other field zero ends
+activity `id`. `KErrPermissionDenied` for an app in `island.deny` (TP6).
+
+### `WIDGET` (46)
+`[DesC8 content]` → 0. Content (≤ 252 bytes): `1:b, name:s16, template:b, page:h, payload`. Templates 1 Text (`icon:h,
+title:s32, lines:b ≤ 3, line:s48*`), 2 Count (`icon:h, value:w, label:s32`), 3 People (`count:b ≤ 5, (initials:s8,
+tint:w, name:s32)*`). The name and template must match `widget::CATALOGUE` for the caller (`KErrNotFound` for another
+name, `KErrArgument` for another template); the first entry is `clock.next` (Text, 2×2 and 4×1, "Next alarm"). The shell
+keeps the content under `widget.<app>.<name>` (written by the shell only: the `widget.` prefix is the shell's, even
+for an app whose key were "widget"; at most 32 bytes, so `widget::setting_key`
+refuses a longer pair). The size is the user's choice on home, not the app's: `home.layout` **version 2** adds the item
+`[2, keyRef, nameLen, name, size]` for a catalogue widget at one of its sizes; a layout without one is still written as
+version 1, and both are read.
+
+### Cards: `STICKY` and the Call style's keys (O1)
+`Notification::flags` bit 8 `NOTIFY_STICKY`: the banner doesn't time out; an Urgent Call-style card with it gets past
+Do not disturb. A 1.21 shell refuses a card with it (`KErrArgument`), so a publisher asks first: `SHELL_VERSION` (47,
+`neoapp::App::shell_version`) answers the shell's minor and features, and an older shell answers `KErrNotSupported`.
+**Fallback before 1.22:** no STICKY. **Answer and Reject are the card's own actions unless the reply has
+`SHELL_CALL_KEYS`** (bit 0; this build leaves it clear because the shade still draws only the publisher's actions).
+With it, the shell draws round Answer and Reject on a Call-style card and reports them as `Notified { id, action }`
+with `action` 0xA0 (`page::CALL_ANSWER`) and 0xA1 (`CALL_REJECT`); the app's own ≤ 3 actions (Silence, Reply with
+message) stay `i + 1`.
+
+**Call keys for a cold owner (W2-J).** An Answer or Reject for a publisher that isn't running (`open_notification`
+starts it cold, unbound and minor 0) is held until it binds; `needs_minor` (22) is applied after binding, so a 1.22
+owner gets it and a 1.21 owner gets none. This build never emits 0xA0/0xA1, so the queue is built with them. Tests to
+write with it: `call_key_waits_for_a_1_22_owner`, `call_key_dropped_for_a_1_21_owner`.
+
+### Keys (1.22, all shell-owned; Settings writes them unless noted)
+`shell.tap` Int 0–1 (0 shade, 1 control centre), `shell.media` Bool on, `shell.tiles` Bytes ([tiles](#tp7-tiles-122);
+shell only, kept by Reset), `island.on` Bool on, `island.deny` Bytes ≤ 272 (`s16` app keys, `activity::encode_deny`; `Limit::AppKeys` checks the structure on SET and
+file load, and a refused SET keeps the value before),
+`lock.on` Bool on, `lock.pin_set` Bool off (**shell only**, kept by Reset: SYSSTART's PIN dialog sets it), `ui.language`
+Str ≤ 8 (`en`; `hy`, `ru`; anything else shows English), `power.style` Int 0–1 (0 the full-screen sheet, O5; 1 the
+short list; owner, 2026-11-27). The font scale stays `display.font_size` (0–3): `neoapp::App::watch_font_scale` watches it (and returns the watch's error) and
+`neoapp::font_scale!(ui, app)` sets the kit's `Theme.font-size`.
 
 ## Older numbering, now void
 
