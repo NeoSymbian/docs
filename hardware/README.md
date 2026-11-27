@@ -329,7 +329,7 @@ v3.5.1). All of these have **UFS** storage (unverified), so a UFS driver is the 
 | Phone (codename) | SoC | Nura | UT | Bootloader | Notes |
 |---|---|---|---|---|---|
 | **OnePlus 6 (enchilada)** | SDM845 (`qcom/sdm845-oneplus-enchilada`), A75 + A55 | community | 93.8% | `fastboot oem unlock`, no wait | Best-supported SDM845 phone in mainline Linux. Cheap used |
-| **OnePlus 6T (fajita)** | SDM845 (`qcom/sdm845-oneplus-fajita`) | community | 93.8% | As OnePlus 6 | Same board as the 6 with a different panel and an optical fingerprint reader. One port covers both |
+| **OnePlus 6T (fajita)** | SDM845 (`qcom/sdm845-oneplus-fajita`) | community | 93.8% | As OnePlus 6 | Same board as the 6 with a different panel and an optical fingerprint reader. One port covers both. **Port started 2026-11-26:** [fajita.md](devices/fajita.md) |
 | **Xiaomi Poco F1 (beryllium)** | SDM845 | community | 91.2% | Xiaomi Mi Unlock: account binding and a waiting period | Two panel variants (Tianma, EBBG) |
 | **SHIFT6mq (axolotl)** | SDM845 (`qcom/sdm845-shift-axolotl`) | community | 82.1% | Unlockable | Small maker, fewer units around |
 | **Google Pixel 3 (blueline)** | SDM845 (`qcom/sdm845-google-blueline`) | testing | — | Unlockable, except Verizon | Mainline support behind the OnePlus 6 |
@@ -367,7 +367,7 @@ v3.5.1). All of these have **UFS** storage (unverified), so a UFS driver is the 
 
 1. **Pixel 3a (sargo):** a second board for almost no work. It proves that the board/SoC split in
    `kernel/baseport/arm64` holds and gives us a cheap spare test phone.
-2. **OnePlus 6 / 6T:** the second SoC (`sdm845_assp`). Build the **UFS driver** here; it then serves every later
+2. **OnePlus 6 / 6T:** the second SoC (`sdm845_assp`; we have a 6T since 2026-11-26, [fajita.md](devices/fajita.md): a new SoC folder, drivers copied in stage by stage). Build the **UFS driver** here; it then serves every later
    Qualcomm phone. `neohw` carries over mostly unchanged.
 3. **Fairphone 5** (or SHIFTphone 8, same SoC): the long-term daily phone. It reuses the UFS driver and the QMI stack.
 4. **PinePhone Pro:** only if "open hardware, no bootloader lock" matters more than reuse. It means a new SoC and an
