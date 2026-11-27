@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # OnePlus 6T (fajita): the second SoC
 
-Part of [Hardware](../README.md) · Status: active · Updated: 2026-11-26
+Part of [Hardware](../README.md) · Status: active · Updated: 2026-11-27
 
 Written 2026-11-26, the day we got the phone. This is the port plan for the OnePlus 6T (fajita, Qualcomm SDM845): the
 facts read from the phone, the decisions, and the stages OP0–OP13. The 6T was item 2 of the device recommendation in
@@ -10,13 +10,35 @@ port should serve it too (untested).
 
 **Status (2026-11-26):** OP0–OP6 done, and **neoui runs on the 6T** (RAM boot): the launcher, apps, touch, keys, the USB console, CPU clocks with touch boost, and temperatures all work. Since `ROFS=ramdisk` (kernel#45), Z:'s ROFS rides as the boot image's ramdisk, which takes the image past the bootloader's ~49.5 MB kernel limit: the Files app is back in it. UFS reads work (read-only, OP6).
 
+**The phone changed (2026-11-27).** It no longer runs Ubuntu Touch; the owner had it reinstalled:
+- **Software:** /e/OS 4.5.1 (Android 15, LineageOS-based) on slot a, active. Slot b holds OxygenOS 11.1.2.2 system and
+  vendor, with the /e/OS recovery in `boot_b`.
+- **Firmware:** global OxygenOS 11.1.2.2 (Android 11) on both slots, `xbl`, `xbl_config`, `abl`, `tz`, `hyp`, `aop`,
+  `modem` and `dsp` included. It was HydrogenOS 9.0.17.
+- **GPT:** back to the stock layout (`system_a` = `system_b` = 0xB2C00000); Ubuntu Touch's layout is gone.
+- **Bootloader:** reports "critical unlocked: false" and refuses fastboot writes to `xbl`, `abl`, `tz`, `aop`, ….
+- **Seen on the new firmware:** a 2019 Android 9 kernel (TWRP 3.3.1) RAM-booted panics into Qualcomm CrashDump Mode,
+  and `fastboot boot` of the /e/OS recovery returns to fastboot (it starts only from the fastboot menu).
+
+**Our kernel on the new firmware (2026-11-27, 6 RAM boots).** The OP0–OP6 results below were measured on the old
+firmware. Since the reinstall:
+- **Boot:** a 36.4 MB `boot.img` (kernel + DTB 11.2 MB, ramdisk 25.2 MB) is accepted and boots to neoui.
+- **RAM:** the same 1651 MB in 7 banks. Banks 0 and 1 moved slightly (0x81c00000–0x83e00000, 0x855ff000–0x85700000);
+  banks 2–6 are unchanged.
+- **Display:** the splash framebuffer is still at 0x9d400000 (1080×2340). Download mode is off, as before.
+- **Hardware:** USB, the SMMU, UFS and touch all come up.
+- **CrashDump:** the one seen that day was our own UFS semaphore bug, fixed in kernel `8f21452e`, not the firmware.
+- **Not re-read yet:** the boots pass our own DTB (taken from the old `boot_a`). The live /e/OS device tree, the `dtbo`
+  index and the exact kernel size limit under the new ABL are still to check. The reinstall runbook and the backups of the old firmware are kept
+privately, outside this repo.
+
 ## Decisions (owner, 2026-11-26)
 
 - **A new `kernel/baseport/arm64/sdm845_assp/`**, beside `sdm670_assp`. A driver is copied in when the stage that
   needs it comes, not all at once. Most SDM670 blocks sit at the same addresses on SDM845 (see the table below), so
   most copies are the same code with new tables. Fixes to a shared block have to go into both copies until the two
   folders are merged.
-- **Ubuntu Touch stays on the phone.** Every test is a RAM boot (`fastboot boot`), and nothing is flashed. The UFS
+- **Ubuntu Touch stays on the phone** (until 2026-11-27: it now runs /e/OS, above). Every test is a RAM boot (`fastboot boot`), and nothing is flashed. The UFS
   driver stays read-only. C:/E: on UFS waits for the owner's call (OP7).
 - **Board:** `kernel/baseport/arm64/fajita_variant/` (the `board.h` file `specific/oneplus_fajita.cpp`), built with
   `neo kernel fajita` / `neo nkernsa fajita`. The phone's DTB is `private/fajita.dtb`, never committed (like
@@ -24,7 +46,7 @@ port should serve it too (untested).
 
 ## The phone (read over adb, 2026-11-26)
 
-These facts come from the running Ubuntu Touch: `getprop`, `/proc/cmdline` and `/proc/device-tree`, read-only.
+These facts were read on the old firmware (HydrogenOS 9.0.17), from the running Ubuntu Touch: `getprop`, `/proc/cmdline` and `/proc/device-tree`, read-only.
 
 - **Software:** Ubuntu Touch (Halium 9, the downstream kernel 4.9.112).
 - **Bootloader:** unlocked (`ro.boot.flash.locked=0`, verified-boot state orange). Slot `_a`.
@@ -106,7 +128,7 @@ CLAUDE.md apply too: the build on atlas, CI green, bonito unaffected.
 | OP4 | Input | done | 2026-11-26 | keys and RMI4 touch |
 | OP5 | Clocks | done | 2026-11-26 | cpufreq 4 + 4, touch boost, TSENS |
 | OP6 | UFS, read-only | done | 2026-11-26 | every LUN's GPT read; PRs kernel#46 build#67 docs#79 |
-| OP7 | C: and E: on UFS | open | — | the owner's call (Ubuntu Touch owns userdata) |
+| OP7 | C: and E: on UFS | open | — | the owner's call (/e/OS owns userdata since 2026-11-27) |
 | OP8 | Panel | open | — | DCS to the S6E3FC2X01 |
 | OP9 | Battery | open | — | bq27xxx gauge, PMI8998 charger |
 | OP10 | Modem | open | — | LLCC slice table, then MSS on OnePlus firmware |
@@ -124,7 +146,7 @@ CLAUDE.md apply too: the build on atlas, CI green, bonito unaffected.
 | **OP4** input ✅ | keys (PM8998 PON + GPIO 5/6), the RMI4 touchscreen on 0xa90000 (its GCC clock, pins, supply, reset) | neoui takes taps and the volume keys |
 | **OP5** clocks ✅ | cpufreq for 4 + 4, TSENS (RPMh came with OP3; the LLCC table moved to OP10, only the modem needs it) | touch boost works; temperatures in Dev tools |
 | **OP6** UFS, read-only ✅ | the UFS host + QMP PHY, link start-up, READ(10) on each LUN, GPT per LUN, `blk` monitor commands | every LUN's GPT listed; read speed measured; no write path built |
-| **OP7** C:/E: on UFS | **the owner's call** (Ubuntu Touch owns `userdata`): a separate partition, or wipe | files survive a reboot |
+| **OP7** C:/E: on UFS | **the owner's call** (/e/OS owns `userdata` since 2026-11-27): a separate partition, or wipe | files survive a reboot |
 | **OP8** panel | DCS over DSI0 to the S6E3FC2X01 (brightness 0–1023, sleep, wake) | brightness slider, screen off and on |
 | **OP9** battery | the bq27xxx gauge, the PMI8998 charger at SID 2 | percentage and charging state in the top panel |
 | **OP10** modem | the LLCC slice table (4 banks on SDM845), then MSS on OnePlus firmware: carve-outs, rmtfs, the SMEM board record | the modem registers; a call and an SMS |
@@ -319,5 +341,9 @@ The build: `ROFS=ramdisk ROFS_CORE='(?i)\.dll$|neofiles\.exe$' neo kernel fajita
 about 14 MB together) would fit in the room left: about 21 MB in the kernel and 10 MB in the ramdisk.
 
 ## Open questions
+
+- What the 2026-11-27 firmware change (OxygenOS 11.1.2.2, above) left unchecked: the live device tree and its `dtbo`
+  index, and the exact kernel size limit under the new ABL. The RAM map and the splash address were re-checked on our
+  boots.
 
 - Whether ABL applies `dtbo` on `fastboot boot` (the kernel reads `/memory` and `/reserved-memory` from what it is handed).

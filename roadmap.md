@@ -45,7 +45,7 @@ board below, so check the board when they differ.
 | 11 | Smoothness | [S5](neoui-shell/smooth-ui.md), [M4](kernel/README.md) | open / active | Display processor (vsync, planes); tickless idle and a CPU governor |
 | 12 | Bluetooth | [B0](hardware/bluetooth.md) | open | GENI UART and HCI: a valid version answer after a cold boot |
 | 13 | GNSS first fix | [GN3, GN5](hardware/gnss.md) | parked | Paused by the owner; GN3's phone re-test first |
-| 14 | The OnePlus 6T | [OP7+](hardware/devices/fajita.md) | open | OP7 (C: and E: on UFS) is the owner's call: Ubuntu Touch owns userdata |
+| 14 | The OnePlus 6T | [OP7+](hardware/devices/fajita.md) | open | New firmware since 2026-11-27 (OxygenOS 11, /e/OS); our kernel boots on it. OP7 (C: and E: on UFS) is the owner's call |
 | 15 | Release readiness | [KM0–KM6](kernel/modernization.md) | open | KM0: gates that fail when a test doesn't report (KRN-022) |
 | 16 | NeoStore | [ST0](apps/store.md) | open | Spikes: PlatSec on C:, HTTP, SIS enums |
 
@@ -164,7 +164,7 @@ board below, so check the board when they differ.
 | OP4 | Input | ✅ done | 2026-11-26 | keys and RMI4 touch | [hardware/devices/fajita](hardware/devices/fajita.md) |
 | OP5 | Clocks | ✅ done | 2026-11-26 | cpufreq 4 + 4, touch boost, TSENS | [hardware/devices/fajita](hardware/devices/fajita.md) |
 | OP6 | UFS, read-only | ✅ done | 2026-11-26 | every LUN's GPT read; PRs kernel#46 build#67 docs#79 | [hardware/devices/fajita](hardware/devices/fajita.md) |
-| OP7 | C: and E: on UFS | ⬜ open | — | the owner's call (Ubuntu Touch owns userdata) | [hardware/devices/fajita](hardware/devices/fajita.md) |
+| OP7 | C: and E: on UFS | ⬜ open | — | the owner's call (/e/OS owns userdata since 2026-11-27) | [hardware/devices/fajita](hardware/devices/fajita.md) |
 | OP8 | Panel | ⬜ open | — | DCS to the S6E3FC2X01 | [hardware/devices/fajita](hardware/devices/fajita.md) |
 | OP9 | Battery | ⬜ open | — | bq27xxx gauge, PMI8998 charger | [hardware/devices/fajita](hardware/devices/fajita.md) |
 | OP10 | Modem | ⬜ open | — | LLCC slice table, then MSS on OnePlus firmware | [hardware/devices/fajita](hardware/devices/fajita.md) |
