@@ -159,7 +159,7 @@ port, with the kernel monitor kept. This file is the work list. Do **one task at
 - **Done when (owner, 2026-11-11):** on a cold installed boot USB stays off, and turning USB debugging on gives
   both ports (monitor and fshell), as adb does.
 - **Parked:** the switch powers USB (kernel #11), but the host sees no device: the normal-boot PHY issue in
-  [known issues](known-issues.md). Resume when that is fixed.
+  [known issues](../known-issues.md). Resume when that is fixed.
 
 ## Later (each needs its own design first)
 - **L1:** a DWC3 controller driver (PSL) for Symbian's USB client framework (`kernel/eka/drivers/usbcc`,
@@ -182,5 +182,5 @@ port, with the kernel monitor kept. This file is the work list. Do **one task at
 | T8 | done 2026-11-11: `USBDEBUG=1` composite gadget (two IADs), debug ACM + ECOMM PDD `Comm.UsbAcm`; monitor `log`/`dump`/`shot`; fshell ls, hash, ps, status, 64 KiB YMODEM (~10 KB/s); `usb cold 7`, replug, Mac sleep/wake, 5-minute soak | `kernel` #7 `af9b3f8`; `build` #15 |
 | T9 | done 2026-11-11: `phone.py sh`/`push`/`pull`, ports by USB interface, per-port lock; on the phone all byte values, an empty file and an Armenian name with a space round-trip (SHA-256), an EXE pushed to `C:\sys\bin` runs (exit 42), a failing command reports -12; 30 host tests | `kernel` #8 `277afef`; `build` #16 |
 | T10 | done 2026-11-11 (re-scoped by the owner): Settings → Developer options → USB debugging (off by default) exposes fshell's port (HAL 0x4e04) and SYSSTART supervises fshell (1 s → 32 s backoff); on the phone 20/20 switches, kill → back in 1 s, the T9 checks, `usb cold 7`, a ROM without fshell. Two controller-restart fixes (events taken while halting; a 1 s disconnect) | `kernel` #9 `2a041d3`; `neoui` #4 `4beec4f`; `build` #17 |
-| T11 | done 2026-11-11 with two checks skipped by the owner: long transfer while `sh` is used (busy lock, monitor, SHA), phone → Mac full queue, hash mismatch, switch under traffic, RAM reboot, a 60 s soak pass; the Mac → phone flood and disk full on `C:` fail ([known issues](known-issues.md)); replug/Mac sleep and the 5-minute soak not rerun (T3/T8 ran them). Fix: `phone.py` waits for fshell's prompt first | `kernel` #10 |
-| T12 | parked 2026-11-11: the switch powers USB on an installed cold boot, but the host never sees the phone (normal-boot PHY, [known issues](known-issues.md)) | `kernel` #11 |
+| T11 | done 2026-11-11 with two checks skipped by the owner: long transfer while `sh` is used (busy lock, monitor, SHA), phone → Mac full queue, hash mismatch, switch under traffic, RAM reboot, a 60 s soak pass; the Mac → phone flood and disk full on `C:` fail ([known issues](../known-issues.md)); replug/Mac sleep and the 5-minute soak not rerun (T3/T8 ran them). Fix: `phone.py` waits for fshell's prompt first | `kernel` #10 |
+| T12 | parked 2026-11-11: the switch powers USB on an installed cold boot, but the host never sees the phone (normal-boot PHY, [known issues](../known-issues.md)) | `kernel` #11 |

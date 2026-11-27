@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # WB3: SpiderMonkey on NeoSymbian
 
-Part of the [browser docs](../browser.md).
+Part of the [browser docs](README.md).
 
 **Status:** ✅ done 2026-11-19 · [browser#7](https://github.com/NeoSymbian/browser/pull/7), [mozjs#1](https://github.com/NeoSymbian/mozjs/pull/1)
 
@@ -11,7 +11,7 @@ Part of the [browser docs](../browser.md).
 |---|---|---|---:|
 | WB3 mozjs shell | SpiderMonkey interpreter-only, as an EXE | JS test scripts, GC stress, threads, a clean OOM on the phone | 3–6 |
 
-Written 2026-11-19. This is the working doc for [browser.md](../browser.md) stage **WB3**: Servo's JavaScript engine,
+Written 2026-11-19. This is the working doc for [browser.md](README.md) stage **WB3**: Servo's JavaScript engine,
 SpiderMonkey, as a NeoSymbian EXE, before Servo itself (WB4) depends on it.
 
 **The gate (above):** JS test scripts, GC stress, threads and a clean out-of-memory, all on the phone.

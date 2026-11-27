@@ -1,9 +1,9 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Kernel modernization assessment
 
-Research snapshot: 2026-11-09. This assessment, the [issue register](kernel-issues.md), and the
-[modernization roadmap](kernel-modernization.md) describe the work required for a supported system.
-The existing [product roadmap](roadmap.md) continues to track hardware and application features.
+Research snapshot: 2026-11-09. This assessment, the [issue register](../../issues.md), and the
+[modernization roadmap](../../modernization.md) describe the work required for a supported system.
+The existing [product roadmap](../../../roadmap.md) continues to track hardware and application features.
 
 ## Assessment
 
@@ -36,7 +36,7 @@ At capture, kernel had nine modified tracked files and five untracked files, inc
 qcom_prng.cpp. Build had a modified neo. These belong to concurrent work and were neither changed nor counted as
 fixes. In particular, a new private PRNG interface would not by itself validate the inherited SecureRandom API.
 Other application repositories were also dirty. The baseline/status inventory is in
-[/private/tmp/neosymbian-kernel-audit-baseline.json](/private/tmp/neosymbian-kernel-audit-baseline.json).
+/private/tmp/neosymbian-kernel-audit-baseline.json (`/private/tmp/neosymbian-kernel-audit-baseline.json`, a local file that is gone).
 Temporary artifact paths refer to the research workstation; source permalinks remain usable independently.
 
 The checked-in build lock pins kernel bee98302e1614095d72c5aa00916d8b6a52daa6f, whereas the local kernel is
@@ -98,8 +98,8 @@ Paths in this table are relative to the kernel repository.
 | User services and dependencies | packages pinned in build/sources.lock | Most packages are not locally checked out; networking/TLS, installers, certificate validation and servers are unreviewed |
 
 Two independent read-only specialists examined legacy security and legacy reliability. Their working reports
-are [/private/tmp/neosymbian-legacy-security.md](/private/tmp/neosymbian-legacy-security.md) and
-[/private/tmp/neosymbian-legacy-reliability.md](/private/tmp/neosymbian-legacy-reliability.md).
+are /private/tmp/neosymbian-legacy-security.md (`/private/tmp/neosymbian-legacy-security.md`, a local file that is gone) and
+/private/tmp/neosymbian-legacy-reliability.md (`/private/tmp/neosymbian-legacy-reliability.md`, a local file that is gone).
 The maintained conclusions are in the issue register; temporary reports are supporting research.
 
 ## Existing defenses and corrected assumptions
@@ -116,7 +116,7 @@ The maintained conclusions are in the issue register; temporary reports are supp
 
 Existing big.LITTLE capacity weighting and touch boost are already implemented; FP/NEON context support, a power
 governor, thermal management and tickless operation are separate work. Historical performance/phone passes in
-[smooth-ui.md](neoui-shell/smooth-ui.md) and [known-issues.md](known-issues.md) were not rerun here.
+[smooth-ui.md](../../../neoui-shell/smooth-ui.md) and [../../../known-issues.md](../../../known-issues.md) were not rerun here.
 
 ## External known issues and references
 
@@ -139,7 +139,7 @@ code, compile/link inclusion, input path, mitigation, regression, and final appl
 ## Verification and limits
 
 Exact research checks, statuses and temporary evidence are recorded in
-[the verification record](verification/kernel-audit-2026-11-09.md).
+[the verification record](verification.md).
 One controlled shell probe exercised the actual QEMU runner with a mock launcher that exits 42: the runner
 returned 0 without an expected marker, and 1 with a missing required marker. This validates a harness finding
 (KRN-022), not the kernel. No emulator was launched in that probe.

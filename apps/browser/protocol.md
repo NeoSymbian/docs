@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # neoweb-proto: the Browser app ↔ the engine
 
-Part of the [browser docs](../browser.md). **Version 1.5** (2026-11-21, UI5). The source is
+Part of the [browser docs](README.md). **Version 1.5** (2026-11-21, UI5). The source is
 [`app/neoweb-proto/src/lib.rs`](https://github.com/NeoSymbian/browser/blob/main/app/neoweb-proto/src/lib.rs); this page
 lists it, and the code wins where they differ.
 

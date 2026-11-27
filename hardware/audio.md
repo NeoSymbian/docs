@@ -1,11 +1,11 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Audio: NeoAudio, media on the ADSP, and the old apps' DevSound
 
-Part of [hardware.md](../hardware.md), the hardware and drivers hub (status of every driver, the neohw processes). Neighbours: [modem](modem.md), [wifi](wifi.md), [bluetooth](bluetooth.md), [battery](battery.md).
+Part of [hardware.md](README.md), the hardware and drivers hub (status of every driver, the neohw processes). Neighbours: [modem](modem.md), [wifi](wifi.md), [bluetooth](bluetooth.md), [battery](battery.md).
 
 Started 2026-11-17 (research: `private/audio/codex-audio-report-20261117.md`, a Codex review with line-level
-references into the 2010 sources). Continues [driver-support.md](../hardware.md) D3 and
-[legacy.md](../legacy.md) L2.
+references into the 2010 sources). Continues [driver-support.md](README.md) D3 and
+[legacy.md](../user-side/legacy.md) L2.
 
 ## What there was
 
@@ -24,7 +24,7 @@ Call audio (telephony C6/C7) and the ringtone work on the Pixel:
 
 MODEMD's APR ([telephony.md](modem.md) C6) ran three things: the call's voice path, the loopback test and a
 2-second ringtone looped from one 256 KB DMA region. No app could play or record sound; the old apps' DevSound had
-no server (Frozen Bubble ran silent, [legacy.md](../legacy.md)).
+no server (Frozen Bubble ran silent, [legacy.md](../user-side/legacy.md)).
 
 ## Design
 

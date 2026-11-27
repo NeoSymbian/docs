@@ -5,7 +5,7 @@
 notifications** (18 boards) plus the related boards on the Shell, Navigation, Phone, Messages, Clock, Files, Store,
 Browser and Settings pages. The screen map is at the [end](#screen-map). It replaces `neoui-shell.md` Part 2 (the
 2026-11-09 notification sketch, whose opcode numbers are void) and Navigation's G6 lock screen. The hub is
-[../neoui-shell.md](../neoui-shell.md); the wire numbers are in [protocol.md](protocol.md).
+[README.md](README.md); the wire numbers are in [protocol.md](protocol.md).
 
 Canvas: https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ (page "Top panel & notifications").
 

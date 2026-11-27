@@ -1,6 +1,6 @@
 # Video sync: how players keep picture and sound together, and what Files does next
 
-**Status:** research, 2026-11-26. It feeds FA12b of [files-app.md](files-app.md) (the video player, FA12). Two
+**Status:** research, 2026-11-26. It feeds FA12b of [README.md](README.md) (the video player, FA12). Two
 researchers read the sources: Codex for Android (Media3/ExoPlayer, AOSP NuPlayer, libavc, SurfaceFlinger) and a Claude
 agent for the Linux players (FFmpeg/ffplay, GStreamer, mpv, VLC, libyuv). The claims that drive a change below were
 checked again against the source; the versions are under [Sources](#sources). This page describes mechanisms and links

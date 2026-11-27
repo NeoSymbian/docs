@@ -1,9 +1,9 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Wi-Fi on the Pixel 3a XL
 
-Part of [hardware.md](../hardware.md), the hardware and drivers hub (status of every driver, the neohw processes). Neighbours: [modem](modem.md), [audio](audio.md), [bluetooth](bluetooth.md), [battery](battery.md).
+Part of [hardware.md](README.md), the hardware and drivers hub (status of every driver, the neohw processes). Neighbours: [modem](modem.md), [audio](audio.md), [bluetooth](bluetooth.md), [battery](battery.md).
 
-Written 2026-11-12. This is the Wi-Fi part of [driver-support.md](../hardware.md) D6 (roadmap P4): from a silent
+Written 2026-11-12. This is the Wi-Fi part of [driver-support.md](README.md) D6 (roadmap P4): from a silent
 WCN3990 to a WPA2 network with IP traffic, then a Settings page.
 
 **Who does what now (neohw S5, 2026-11-18).** The stage sections below keep the history: MODEMD ran the firmware

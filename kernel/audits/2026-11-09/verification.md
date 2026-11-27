@@ -2,8 +2,8 @@
 # Kernel audit verification: 2026-11-09
 
 This record distinguishes source/documentation checks from kernel acceptance. See
-[assessment](../kernel-assessment.md), [issue register](../kernel-issues.md) and
-[roadmap](../kernel-modernization.md). Source baseline: kernel
+[assessment](assessment.md), [issue register](../../issues.md) and
+[roadmap](../../modernization.md). Source baseline: kernel
 792d36ef1a9169b3fc9084fcc494b209501a7487; documentation starting baseline:
 6a6236c41d46481948b8080a362abb4b9f0e10bb; build baseline:
 82be8e7a3a006bdf21325e374fa8b9b8299a12f0.
@@ -28,18 +28,18 @@ used its individual repositories. Concurrent remote-access.md work and its READM
 the initial capture; they are preserved and excluded from this audit's change ownership.
 
 Inventory used git ls-tree -r --name-only HEAD per repository and suffix/path counts, recorded in
-[/private/tmp/neosymbian-kernel-audit-baseline.json](/private/tmp/neosymbian-kernel-audit-baseline.json).
+/private/tmp/neosymbian-kernel-audit-baseline.json (`/private/tmp/neosymbian-kernel-audit-baseline.json`, a local file that is gone).
 The baseline contains dirty-path lists and a kernel tracked-diff hash; it contains no private firmware or dumps.
 The working-tree timer hook was read with
 git -C kernel show HEAD:baseport/arm64/common/specific/a64_variant.cpp because concurrent edits shift its lines.
 Published source citations use full commit permalinks.
 
 The entropy search, workflow-directory check and exact source-consistency diff command/results are retained in
-[/private/tmp/neosymbian-audit-evidence/source-checks.json](/private/tmp/neosymbian-audit-evidence/source-checks.json).
+/private/tmp/neosymbian-audit-evidence/source-checks.json (`/private/tmp/neosymbian-audit-evidence/source-checks.json`, a local file that is gone).
 That source diff exited 0 with no output: the listed legacy/architecture/tool paths still matched HEAD.
 Concurrent kernel edits continued after the initial capture, so the whole-tree dirty-diff hash changed while
 the reviewed repository HEADs stayed the same. The later status is retained in
-[/private/tmp/neosymbian-audit-evidence/workspace-status.json](/private/tmp/neosymbian-audit-evidence/workspace-status.json);
+/private/tmp/neosymbian-audit-evidence/workspace-status.json (`/private/tmp/neosymbian-audit-evidence/workspace-status.json`, a local file that is gone);
 it must not be mistaken for this documentation task's source diff.
 
 ## Controlled runner failure probe
@@ -56,7 +56,7 @@ Environment: PATH began with /private/tmp/neosymbian-audit-evidence/mock-bin; OU
 /private/tmp/neosymbian-audit-evidence/without-marker and
 /private/tmp/neosymbian-audit-evidence/with-marker. The Python probe asserted runner exits [0, 1] and exited 0.
 Raw commands, statuses and output:
-[/private/tmp/neosymbian-audit-evidence/run-qemu-probe.json](/private/tmp/neosymbian-audit-evidence/run-qemu-probe.json).
+/private/tmp/neosymbian-audit-evidence/run-qemu-probe.json (`/private/tmp/neosymbian-audit-evidence/run-qemu-probe.json`, a local file that is gone).
 The two OUT directories retain serial.log. This proves a test-harness behavior, not kernel behavior.
 
 ## Documentation verification
@@ -72,18 +72,18 @@ The checker and outputs are local research artifacts, not additions to the kerne
 An initial checker run exited 1: its link parser consumed closing punctuation and one source link exceeded its
 file's last line. Both were corrected and the checker exited 0. These checks validate references and structure,
 not the semantic correctness of every source conclusion. Raw final results are in
-[/private/tmp/neosymbian-audit-evidence/documentation-checks.json](/private/tmp/neosymbian-audit-evidence/documentation-checks.json)
-and [/private/tmp/neosymbian-audit-evidence/git-diff-check.json](/private/tmp/neosymbian-audit-evidence/git-diff-check.json).
+/private/tmp/neosymbian-audit-evidence/documentation-checks.json (`/private/tmp/neosymbian-audit-evidence/documentation-checks.json`, a local file that is gone)
+and /private/tmp/neosymbian-audit-evidence/git-diff-check.json (`/private/tmp/neosymbian-audit-evidence/git-diff-check.json`, a local file that is gone).
 
 Independent review used a fresh context with the user specification, baseline, incremental patch and raw
 evidence. **Result: no actionable findings in the bounded documentation change.** The reviewer independently
 traced representative inherited defects and port contracts, confirmed all issue/phase and historical-issue
 mappings, and checked compatibility and proposed acceptance criteria. This is not exhaustive source or runtime
 acceptance. Full report:
-[/private/tmp/neosymbian-audit-evidence/independent-review.md](/private/tmp/neosymbian-audit-evidence/independent-review.md).
+/private/tmp/neosymbian-audit-evidence/independent-review.md (`/private/tmp/neosymbian-audit-evidence/independent-review.md`, a local file that is gone).
 
 The final task patch is
-[/private/tmp/neosymbian-audit-evidence/docs-change.patch](/private/tmp/neosymbian-audit-evidence/docs-change.patch).
+/private/tmp/neosymbian-audit-evidence/docs-change.patch (`/private/tmp/neosymbian-audit-evidence/docs-change.patch`, a local file that is gone).
 It excludes the unrelated remote-access README row and contains the seven owned documentation paths only.
 The final checks were repeated after integrating this review record. The audit is kept in the docs repository;
 no kernel/build/application edits belong to this task.

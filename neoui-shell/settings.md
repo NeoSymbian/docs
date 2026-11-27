@@ -2,7 +2,7 @@
 # Settings: the store and the Settings app
 
 **Status: the store is done 2026-11-09 (neoui `22af6ac`); the Settings app (NEOSET) SE0–SE4a are built and merged 2026-11-26; board parity V2 is done, and the Settings run of 2026-11-27 built the data stages D1–D11 and D18 with TP2b and TP4 (the [Status](#status-2026-11-26) table lists each). Left: TP7, V3 (the canvas sync) and the hardware stages D12–D17, D19.** One store for the shell and every app (`neoui-proto::settings`,
-`SETTING_GET`/`SET`/`WATCH`). Moved here from `neoui-shell.md` Part 1 on 2026-11-21; the hub is [../neoui-shell.md](../neoui-shell.md).
+`SETTING_GET`/`SET`/`WATCH`). Moved here from `neoui-shell.md` Part 1 on 2026-11-21; the hub is [README.md](README.md).
 The keys the top panel adds (`shell.*`, `notify.*`, `island.*`, `lock.*`) are listed in [top-panel.md](top-panel.md#settings-keys).
 
 **The Settings app:** the screen that shows these keys moves out of the shell into `NEOSET.EXE`
@@ -299,7 +299,7 @@ boot, and close and reopen it fast.
 - **SE1:** the registry resolves typed patterns after exact rows: `notify.<id>.on/.banner` (Bool, default true) and
   `<id>.default_page` (Int 0–7). The same resolver runs for GET, SET, file load and reset.
 - **SE4:** `NOTIFY` and `BADGE` return `KErrPermissionDenied` for an app whose notifications are off, and existing
-  cards go. This needs the caller check too: [neoui-shell.md](../neoui-shell.md) Part 0.
+  cards go. This needs the caller check too: [neoui-shell.md](README.md) Part 0.
 
 #### D. Device lock and SIM PIN (L lock, M SIM; SE5/SE6)
 - **The lock is TP8** (swipe), **then TP9** (PIN) of [neoui-shell/top-panel.md](top-panel.md).
@@ -350,7 +350,7 @@ boot, and close and reopen it fast.
   - app data by owner through the app catalogue. It never deletes or sizes `\private\<uid>` blindly: the contacts
     book lives under Phone's UID and the SMS in MODEMD;
   - "Open in Files" goes to a drive page.
-- **SE6, Share E: = FS6** ([filesystem.md](../filesystem.md)):
+- **SE6, Share E: = FS6** ([filesystem.md](../storage/filesystem.md)):
   - one SYSSTART operation that QUERYs first, suspends USB debugging, refuses a busy E:, flushes and dismounts, and
     exports E: only;
   - after the host ejects, it remounts and restores debugging;

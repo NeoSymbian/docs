@@ -2,9 +2,9 @@
 # Kernel modernization roadmap
 
 Plan date: 2026-11-09. Status: proposed implementation program based on the
-[source assessment](kernel-assessment.md) and [34-item issue register](kernel-issues.md).
+[source assessment](audits/2026-11-09/assessment.md) and [34-item issue register](issues.md).
 Research/documentation is complete for that bounded snapshot; the fixes and runtime acceptance below are pending.
-This plan adds security, correctness and support gates to the [product roadmap](roadmap.md), without changing its
+This plan adds security, correctness and support gates to the [product roadmap](../roadmap.md), without changing its
 accepted kernel/user ABI or treating earlier feature milestones as production acceptance.
 
 ## Outcome and order
@@ -77,7 +77,7 @@ link map, build/census logs, serial log, test manifest/results and image hashes 
 every malformed-media operation terminates within the manifest's CPU/I/O budget. On disposable emulator images,
 run at least 100 recorded interruptions spread across metadata/update stages with an oracle for acknowledged
 data, allowed partial operations and volume recovery. This is a proposed minimum, not an already-passed test.
-Phone write/power-cut work follows the existing [filesystem gates](filesystem.md#safety-gates) and disposable-data
+Phone write/power-cut work follows the existing [filesystem gates](../storage/filesystem.md#safety-gates) and disposable-data
 constraints; keep its acceptance evidence separate.
 
 ## KM2: Restore least privilege and end-to-end trust
@@ -174,7 +174,7 @@ did not access or write the phone. Existing filesystem/telephony write gates rem
 
 **Exit:** every adopted optimization has matched before/after evidence, resource bounds and a correctness/power
 regression result. Record median/tail latency, throughput, memory and energy, with clock/thermal conditions.
-Frame latency should meet the existing [smooth UI budget](neoui-shell/smooth-ui.md#goal-and-budget); kernel changes alone
+Frame latency should meet the existing [smooth UI budget](../neoui-shell/smooth-ui.md#goal-and-budget); kernel changes alone
 do not establish that result. Leave unmeasured optimizations deferred. None of these items authorizes weakening
 metadata flushes, validation, fairness, isolation or failure handling to improve a benchmark.
 

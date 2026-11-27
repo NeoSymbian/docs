@@ -21,10 +21,10 @@ NeoSymbian organization: nothing builds from them any more. This page keeps what
   default, or move `main` to it, in the repository's settings:
   ```sh
   gh repo fork Phorepoc/core --org NeoSymbian --clone=true && cd core
-  git fetch ../docs/retired/core.bundle refs/remotes/origin/main:neosymbian
+  git fetch ../docs/history/retired/core.bundle refs/remotes/origin/main:neosymbian
   git push origin neosymbian
   ```
-- **`symbian-pixel`** (the whole history, tag `pre-restructure`): `git clone docs/retired/symbian-pixel.bundle symbian-pixel`.
+- **`symbian-pixel`** (the whole history, tag `pre-restructure`): `git clone docs/history/retired/symbian-pixel.bundle symbian-pixel`.
 - **Pins:** [`retired/core-sources.lock`](retired/core-sources.lock) is core's `sources.lock`, the commit of every
   SymbianSource package the Phorepoc build used (trees `symbian-2010` = master, `symbian-rcl3` = BRANCH_RCL_3).
 

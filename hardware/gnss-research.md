@@ -224,7 +224,7 @@ Local line numbers are from this research run. References such as `[A1:396–530
 - **L8:** `P/gnss/xtra-test-ring.txt:404–410,526–574`; `P/c1/captures-20261108-1846/tqftpserv.log:8–50`; `P/c1/captures-20261108-1846/mm.log:4169–4196,4262–4277,4356–4386,5332–5337`.
 - **L9:** `P/c1/captures-20261108-1846/init.sh:2–3,27–35`; `D/hardware/modem.md:154–159`.
 - **L10:** `K/baseport/arm64/sdm670_assp/qcom_mss.cpp:18–21,88–99,243–270,322–336`.
-- **L11:** `D/tools/inspect-bonito.py:14–20,82–98`; private DTB node/property traversal described above, with no textual line numbers.
+- **L11:** `D/hardware/tools/inspect-bonito.py:14–20,82–98`; private DTB node/property traversal described above, with no textual line numbers.
 - **L12:** `K/baseport/arm64/sdm670_assp/qcom_rpmh.cpp:71–111,258–295,312–335`.
 - **L13:** `N/symbian/gnssd/src/lib.rs:91–138,143–180`; `N/crates/loc/src/http.rs:11–27,48–91`. Cache lifetime/reinjection additionally at `gnssd/src/lib.rs:29–34,117–120,199–206`.
 - **L14:** `N/crates/loc/src/lib.rs:370–405` — SUCCESS acceptance and absent-uncertainty default; `N/crates/loc/src/proto.rs:157–167` — position parsing.

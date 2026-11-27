@@ -14,16 +14,16 @@ The hub for everything that drives the phone's hardware. Target: **Pixel 3a XL (
 
 | Document | Covers | Stages |
 |---|---|---|
-| [hardware/modem.md](hardware/modem.md) | The cellular modem: QRTR, QMI, rmtfs, calls, SMS, data | C0–C12 |
-| [hardware/audio.md](hardware/audio.md) | NeoAudio, media/recording on the ADSP, the jack, the old apps' DevSound | A0–A8 |
-| [hardware/wifi.md](hardware/wifi.md) | WCN3990 Wi-Fi: firmware, copy engines, WPA2, NEONET (IP) | W0–W7 |
-| [hardware/gnss.md](hardware/gnss.md) | GNSS: GNSSD.EXE, QMI LOC, XTRA over Wi-Fi | GN0–GN5 |
-| [hardware/bluetooth.md](hardware/bluetooth.md) | Bluetooth: the Rust host stack and the 2010 facade (design) | B0– |
-| [hardware/battery.md](hardware/battery.md) | PM660 battery and thermal telemetry | D2 |
-| [hardware/verification/](hardware/verification/) | Run records: [driver support](hardware/verification/driver-support-2026-11-10.md), [TSENS](hardware/verification/tsens-2026-11-10.md), [battery](hardware/verification/battery-2026-11-11.md), [charger watchdog](hardware/verification/charger-2026-11-20.md) | |
+| [modem.md](modem.md) | The cellular modem: QRTR, QMI, rmtfs, calls, SMS, data | C0–C12 |
+| [audio.md](audio.md) | NeoAudio, media/recording on the ADSP, the jack, the old apps' DevSound | A0–A8 |
+| [wifi.md](wifi.md) | WCN3990 Wi-Fi: firmware, copy engines, WPA2, NEONET (IP) | W0–W7 |
+| [gnss.md](gnss.md) | GNSS: GNSSD.EXE, QMI LOC, XTRA over Wi-Fi | GN0–GN5 |
+| [bluetooth.md](bluetooth.md) | Bluetooth: the Rust host stack and the 2010 facade (design) | B0– |
+| [battery.md](battery.md) | PM660 battery and thermal telemetry | D2 |
+| [verification/](verification/) | Run records: [driver support](verification/driver-support-2026-11-10.md), [TSENS](verification/tsens-2026-11-10.md), [battery](verification/battery-2026-11-11.md), [charger watchdog](verification/charger-2026-11-20.md) | |
 
-Also: [debug-access.md](debug-access.md) (USB console and monitor), [filesystem.md](filesystem.md) (eMMC, A/B),
-[known-issues.md](known-issues.md), [roadmap.md](roadmap.md) track H.
+Also: [../developer-tools/debug-access.md](../developer-tools/debug-access.md) (USB console and monitor), [../storage/filesystem.md](../storage/filesystem.md) (eMMC, A/B),
+[../known-issues.md](../known-issues.md), [../roadmap.md](../roadmap.md) track H.
 
 ## Driver status
 
@@ -36,17 +36,17 @@ Also: [debug-access.md](debug-access.md) (USB console and monitor), [filesystem.
 | Storage | `qcom_sdhci.cpp`, `qcom_fat16.cpp`, `qcom_bootctrl.cpp` | 0x4e09 slot info | — | eMMC, C:/E:, ROFS, A/B slots | installed |
 | Display | `qcom_dsi.cpp`, `bv/panel_sofef00.cpp` | display HAL | neoui (`screen.rs`) | ABL framebuffer; brightness, on/off ([below](#d2-display-brightness-screen-off-wake-done-2026-11-11)) | 2026-11-11 |
 | Touch, keys | `bv/a64_touch.cpp` (RMI4), `bv/a64_keys.cpp` (PMIC) | — | neoui | 5 fingers; power/volume keys | 2026-11-17 |
-| Battery, TSENS | `qcom_battery.cpp`, `qcom_tsens.cpp`, `qcom_spmi.cpp` | 0x4e1a | neoui (status bar, Settings, Dev tools) | read-only telemetry; no charger control; charger watchdog off after ABL ([checked](hardware/verification/charger-2026-11-20.md)) | 2026-11-20 |
+| Battery, TSENS | `qcom_battery.cpp`, `qcom_tsens.cpp`, `qcom_spmi.cpp` | 0x4e1a | neoui (status bar, Settings, Dev tools) | read-only telemetry; no charger control; charger watchdog off after ABL ([checked](verification/charger-2026-11-20.md)) | 2026-11-20 |
 | Haptics | `bv/a64_haptics.cpp` | 0x4e27 | MODEMD (ring, SMS), neoui | bounded pulses | yes |
 | USB debug | `qcom_dwc3.cpp`, `qcom_usbpower.cpp` | 0x4e04/05 | neoui (`usb_debug.rs`) | console on RAM boots; cold-boot power open | RAM boots |
-| Modem (MSS) | `qcom_mss.cpp`, `qcom_pas.cpp`, `qcom_glink.cpp`, `qcom_smp2p.cpp`, `qcom_ipa.cpp`, telhal | 0x4e0d–0x4e13, 0x4e24/25 | HWHUB (boot, QRTR, recovery) + MODEMD (cellular) ([modem.md](hardware/modem.md)) | calls, SMS, call log, recovery | 2026-11-18 |
-| ADSP, audio | `qcom_adsp.cpp`, `bv/a64_audio.cpp` (CS35L36 ×2, RT5514), telhal AudioMem | 0x4e14–0x4e18, 0x4e26 | AUDIOD: NeoAudio (MODEMD drives calls/ring over op::CONTROL) ([audio.md](hardware/audio.md)) | call audio, media, recording, routes, amp protection | 2026-11-18 |
+| Modem (MSS) | `qcom_mss.cpp`, `qcom_pas.cpp`, `qcom_glink.cpp`, `qcom_smp2p.cpp`, `qcom_ipa.cpp`, telhal | 0x4e0d–0x4e13, 0x4e24/25 | HWHUB (boot, QRTR, recovery) + MODEMD (cellular) ([modem.md](modem.md)) | calls, SMS, call log, recovery | 2026-11-18 |
+| ADSP, audio | `qcom_adsp.cpp`, `bv/a64_audio.cpp` (CS35L36 ×2, RT5514), telhal AudioMem | 0x4e14–0x4e18, 0x4e26 | AUDIOD: NeoAudio (MODEMD drives calls/ring over op::CONTROL) ([audio.md](audio.md)) | call audio, media, recording, routes, amp protection | 2026-11-18 |
 | 3.5 mm jack | `bv/a64_jack.cpp` (PM660L/SDM660 codec) | 0x4e18 ops 8–10 | AUDIOD | driver idle-tested; headphones/headset mic untested with a plug | 2026-11-18 |
-| Wi-Fi | `qcom_wcn3990.cpp` (SNOC copy engines, HTC/WMI/HTT) | 0x4e1b–0x4e1f, 0x4e23 PRNG | WIFID (firmware over NeoHub, joining, WPA2, remembered networks) + NEONET (IP) ([wifi.md](hardware/wifi.md)) | scan, WPA2, DHCP, TCP/UDP | 2026-11-18 |
-| Bluetooth | — (GENI UART + HCI LDD planned) | — | BTSRV planned ([bluetooth.md](hardware/bluetooth.md)) | design | — |
+| Wi-Fi | `qcom_wcn3990.cpp` (SNOC copy engines, HTC/WMI/HTT) | 0x4e1b–0x4e1f, 0x4e23 PRNG | WIFID (firmware over NeoHub, joining, WPA2, remembered networks) + NEONET (IP) ([wifi.md](wifi.md)) | scan, WPA2, DHCP, TCP/UDP | 2026-11-18 |
+| Bluetooth | — (GENI UART + HCI LDD planned) | — | BTSRV planned ([bluetooth.md](bluetooth.md)) | design | — |
 | Sensors | — (ADSP sensor PD via FastRPC) | — | — | not started (D4) | — |
 | Cameras | — (IMX355 front, IMX363 rear; CCI/CAMSS) | — | — | not started (D5) | — |
-| GNSS | — (QMI LOC on the modem) | — | GNSSD planned ([gnss.md](hardware/gnss.md)) | design (D6, GN0) | — |
+| GNSS | — (QMI LOC on the modem) | — | GNSSD planned ([gnss.md](gnss.md)) | design (D6, GN0) | — |
 | NFC, fingerprint | — (NXP NCI I2C 0x28; FPC) | — | — | not started (D7) | — |
 
 ## neohw: the processes and their IPC
@@ -119,7 +119,7 @@ It is configuration evidence, not physical chip identification. Generate a
 sanitized report without dumping firmware, calibration or device identifiers:
 
 ```sh
-python3 docs/tools/inspect-bonito.py private/bonito.dtb
+python3 docs/hardware/tools/inspect-bonito.py private/bonito.dtb
 ```
 
 Run that command from the workspace root. The report lists only selected public
@@ -136,13 +136,13 @@ The inventory as reviewed on 2026-11-10 (DTB evidence for the hardware not start
 | Display/input | Bootloader OLED framebuffer, Synaptics RMI4 touch, PMIC keys; panel brightness and on/off, touch sleep, screen timeout and power key (2026-11-11, below) | Independent panel initialization, IRQ/wake from suspend |
 | PMIC/power | SPMI, RPMh, RTC and reboot code | Fuel gauge (`qcom,pmi8998-fg`), PM660 RRADC, charger, TSENS, policy |
 | USB | DWC3 debug console on RAM boots | Cold/installed-boot power remains open; see known-issues |
-| Audio | ADSP, dual CS35L36 amps, RT5514 mic; C6 two-way calls; NeoAudio (2026-11-18, [audio.md](hardware/audio.md)): ASM/ADM PCM playback and recording, routes, amp protection polling, the 3.5 mm jack driver | ACDB calibration, headset-mic recording path, audible QEMU |
+| Audio | ADSP, dual CS35L36 amps, RT5514 mic; C6 two-way calls; NeoAudio (2026-11-18, [audio.md](audio.md)): ASM/ADM PCM playback and recording, routes, amp protection polling, the 3.5 mm jack driver | ACDB calibration, headset-mic recording path, audible QEMU |
 | Haptics | DTB TI DRV2624, I2C10 `0x5a`, reset GPIO24 | Driver, verified supplies/actuator configuration, bounded pulse; PM660 haptics disabled |
 | Sensors | ADSP FastRPC transport described; sensor GPIO ownership reserved | Discover exact chips, firmware sensor protocol and calibration requirements |
 | Front camera | DTB Sony IMX355, CCI1 `0x1a`, MCLK2 19.2 MHz, reset GPIO9 | CCI/CAMSS/DMA and software image processing |
 | Rear camera | DTB Sony IMX363, CCI0 `0x1a`, MCLK0 24 MHz, reset GPIO127; LC898219XI focus actuator | Separately pinned downstream mode/calibration evidence, capture and focus |
 | Wi-Fi | DTB WCN3990 enabled at `0x18800000` | QMI firmware control plus SNOC copy engines and full packet/protocol path |
-| Bluetooth | DTB WCN3990 UART transport; design in [bluetooth.md](hardware/bluetooth.md) | GENI UART/HCI, firmware, IBS sleep, BLE and audio profiles |
+| Bluetooth | DTB WCN3990 UART transport; design in [bluetooth.md](bluetooth.md) | GENI UART/HCI, firmware, IBS sleep, BLE and audio profiles |
 | GNSS | Qualcomm modem; QMI LOC is a protocol reference | Discover live service, standalone fixes and typed location API |
 | NFC | DTB NXP NCI I2C `0x28`; AOSP NXP configuration | Verify chip/firmware, NCI and tag reading |
 | Fingerprint | Google FPC service configuration | Verify exact sensor and secure enrollment/matching interface; PIN fallback |
@@ -190,7 +190,7 @@ placeholders, not linked working drivers.
 | D3 audio/haptics | Independent audio lifecycle; conservative amplifier gain and fault mute; ASM/ADM 48 kHz S16 playback and mono capture; typed audio service; DRV2624; 3.5 mm jack later | Tone/WAV playback, recorded WAV, ringtone→call, volume/mute/routes; audio with no SIM/radio off and radio failures; bounded vibration |
 | D4 sensors | Sensor PD/FastRPC/reverse file service; discover actual sensor protocol; proximity/light→accel/gyro→compass/barometer→batching/fusion | Six-orientation gravity, gyro zero/motion, call proximity/light transitions, calibrated units/timestamps and wake |
 | D5 cameras | CAMCC/power/CCI/CAMSS/isolated DMA; ID→testgen→sensor pattern→scene; IMX355 first, IMX363/focus next | Reduced preview >=10 fps and recognizable persistent JPEG, correct format/orientation, bounded RAM/latency, no SMMU faults |
-| D6 connectivity | Wi-Fi: [wifi.md](hardware/wifi.md) (Symbian WLAN stack over an ath10k-derived WHA driver, decided 2026-11-12); WCN3990 SNOC/CE DMA, QMI and HTC/WMI/HTT, WPA2-PSK and ESOCK/TCPIP6 NIF coordinated with C10; Bluetooth: [bluetooth.md](hardware/bluetooth.md) (a new Rust host stack + a 2010-compatible facade, decided 2026-11-15); BT UART/HCI/IBS and BLE→A2DP/HFP; QMI LOC | Wi-Fi scan/auth/IP/traffic, BT pairing/GATT/audio routing, outdoor standalone fix; coexistence and idle-power evidence |
+| D6 connectivity | Wi-Fi: [wifi.md](wifi.md) (Symbian WLAN stack over an ath10k-derived WHA driver, decided 2026-11-12); WCN3990 SNOC/CE DMA, QMI and HTC/WMI/HTT, WPA2-PSK and ESOCK/TCPIP6 NIF coordinated with C10; Bluetooth: [bluetooth.md](bluetooth.md) (a new Rust host stack + a 2010-compatible facade, decided 2026-11-15); BT UART/HCI/IBS and BLE→A2DP/HFP; QMI LOC | Wi-Fi scan/auth/IP/traffic, BT pairing/GATT/audio routing, outdoor standalone fix; coexistence and idle-power evidence |
 | D7 remaining hardware | NXP NCI/tag read; secure fingerprint feasibility→enrollment/matching; bounded torch | Tag events and thermal limits; fingerprint remains unsupported if secure path unavailable |
 | D8 system acceptance | Coordinated quiescence, timer accounting, wake sources/resume; legacy framework adapters after native acceptance | Repeated suspend/resume, overnight idle and recorded 24-hour mixed-use run; measured results, not a battery-life promise |
 
@@ -232,11 +232,11 @@ fixes starvation by unrelated IPC, not hard real-time behavior.
 
 Implementation status is intentionally split: documentation/inventory tooling can
 be complete while hardware probes and the later milestones remain pending. See
-[the implementation verification record](hardware/verification/driver-support-2026-11-10.md)
+[the implementation verification record](verification/driver-support-2026-11-10.md)
 for the initial foundation commands and limitations. The subsequent read-only
-TSENS addition has a [separate verification record](hardware/verification/tsens-2026-11-10.md).
+TSENS addition has a [separate verification record](verification/tsens-2026-11-10.md).
 
-The subsequent [battery telemetry implementation](hardware/battery.md) includes
+The subsequent [battery telemetry implementation](battery.md) includes
 live status-bar/Settings/Dev tools and retained history; physical acceptance is
 tracked separately in its verification record.
 
@@ -285,7 +285,7 @@ new.
 
 ### What a NeoSymbian phone needs
 
-These come from the port's fixed decisions ([roadmap.md](roadmap.md), [port-map.md](port-map.md)):
+These come from the port's fixed decisions ([../roadmap.md](../roadmap.md), [../kernel/port-map.md](../kernel/port-map.md)):
 
 | Need | Why | Effect on the list |
 |---|---|---|
@@ -349,7 +349,7 @@ v3.5.1). All of these have **UFS** storage (unverified), so a UFS driver is the 
 | Phone (codename) | SoC | Nura | UT | Reuse | New work |
 |---|---|---|---|---|---|
 | **PinePhone Pro (pinephonepro)** | RK3399 (`rockchip/rk3399-pinephone-pro`), A72 + A53 | community | 69% (native) | GICv3 (GIC-500); eMMC on a standard SDHCI (Arasan), so the generic parts of our SDHCI code carry over | A new `rk3399_assp` (clocks, I2C, display). The **Quectel EG25-G** modem is driven by AT commands (unverified: over UART and USB), not QMI |
-| **PinePhone (pinephone)** | Allwinner A64 (`allwinner/sun50i-a64-pinephone-1.x`), A53 | **testing** (was main) | 67.3% (native) | Phorepoc already has an A64 board bootstrap (`os/src/phorepoc-arm/a64/bootstrap`, [sources.md](sources.md)) | **GICv2 (GIC-400)**: a new interrupt back end; a slow CPU; 2–3 GB RAM; EG25-G modem |
+| **PinePhone (pinephone)** | Allwinner A64 (`allwinner/sun50i-a64-pinephone-1.x`), A53 | **testing** (was main) | 67.3% (native) | Phorepoc already has an A64 board bootstrap (`os/src/phorepoc-arm/a64/bootstrap`, [../reference/symbian-sources.md](../reference/symbian-sources.md)) | **GICv2 (GIC-400)**: a new interrupt back end; a slow CPU; 2–3 GB RAM; EG25-G modem |
 | **Purism Librem 5 (librem5)** | i.MX8MQ (`freescale/imx8mq-librem5-r2..r4`), A53 | community | — | GICv3; eMMC (uSDHC) | A new SoC; slow; expensive; the modem is a plug-in M.2 card |
 
 ### Out, and why
@@ -379,5 +379,5 @@ v3.5.1). All of these have **UFS** storage (unverified), so a UFS driver is the 
   README. Keep the phone's DTB out of git, like `private/bonito.dtb`.
 - **Before buying:** check the Nura wiki page's feature table in a browser, and the exact model number (carrier lock,
   regional variant).
-- **When a port lands:** move its row to a "Ported" table in this section, and update [roadmap.md](roadmap.md) and the org
+- **When a port lands:** move its row to a "Ported" table in this section, and update [../roadmap.md](../roadmap.md) and the org
   profile.

@@ -2,9 +2,9 @@
 # Home pages and widgets
 
 **Status: planned** (the home screen today is `ui/screens/home.slint` with a live clock and static mock-up cards).
-Moved here from `neoui-shell.md` Parts 3 and 4 on 2026-11-21; the hub is [../neoui-shell.md](../neoui-shell.md).
+Moved here from `neoui-shell.md` Parts 3 and 4 on 2026-11-21; the hub is [README.md](README.md).
 The home **Media** card goes live with the media session ([top-panel.md](top-panel.md) TP3); the Agenda card with
-DTSRV ([../datetime.md](../datetime.md)).
+DTSRV ([../apps/datetime.md](../apps/datetime.md)).
 
 Canvas (Shell & system UI page): `Main` (home, Gestures), `sh-home-buttons`, `sh-home-clock-24h`, `sh-home-clock-12h`;
 `nav-home-longpress` (Navigation page) for Edit home · Wallpaper.

@@ -15,7 +15,7 @@ The chapters after "Navigation v2" are v1, kept for the record:
 - Five places, whose strip and shell-drawn page actions v2 replaced.
 
 It belongs to roadmap stage U3 ("system apps in Rust", [roadmap.md](../roadmap.md)) and builds on
-[neoui-shell.md](../neoui-shell.md) (the settings store, notifications, home pages) and [smooth-ui.md](smooth-ui.md)
+[neoui-shell.md](README.md) (the settings store, notifications, home pages) and [smooth-ui.md](smooth-ui.md)
 (the server's layers and slides).
 
 | Stage | What | Status |
@@ -258,7 +258,7 @@ Gestures: no strip on home; dock:
 
 - **Incoming call:** full screen with its own Answer and Reject.
 - **Legacy S60 apps:** the app group stays empty. Their softkeys come with the on-screen keypad (docs
-  [legacy.md](../legacy.md)).
+  [legacy.md](../user-side/legacy.md)).
 - **Lock screen:** G6.
 
 ### Window management
@@ -403,7 +403,7 @@ screens. The UI server feeds it touches and acts on what it returns.
 | Layer | Path | What |
 |---|---|---|
 | Pure logic | `neoui/crates/neoui-proto/src/gesture.rs` | `Edge`, `Gesture`, `Recognizer`, `Step`; unit tests |
-| Setting | `neoui-proto/src/settings/registry.rs`, `neoui-render/src/settings.rs`, `ui/system-settings.slint` | `nav.mode`, following "Adding a setting" in [neoui-shell.md](../neoui-shell.md) |
+| Setting | `neoui-proto/src/settings/registry.rs`, `neoui-render/src/settings.rs`, `ui/system-settings.slint` | `nav.mode`, following "Adding a setting" in [neoui-shell.md](README.md) |
 | Settings page | `ui/screens/settings.slint` | Root row "Home screen & navigation" → view `navigation` |
 | Shell | `ui/shell.slint`, `ui/components/frame.slint` | Back arrow hidden in gesture mode (`Toolbar.no-back`; its place stays empty); `nav-back()` is the toolbar Back's path, shared with the gesture |
 | Renderer | `neoui-render/src/lib.rs` | `Renderer::gesture(Gesture)` |

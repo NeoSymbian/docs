@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Browser architecture: repositories, forks, processes
 
-Part of the [browser docs](../browser.md). The plan of 2026-11-15, with the platform prerequisites marked.
+Part of the [browser docs](README.md). The plan of 2026-11-15, with the platform prerequisites marked.
 
 **As built (WB4–WB5):** Servo runs in its own process. `NEOWEB.EXE` (the neoui app, the Slint chrome, in the ROM)
 starts `NEOWEBE.EXE` (Servo 0.8 + SWGL, Rust `std`, on C:) and talks to it over the Symbian server `NeoWebEngine`, with
@@ -131,9 +131,9 @@ Tokio → mio → P.I.P.S. sockets → ESOCK → NeoNet (Wi-Fi now, mobile data 
 
 | Item | Status | Owner | Where |
 |---|---|---|---|
-| FP/NEON per thread at EL0: eager save of Q0–Q15, FPSR, FPCR; Qualcomm's EL2 does not trap AArch32 FP | ✅ WB1, 2026-11-17 | kernel | [smooth-ui.md](../neoui-shell/smooth-ui.md) S4, KRN-019, [wb1-kernel.md](wb1-kernel.md) |
-| An ARMv7/v8 AArch32 softfp target, LDREX/STREX and 64-bit atomics (LDREXD/STREXD) | ✅ WB2a (`armv7a-neosymbian-eabi`, for NEOWEBE); the ARMv8 user side is US2 (C++, done) and US4 (Rust, next) | e32-rs + browser | [wb2-std.md](wb2-std.md), [user-side-smp.md](../user-side-smp.md) |
-| The phone's RAM below 4 GiB (above it needs a 64-bit `TPhysAddr`) | ✅ M4.3 | kernel | the RAM map under [roadmap.md](../roadmap.md) M4 |
+| FP/NEON per thread at EL0: eager save of Q0–Q15, FPSR, FPCR; Qualcomm's EL2 does not trap AArch32 FP | ✅ WB1, 2026-11-17 | kernel | [smooth-ui.md](../../neoui-shell/smooth-ui.md) S4, KRN-019, [wb1-kernel.md](wb1-kernel.md) |
+| An ARMv7/v8 AArch32 softfp target, LDREX/STREX and 64-bit atomics (LDREXD/STREXD) | ✅ WB2a (`armv7a-neosymbian-eabi`, for NEOWEBE); the ARMv8 user side is US2 (C++, done) and US4 (Rust, next) | e32-rs + browser | [wb2-std.md](wb2-std.md), [user-side-smp.md](../../user-side/user-side-smp.md) |
+| The phone's RAM below 4 GiB (above it needs a 64-bit `TPhysAddr`) | ✅ M4.3 | kernel | the RAM map under [roadmap.md](../../roadmap.md) M4 |
 | Stack limits for 8 MiB threads, and tens of threads per process: 16 MiB cap, 128 threads tested | ✅ WB1 | kernel | [wb1-kernel.md](wb1-kernel.md) |
 | Reserve/align/decommit for SpiderMonkey: disconnected chunks; no protect call needed | ✅ WB1, WB3 | kernel + ossrv | [wb3-js.md](wb3-js.md) |
 | `poll` (over `select`, new in libc.dll), pthread and clock fixes; `mprotect` not needed (no JIT) | ✅ WB2c, WB2d | ossrv | [wb2-std.md](wb2-std.md) |

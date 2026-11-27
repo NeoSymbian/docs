@@ -24,13 +24,13 @@ work that has been designed but not built**, so that two designs can't pick the 
 | 1.3 | 2026-11-12 | keyboard modes and height changes | [keyboard.md](keyboard.md) |
 | 1.4 | 2026-11-14 | title, toolbar, pages (title and toolbar retired in 1.8) | `ipc.rs` |
 | 1.5 | 2026-11-14 | number and phone pads | [keyboard.md](keyboard.md) |
-| 1.6 | 2026-11-14 | launcher entries, front | [../legacy.md](../legacy.md#the-old-apps-launcher-protocol-16) |
+| 1.6 | 2026-11-14 | launcher entries, front | [../user-side/legacy.md](../user-side/legacy.md#the-old-apps-launcher-protocol-16) |
 | 1.7 | 2026-11-16 | PAGE and QUERY (the strip and Options sheet were retired in 1.8) | [navigation.md](navigation.md) |
 | 1.8 | 2026-11-17 | Navigation v2 and Shell v2: the app draws header and footer; toasts, shade entries, badges, clipboard, the area event | [kit.md](kit.md#protocol-18-neoui-proto) |
 | 1.9 | 2026-11-17 | apps open each other; notification actions | [kit.md](kit.md#protocol-19-apps-open-each-other) |
-| 1.10 | 2026-11-17 | haptic pulses; input reset | [../legacy.md](../legacy.md) |
+| 1.10 | 2026-11-17 | haptic pulses; input reset | [../user-side/legacy.md](../user-side/legacy.md) |
 | 1.11 | 2026-11-18 | a progress bar on a shade entry | [kit.md](kit.md#status-2026-11-17) |
-| 1.12 | 2026-11-20 | files between apps by handle; the clipboard's kind | [kit.md](kit.md#protocol-19-apps-open-each-other) (its 1.12 part), [../files-app.md](../files-app.md) FA8 |
+| 1.12 | 2026-11-20 | files between apps by handle; the clipboard's kind | [kit.md](kit.md#protocol-19-apps-open-each-other) (its 1.12 part), [../apps/files/README.md](../apps/files/README.md) FA8 |
 | 1.13 | 2026-11-26 | Settings is an app (NEOSET): `SETTINGS_INFO`, `SETTINGS_ACTION`; shell keys writable by NEOSET's secure ID | [settings.md](settings.md#the-settings-app-neoset) |
 | 1.14 | 2026-11-26 | `INFO_APPS` (the old apps), `ACTION_OPEN_ENTRY` (SE1d) | settings.md |
 | 1.15 | 2026-11-26 | `ACTION_PROFILE`: the sound profiles through the shell's reducer (SE2a) | settings.md |
@@ -73,7 +73,7 @@ work that has been designed but not built**, so that two designs can't pick the 
 | 35 | `REPLY_TEXT` | — | **reserved:** TP4 inline reply (constant in `ipc.rs`; not in 1.21) |
 | 36 | `ACTIVITY` | — | **reserved:** TP6 |
 | 37 | `TILE` | — | **reserved:** TP7, 1.22 (constant in `ipc.rs`; [tiles](#tp7-tiles-reserved-122)) |
-| 38 / 39 | `REGISTER` / `UNREGISTER` | — | **reserved:** [../store.md](../store.md) ST4 (store.md said "1.12", which Files FA8 took) |
+| 38 / 39 | `REGISTER` / `UNREGISTER` | — | **reserved:** [../apps/store.md](../apps/store.md) ST4 (store.md said "1.12", which Files FA8 took) |
 | 40 | `SETTINGS_INFO` | 1.13 (paged kinds 1.20) | built (neoui#38): [settings.md](settings.md#the-settings-app-neoset) SE0 (`[kind, cursor, Des8 out]`: a bounded snapshot only the shell has; kinds 1 battery history, 2 Wi-Fi IP/portal, 3 clock sync, 4 old apps (1.14), 5 battery usage (1.16), 6 running apps (1.17, Settings only)). 1.20: kinds 7–15 are paged ([below](#paging)) |
 | 41 | `SETTINGS_ACTION` | 1.13 | built (neoui#38): settings.md SE0 (`[kind, Des8 request]`: 1 sign in to the current network, 2 open an old app (1.14), 3 sound profile (1.15; tags [below](#sound-profile-tags-120)), 4 stop an app, 5 reset (0 network, 1 settings), 6 clear an app's data (1.17; confirmed form 1.20), 7 measure an app (1.20); 8–14 reserved ([below](#requested-settings-actions))) |
 | 42 | `OWNER_REPORT` | 1.20 | built: [owner work](#owner-work) |
@@ -117,7 +117,7 @@ work that has been designed but not built**, so that two designs can't pick the 
 ## Services (1.19)
 
 A **service** is an app with no screen: an `APPS` entry with `service: true` (`neoui_proto::apps`). The first is
-`dtsrv` (DTSRV.EXE 0xE0008003, NeoSymbian/datetime, [../datetime.md](../datetime.md)). It owns the alarms, timers,
+`dtsrv` (DTSRV.EXE 0xE0008003, NeoSymbian/datetime, [../apps/datetime.md](../apps/datetime.md)). It owns the alarms, timers,
 events and to-dos and rings them.
 - **Start:** the shell starts it hidden at boot, like a [`RESIDENT`] app, and starts it again when it exits. It is never
   closed for room, never the screen, and never listed in the Apps menu or in Settings → Apps.
@@ -404,4 +404,4 @@ These designs drew numbers before the table existed. They are void; use the tabl
   kinds 19–25. They are renumbered above as 31–37 and 22–26; 18 (`NOTIFY`) grows in place.
 - The key pads plan: `HAPTIC = 15/19`, `VIEWPORT = 16/20`, `InputReset` kind 19. HAPTIC became 25 and InputReset
   kind 21 in 1.10; VIEWPORT was not needed (`PAGE.full`).
-- [../store.md](../store.md) ST4: `REGISTER` as "protocol 1.12". Now opcodes 38/39.
+- [../apps/store.md](../apps/store.md) ST4: `REGISTER` as "protocol 1.12". Now opcodes 38/39.

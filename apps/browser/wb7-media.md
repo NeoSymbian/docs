@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # WB7: media
 
-Part of the [browser docs](../browser.md).
+Part of the [browser docs](README.md).
 
 **Status:** ⬜ not started.
 
@@ -16,7 +16,7 @@ Part of the [browser docs](../browser.md).
 | Item | Status | Where |
 |---|---|---|
 | A servo-media backend: `dummy` today; FFmpeg/dav1d software decode and colour conversion next | ⬜ | [architecture.md](architecture.md#architecture) |
-| Sound through NeoAudio (the phone's audio works since A0–A8) | ⬜ | [audio.md](../hardware/audio.md) |
+| Sound through NeoAudio (the phone's audio works since A0–A8) | ⬜ | [audio.md](../../hardware/audio.md) |
 | Full-screen video: `PAGE` full, controls for 3 s | ⬜ | `br2-video` |
 | Video with sound, seeking, A/V sync, a thermal soak | ⬜ | the gate |
 

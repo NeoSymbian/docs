@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # The browser app: phases UI0–UI6 and every screen
 
-Part of the [browser docs](../browser.md). The phases UI0–UI6 build every board of the canvas's Browser page; the spec
+Part of the [browser docs](README.md). The phases UI0–UI6 build every board of the canvas's Browser page; the spec
 they follow is [ui.md](ui.md).
 
 **Status (2026-11-21):** 25 of 31 screens built; on Servo on the Pixel: 19 ✅, 5 🟡, 7 ⬜.

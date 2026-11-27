@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # WB6: browser services
 
-Part of the [browser docs](../browser.md).
+Part of the [browser docs](README.md).
 
 **Status:** 🟡 started: UI5 (the safety screens) done 2026-11-22, run on the Pixel.
 
@@ -16,7 +16,7 @@ Part of the [browser docs](../browser.md).
 | Item | Status | Where |
 |---|---|---|
 | Certificate errors: a `neo:` error page; "Open the site anyway (unsafe)" only with Settings' switch, off by default (B10) | ✅ built (UI5): our page, the override only with the switch on | [ui.md](ui.md#decisions) B10, `br2-cert-error` |
-| A certificate store (trusted roots on the phone, shared with Files' certificate viewer) | ⬜ (Servo uses webpki's built-in roots) | [files-app.md](../files-app.md) |
+| A certificate store (trusted roots on the phone, shared with Files' certificate viewer) | ⬜ (Servo uses webpki's built-in roots) | [files-app.md](../files/README.md) |
 | Site info from the lock: TLS version, the certificate, cookies with Clear | ✅ built (UI5; a second handshake, a shortcut) | `br2-siteinfo` |
 | No connection page with Retry and Check Wi-Fi (1.9 `OPEN` of Settings › Wi-Fi) | ✅ built (UI5) | `br2-offline` |
 | Wi-Fi sign-in: Sign in in Settings and the shade opens the login page in NEOWEB | ✅ built (UI5, neoui) | `br2-captive` |

@@ -17,11 +17,11 @@ through the roadmap's T1–T11.
   `sdm670_assp/qcom_telmon.cpp`. They cover the log ring and the previous boot's log, registers, block I/O, slots,
   input, screenshots, threads, CPUs, USB, and the telephony subsystems.
 - **Mac side:** `kernel/baseport/arm64/tools/phone.py` (`run`, `cmd`, `dump`, `put`, `shot`, `console`).
-- **Speed:** a SHA-256-checked `blk dump` runs at 2.0 MB/s ([telephony C0](hardware/modem.md#c0-recon-and-backups)).
+- **Speed:** a SHA-256-checked `blk dump` runs at 2.0 MB/s ([telephony C0](../hardware/modem.md#c0-recon-and-backups)).
 - **Limits:**
   - input lines are 160 bytes, and longer ones are cut silently;
   - output lines are 256 bytes, and longer ones fault the kernel;
-  - `type` can lose the end of a line ([known issues](known-issues.md));
+  - `type` can lose the end of a line ([known issues](../known-issues.md));
   - binary data travels raw between a text header and a SHA-256 trailer.
 
 The monitor stays: it is the **kernel and bring-up channel**, and it works when the user side is dead. This design adds
@@ -29,7 +29,7 @@ a **user-side channel** next to it.
 
 **When USB runs.** `A64StartUsbConsole` (`sdm670_assp/qcom_dwc3.cpp`) starts USB only when ABL left it powered
 (fastboot RAM boots) or in dev mode. Normal-boot USB power is parked
-([known issues](known-issues.md#phone-usb-power-on-a-normal-boot-doesnt-work-yet-parked-2026-11-08)). Until that is
+([known issues](../known-issues.md#phone-usb-power-on-a-normal-boot-doesnt-work-yet-parked-2026-11-08)). Until that is
 fixed, every stage below works on RAM boots only.
 
 ## Symbian's own tools
@@ -147,7 +147,7 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
 - **Physical USB only:** the same model as the monitor today. There is no network exposure.
 - **Installed boots (T12):** USB stays off until USB debugging is switched on; then the kernel powers it and offers
   both ports (monitor and fshell). On a cold boot the host doesn't see the phone yet (the normal-boot PHY issue in
-  [known issues](known-issues.md)), so T12 is parked.
+  [known issues](../known-issues.md)), so T12 is parked.
 - **USB debugging is off by default (T10)** and needs the unlocked UI to turn on. Unlike adb there is no host
   authorization (RSA keys) yet: revisit before an installed boot offers the shell (DA6).
 
@@ -178,4 +178,4 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
 - SymbianSource: `oss.FCL.sf.os.fshell`, `oss.FCL.sftools.dev.devicedbgsrvs`, `oss.FCL.sf.os.osrndtools`,
   `oss.FCL.sf.os.commsfw` (serial server, `serialserver/`), `oss.FCL.sf.os.usb`.
 - Qt 4.8 `tools/runonphone` (TRK and CODA client, LGPL).
-- [sources.md](sources.md): the FShell rows.
+- [../reference/symbian-sources.md](../reference/symbian-sources.md): the FShell rows.

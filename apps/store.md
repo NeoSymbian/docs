@@ -3,7 +3,7 @@
 
 Written 2026-11-18. This is the proposal for a new repo, `NeoSymbian/store`. NeoStore brings two kinds of app to the
 phone and installs them there, with no ROM build:
-- **classic S60 apps** (`.sis`, `.sisx`), which run in Old apps ([legacy.md](legacy.md));
+- **classic S60 apps** (`.sis`, `.sisx`), which run in Old apps ([../user-side/legacy.md](../user-side/legacy.md));
 - **new NeoSymbian apps**: Rust neoui apps in a new package format, `.npk`.
 
 It has three parts:

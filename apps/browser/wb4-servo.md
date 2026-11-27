@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # WB4: Servo in the Browser app
 
-Part of the [browser docs](../browser.md).
+Part of the [browser docs](README.md).
 
 **Status:** ✅ done 2026-11-20 · [browser#8](https://github.com/NeoSymbian/browser/pull/8), [build#40](https://github.com/NeoSymbian/build/pull/40), [kernel#31](https://github.com/NeoSymbian/kernel/pull/31), [ossrv#3](https://github.com/NeoSymbian/oss.FCL.sf.os.ossrv/pull/3), [mozjs#2](https://github.com/NeoSymbian/mozjs/pull/2) · the protocol: [protocol.md](protocol.md)
 
@@ -14,7 +14,7 @@ Part of the [browser docs](../browser.md).
 ## Result (2026-11-20): done
 
 Merged in browser#8, build#40, kernel#31, ossrv#3 and mozjs#2. The heap crash that followed was fixed by US0/US1
-([user-side-smp.md](../user-side-smp.md)).
+([user-side-smp.md](../../user-side/user-side-smp.md)).
 - **Two processes:** NEOWEB.EXE (the neoui app, the Slint chrome) and NEOWEBE.EXE (Servo 0.8 with SWGL on C:, the
   engine). They talk over the Symbian server `NeoWebEngine` (`app/neoweb-proto`); frames arrive in a global chunk
   with two RGBA buffers, and a buffer is reused only after NEOWEB shows it.

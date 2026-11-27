@@ -4,7 +4,7 @@
 **Status: built (UI v2, 2026-11-17).** It covers the tokens, layout, glyphs, display digits, app tiles and
 components every neoui screen and app uses. The canvas's **Design system** page (7 sheets) follows the code. This
 page replaces `neoui/design/DESIGN.md` (2026-11-06, "Belle, modernized"), which is stale: it lists 26 glyphs and a
-1.8 digit stroke. The hub is [../neoui-shell.md](../neoui-shell.md).
+1.8 digit stroke. The hub is [README.md](README.md).
 
 **Where the code is** (neoui):
 - `ui/theme.slint`: the tokens;

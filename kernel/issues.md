@@ -2,8 +2,8 @@
 # Kernel issue register
 
 Baseline: kernel 792d36ef1a9169b3fc9084fcc494b209501a7487, reviewed 2026-11-09.
-Read [assessment and scope](kernel-assessment.md) before interpreting these findings.
-Implementation order, owners, dependencies and release gates are in [kernel-modernization.md](kernel-modernization.md).
+Read [assessment and scope](audits/2026-11-09/assessment.md) before interpreting these findings.
+Implementation order, owners, dependencies and release gates are in [modernization.md](modernization.md).
 
 ## Reading and maintaining this register
 
@@ -278,7 +278,7 @@ recovery work. No bootloader locking or device writes are authorized by this doc
 The current filesystem plan puts userdata encryption in future work; no at-rest protection acceptance is
 available for C:/E: in this assessment. Capability isolation and ROFS integrity do not protect removed/stolen
 userdata. A PIN-derived key without an offline-attack/rate-limit design is not a complete solution.
-[current plan](filesystem.md#later-daily-phone-stage).
+[current plan](../storage/filesystem.md#later-daily-phone-stage).
 
 **Fix/close:** specify encrypted volume/metadata scope, authenticated key wrapping, KDF and hardware-backed
 rate limiting where available, unlock/recovery, backup/restore, secure deletion limits and crash-log privacy.
@@ -305,7 +305,7 @@ and callback counts under SMP/I/O load and later suspend/resume. Correct this be
 
 ### KRN-018: Protected-buffer failures
 
-[Known issues](known-issues.md) records QEMU TCG interlocked suspend/kill/migrate failures and a separate phone
+[Known issues](../known-issues.md) records QEMU TCG interlocked suspend/kill/migrate failures and a separate phone
 pass. The cause remains unknown. The older reschedule handshake defect was fixed; the proposed iCsCount ordering
 explanation is a hypothesis, not a demonstrated root cause.
 [current handshake](https://github.com/NeoSymbian/kernel/blob/792d36ef1a9169b3fc9084fcc494b209501a7487/kernel/eka/nkernsmp/arm64/a64s_ncsched.cpp#L119-L159).
@@ -390,7 +390,7 @@ overflow, async cancel/close/death, pinning and OOM checks.
 
 Known-advisory candidate: the tree contains a stripped crash-logger zlib 1.2.3, with the older overlaid distance/
 literal buffers associated with upstream CVE-2018-25032. Compare the maintainer fix cited in
-[the assessment](kernel-assessment.md#external-known-issues-and-references); reproduction against this modified
+[the assessment](audits/2026-11-09/assessment.md#external-known-issues-and-references); reproduction against this modified
 copy is pending. Its original exmon MMPs list it, but the reviewed arm64 census/build lists do not compile those
 zlib/crash-logger files. Treat this as dormant legacy-source applicability work, not an active arm64 CVE finding.
 The header says deflatePrime and several other APIs were removed; do not assign advisories for absent APIs.
@@ -463,7 +463,7 @@ Each of the existing debt rows needs a disposition; a tree move alone does not c
 
 ### KRN-027: USB fails on normal boot
 
-[Known issues](known-issues.md) records PHY registers reading zero after attempted power-up, with RPMh votes
+[Known issues](../known-issues.md) records PHY registers reading zero after attempted power-up, with RPMh votes
 surviving warm reset. Debug/FS6 use works only in the reported fastboot RAM-boot state. Not reproduced here.
 **Fix/close:** establish independent clock/rail/PHY/reset ownership and a cold-start sequence with bounded errors.
 **Acceptance:** normal installed cold boot, warm boot, unplug/replug and failed-start recovery; prove data transfer
@@ -471,14 +471,14 @@ without inherited ABL USB state. Retain KRN-002's release access policy.
 
 ### KRN-028: Monitor typing drops characters
 
-[Known issues](known-issues.md) reports a 29-character command truncated on the phone; short lines are the current
+[Known issues](../known-issues.md) reports a 29-character command truncated on the phone; short lines are the current
 workaround. Queue saturation/pacing remain hypotheses. **Fix/close:** instrument enqueue/dequeue/drop counts and
 apply backpressure or acknowledged injection. **Acceptance:** long/spaced command bursts under UI/I/O load on phone
 and QEMU, exact received bytes and no silent truncation. Development tooling still needs reliable input.
 
 ### KRN-029: Connected call stays on 3G
 
-[Known issues](known-issues.md) and [telephony C7](hardware/modem.md#c7-complete-calls) record LTE return after ringing
+[Known issues](../known-issues.md) and [telephony C7](../hardware/modem.md#c7-complete-calls) record LTE return after ringing
 but not after a connected call, despite a separately reported Linux return. CDSP/PDR/ADSP teardown are investigation
 directions, not established causes. **Fix/close:** compare resource/session lifecycle and implement the causal fix.
 **Acceptance:** repeated incoming/outgoing connected/declined/cancelled calls return to the expected network,
@@ -486,7 +486,7 @@ including remote hangup, weak signal and modem restart; no remote-processor cras
 
 ### KRN-030: Audio calibration and protection
 
-[Known issues](known-issues.md) documents uncalibrated call audio; the board driver also states amplifier protection
+[Known issues](../known-issues.md) documents uncalibrated call audio; the board driver also states amplifier protection
 errors are only logged at start.
 [driver limits](https://github.com/NeoSymbian/kernel/blob/792d36ef1a9169b3fc9084fcc494b209501a7487/baseport/arm64/bonito_variant/specific/a64_audio.cpp#L1-L16).
 **Fix/close:** define supported calibration/provenance, safe gain limits, route ownership and amplifier fault/
@@ -495,14 +495,14 @@ protection faults and long calls without resource leakage. Loopback feedback alo
 
 ### KRN-031: Odd-width framebuffer shear
 
-[Known issues](known-issues.md) reports shear at 539x1079 and correct output at 540x1080, with guest-driver stride
+[Known issues](../known-issues.md) reports shear at 539x1079 and correct output at 540x1080, with guest-driver stride
 and screenshot path still unverified. **Fix/close:** trace programmed stride/end-to-end capture before assigning
 cause. **Acceptance:** deterministic pixel patterns at odd/even widths, guest-visible stride, host capture and
 rendered screenshots agree. Keep emulator display evidence separate from phone display acceptance.
 
 ### KRN-032: ABL slot retries and image mismatch
 
-Historically resolved by FS5b per [known issues](known-issues.md); not revalidated here. Keep the corrected ABL
+Historically resolved by FS5b per [known issues](../known-issues.md); not revalidated here. Keep the corrected ABL
 RAM-boot retry behavior and matched boot/ROFS checks as regressions. **Acceptance:** successful/failed boot,
 retry exhaustion/fallback, good-boot marking, interrupted inactive-slot update and mismatched ROFS rejection on
 disposable/approved test slots. Do not revive the superseded cold-reset explanation or mark this unresolved.

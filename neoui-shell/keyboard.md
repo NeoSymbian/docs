@@ -2,7 +2,7 @@
 # System keyboard and old-app key pads
 
 **Status: languages built 2026-11-12; Keyboard v2 boards (`kb2-*`) and the old-app key pads (`pad-*`) are on the
-canvas's Keyboard page.** Moved here from `neoui-shell.md` on 2026-11-21; the hub is [../neoui-shell.md](../neoui-shell.md).
+canvas's Keyboard page.** Moved here from `neoui-shell.md` on 2026-11-21; the hub is [README.md](README.md).
 The keyboard's place in each navigation mode (above the key row or the band, swipe down to hide) is in
 [navigation.md](navigation.md).
 
@@ -95,7 +95,7 @@ and translating the UI itself.
 | `sh-form-keyboard` (Shell page) | a form with the keyboard up, Gestures | built |
 
 **Old-app key pads (`pad-*`):** drawn by LEGACY.EXE in C++, not by the shell; the design and its stages live in
-[../legacy.md](../legacy.md#key-pads-s60-apps-take-keys-not-touch).
+[../user-side/legacy.md](../user-side/legacy.md#key-pads-s60-apps-take-keys-not-touch).
 
 | Row | Boards |
 |---|---|

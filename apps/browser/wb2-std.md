@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # WB2: Rust `std` on NeoSymbian
 
-Part of the [browser docs](../browser.md).
+Part of the [browser docs](README.md).
 
 **Status:** ✅ done 2026-11-19 (WB2a–WB2d) · [browser#3](https://github.com/NeoSymbian/browser/pull/3), [browser#4](https://github.com/NeoSymbian/browser/pull/4), [browser#5](https://github.com/NeoSymbian/browser/pull/5), [browser#6](https://github.com/NeoSymbian/browser/pull/6), [build#33](https://github.com/NeoSymbian/build/pull/33), [build#34](https://github.com/NeoSymbian/build/pull/34), [build#37](https://github.com/NeoSymbian/build/pull/37), [e32-rs#4](https://github.com/NeoSymbian/e32-rs/pull/4), [e32-rs#5](https://github.com/NeoSymbian/e32-rs/pull/5), [kernel#21](https://github.com/NeoSymbian/kernel/pull/21), [kernel#24](https://github.com/NeoSymbian/kernel/pull/24), [legacy#6](https://github.com/NeoSymbian/legacy/pull/6), [ossrv#1](https://github.com/NeoSymbian/oss.FCL.sf.os.ossrv/pull/1), [ossrv#2](https://github.com/NeoSymbian/oss.FCL.sf.os.ossrv/pull/2)
 
@@ -11,7 +11,7 @@ Part of the [browser docs](../browser.md).
 |---|---|---|---:|
 | WB2 OS personality | rust + libc forks, the std unix PAL over P.I.P.S., the mio bridge. The EXE runtime for `std`: today `e32::main!` brings its own panic handler, a 64 MiB Rust heap (`e32/src/heap.rs`) and a 1 MiB native heap (`build/emitter/build_rust_exe.py`); a `std` EXE needs std-aware start-up, allocator budgets, panic/unwind, and C/C++ linkage | Rust's std tests on Syborg and the phone; **one EXE mixing `std`, e32 and C++** runs; a Tokio TCP fetch over NeoNet | 6–12 |
 
-Written 2026-11-17. This is the working doc for [browser.md](../browser.md) stage **WB2**: Rust's standard library for
+Written 2026-11-17. This is the working doc for [browser.md](README.md) stage **WB2**: Rust's standard library for
 NeoSymbian, which Servo, SpiderMonkey's Rust side, Tokio and rustls all need. Today all our Rust is `no_std`.
 
 **WB2's gate** (above):
@@ -46,7 +46,7 @@ Each change is small: cfg lines, plus one new module in libc and one OS folder i
 **tokio** forks for the same reason: each lists the OSes it knows (Symbian follows vita in both). Skipping `std` is not an option,
 since Servo and its ~500 dependencies all assume it.
 
-**Later: back to upstream** (on the [roadmap](../roadmap.md)). The forks are the start, not the end state:
+**Later: back to upstream** (on the [roadmap](../../roadmap.md)). The forks are the start, not the end state:
 - re-sync them on every nightly bump;
 - offer the libc module and the mio cfgs upstream once they are stable;
 - then propose `armv7a-symbian-eabi` as a **tier 3** Rust target, as NuttX, Vita and the 3DS (`horizon`) did. That

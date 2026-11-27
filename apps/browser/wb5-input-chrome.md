@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # WB5: input and chrome
 
-Part of the [browser docs](../browser.md).
+Part of the [browser docs](README.md).
 
 **Status:** ✅ done 2026-11-21 · [browser#10](https://github.com/NeoSymbian/browser/pull/10), [browser#11](https://github.com/NeoSymbian/browser/pull/11), [ossrv#5](https://github.com/NeoSymbian/oss.FCL.sf.os.ossrv/pull/5), [servo#1](https://github.com/NeoSymbian/servo/pull/1), [webrender#1](https://github.com/NeoSymbian/webrender/pull/1), [build#47](https://github.com/NeoSymbian/build/pull/47), [docs#52](https://github.com/NeoSymbian/docs/pull/52), [docs#53](https://github.com/NeoSymbian/docs/pull/53) · every screen: [ui-screens.md](ui-screens.md) · the protocol: [protocol.md](protocol.md)
 

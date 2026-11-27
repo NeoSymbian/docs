@@ -56,7 +56,7 @@ From the canvas (owner, 2026-11-17, console questions):
 **DT09 DTSRV is a headless app** (owner, 2026-11-26, console). Since protocol 1.18 only an app's own EXE may post
 shade cards, so "DTSRV sends OPEN + NOTIFY" needed a shell change. The owner chose protocol **1.19 services**
 (an `APPS` entry with no screen: started at boot, kept alive, OPEN with `OPEN_WAKE`, card taps delivered in place)
-over relaying the rings through the shell. Details: [neoui-shell/protocol.md](neoui-shell/protocol.md#services-119).
+over relaying the rings through the shell. Details: [../neoui-shell/protocol.md](../neoui-shell/protocol.md#services-119).
 
 ## The apps before (2026-11-17)
 
@@ -264,7 +264,7 @@ phone#11 (birthdays), files#18 (Add to Calendar), this doc.
 
 The shell owns the clock, the Date & time settings page, network time and the time zones (`time.*` keys);
 DTSRV and the apps read them. Moved here from `neoui-shell.md` Parts 5 and 6 on 2026-11-21. The status bar and the
-shade's header are in [neoui-shell/top-panel.md](neoui-shell/top-panel.md).
+shade's header are in [../neoui-shell/top-panel.md](../neoui-shell/top-panel.md).
 
 **Settings → Date & time** (view `datetime`; the date and zone helpers are in `neoui-proto::clock::datetime`, which
 is host-tested):

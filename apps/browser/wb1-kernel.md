@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # WB1: the kernel
 
-Part of the [browser docs](../browser.md).
+Part of the [browser docs](README.md).
 
 **Status:** ✅ done 2026-11-17 · [kernel#19](https://github.com/NeoSymbian/kernel/pull/19), [e32-rs#3](https://github.com/NeoSymbian/e32-rs/pull/3)
 

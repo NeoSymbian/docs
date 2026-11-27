@@ -11,8 +11,8 @@ phone you can use every day.
 
 ## Kernel modernization and release readiness
 
-The 2026-11-09 [source assessment](kernel-assessment.md) and [issue register](kernel-issues.md) add a
-[modernization track, KM0–KM6](kernel-modernization.md): trustworthy tests, data preservation, security boundaries,
+The 2026-11-09 [source assessment](kernel/audits/2026-11-09/assessment.md) and [issue register](kernel/issues.md) add a
+[modernization track, KM0–KM6](kernel/modernization.md): trustworthy tests, data preservation, security boundaries,
 time/SMP/ABI correctness, device lifecycle, measured performance and release support. It covers inherited EKA2/F32
 defects as well as port shortcuts and maps every section of known-issues.md.
 
@@ -27,7 +27,7 @@ The audit changed documentation only; its proposed fixes and runtime acceptance 
 | Decision | Made by | Choice |
 |---|---|---|
 | Kernel | existing | The 2010 SMP EKA2 (kernelhwsrv `201043_12`), as an ILP32 AArch64 kernel (`port-map.md`). |
-| User side | user | Keep the 2010 Symbian user side, run at AArch32 EL0: file server, servers, eshell, old apps. Built as ARMv8-A AArch32, soft-float calling convention, since 2026-11-22 ([user-side-smp.md](user-side-smp.md) US2 + US3; owner 2026-11-21); old ARMv5/v6 apps run unchanged. |
+| User side | user | Keep the 2010 Symbian user side, run at AArch32 EL0: file server, servers, eshell, old apps. Built as ARMv8-A AArch32, soft-float calling convention, since 2026-11-22 ([user-side/user-side-smp.md](user-side/user-side-smp.md) US2 + US3; owner 2026-11-21); old ARMv5/v6 apps run unchanged. |
 | UI | user | A **new Rust UI server** replaces the old window server and UI. The system apps are written in Rust. |
 | Old apps | user (2026-11-14) | Unmodified S60 `.sis` apps run in one shared guest window server inside neoui, listed by AppArc in a native Old apps grid; runtime in NeoSymbian/legacy, Symbian fixes in their forks (`legacy.md`). On-screen key pads (Navigator, Gamepad and its landscape console, Number, Abc typing, Hidden) and multi-touch make key-only S60 apps usable (2026-11-17). |
 | Driver language | user: "a mix"; the split is **my call** | See next section. |
@@ -53,7 +53,7 @@ then on the phone.
 
 ## Hardware inventory and expanded driver support
 
-The current [driver-support inventory and milestones D0–D8](hardware.md)
+The current [driver-support inventory and milestones D0–D8](hardware/README.md)
 supersede the original 2026-11-05 inventory. Storage, touch, SPMI/RPMh, USB RAM-boot
 console, modem and ADSP/call-audio drivers now exist. Independent cold-boot USB,
 media PCM, sensors, cameras and the remaining connectivity drivers still need work.
@@ -112,7 +112,7 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
   - **Next:** H2.3, writes bounded to userdata and C: on it (the first write is asked for first), then H3 power.
 - Status (2026-11-07, kernel `8629702`, H2.3): **C: is on the phone's eMMC, and files survive a reset**.
   - `C:` = the first 2000 MB of `userdata`, FAT16, because `ELOCAL.FSY` is still the old `sfat`. It grows to 4–8 GB
-    FAT32 with FS1 ([filesystem.md](filesystem.md)).
+    FAT32 with FS1 ([storage/filesystem.md](storage/filesystem.md)).
   - Writes are checked twice (the window layer and the eMMC driver), so only that window can be written.
   - A file made in eshell on one boot is listed after a reset and a fresh RAM boot.
   - Verified with the eshell ROM (persistence) and the neoui ROM (the launcher, with `C:` on the eMMC).
@@ -134,7 +134,7 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
   - An MBR in userdata sector 0 splits it; `C:` kept its place and files; `E:` is mass memory, FAT32.
   - TRIM from FAT's delete notifications; files survive a reboot and a watchdog reset during a copy.
   - **Next:** H3 power; the rest of the storage plan (FS4a `Z:` from ROFS, FS5a integrity, the FS6 spike) alongside.
-    FS4b/FS5b need the owner's approval (gates G1–G3 in [filesystem.md](filesystem.md)).
+    FS4b/FS5b need the owner's approval (gates G1–G3 in [storage/filesystem.md](storage/filesystem.md)).
 - Status (2026-11-08): **FS4 and FS5 done; the phone is installed and updates itself safely.**
   - **FS4:** `Z:` = the core ROM in `boot_x` + ROFS in `system_x`.
   - **FS5a:** every `Z:` block hash-checked, with the CPU's SHA-256.
@@ -144,7 +144,7 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
   - **Parked:** USB power on a normal boot ([known-issues.md](known-issues.md)).
   - **Next:** FS6 (`E:` over USB), the on-phone updater, H3 power.
 - Status (2026-11-08): **H3a done: power off, restart, and a clock that survives both** (kernel `bee9830`, neoui
-  `724475a` + `fafb232`, e32 `c5fda36`; [rust-integration.md](rust-integration.md#h3a-power-off-restart-and-the-clock)).
+  `724475a` + `fafb232`, e32 `c5fda36`; [user-side/rust-integration.md](user-side/rust-integration.md#h3a-power-off-restart-and-the-clock)).
   On the Pixel (RAM boot): the PM660 RTC reads and counts; a power-off from the Power menu stays off; after it,
   neoui set the clock from the RTC and `clock.dat` to within ~2 s. The rest of H3 (charger, battery, suspend,
   screen off) is still open.
@@ -190,15 +190,15 @@ Four tracks. Track K runs alone until M3. After that, H, U and P run in parallel
 |---|---|---|
 | **H0 debug link** (early, ideally before M3) | DWC3 in device mode as a USB serial console, so logs leave the phone without the screen | Kernel logs readable on the Mac over USB |
 | **H1 platform base** | RPMh (clocks, regulators, bus votes), SPMI PMIC arbiter, TLMM GPIO, GENI I2C/SPI, GPI DMA, SCM calls to TrustZone | Can talk to PM660 and to an I2C device |
-| **H2 storage** | SDHCI-msm eMMC media driver (CQHCI later), read the GPT, `C:` on `userdata`; then the file system plan ([filesystem.md](filesystem.md)): FS1 FAT32 plugin, FS2 HS200, FS3 `C:` + `E:`, FS4 `Z:` on ROFS, FS5 A/B updates, FS6 USB | Files written in Symbian survive a reboot and a power cut |
+| **H2 storage** | SDHCI-msm eMMC media driver (CQHCI later), read the GPT, `C:` on `userdata`; then the file system plan ([storage/filesystem.md](storage/filesystem.md)): FS1 FAT32 plugin, FS2 HS200, FS3 `C:` + `E:`, FS4 `Z:` on ROFS, FS5 A/B updates, FS6 USB | Files written in Symbian survive a reboot and a power cut |
 | **H3 power** | PM660 charger + RRADC battery reading (Rust policy); suspend and resume (PSCI CPU_SUSPEND / system suspend); screen off | Phone idles a night on battery and wakes on the power key |
-| **H4 display + input** | Synaptics RMI4 touch (I2C; **done 2026-11-06** in kernel C++, polled; Rust behind `hwaccess` later); power and volume keys (**done**, SPMI); OLED panel brightness and DSI panel on/off (**done 2026-11-11**, D2 in [driver-support.md](hardware.md): DCS commands through the command DMA ABL leaves running; screen timeout and the power key in neoui). Keep the bootloader's splash framebuffer as scan-out until a DPU driver is needed (vsync, double buffer, hardware planes: [smooth-ui.md](neoui-shell/smooth-ui.md) S5). | Touch coordinates reach a user-side process; backlight dims |
+| **H4 display + input** | Synaptics RMI4 touch (I2C; **done 2026-11-06** in kernel C++, polled; Rust behind `hwaccess` later); power and volume keys (**done**, SPMI); OLED panel brightness and DSI panel on/off (**done 2026-11-11**, D2 in [driver-support.md](hardware/README.md): DCS commands through the command DMA ABL leaves running; screen timeout and the power key in neoui). Keep the bootloader's splash framebuffer as scan-out until a DPU driver is needed (vsync, double buffer, hardware planes: [smooth-ui.md](neoui-shell/smooth-ui.md) S5). | Touch coordinates reach a user-side process; backlight dims |
 | **H5 audio** | ADSP and C6 call audio (CS35L36 amps, RT5514 mic); **2026-11-18:** NeoAudio ([audio.md](hardware/audio.md)): ASM/ADM playback and recording on the Pixel, old apps' DevSound, Settings → Sounds → Media, the jack driver | Play a tone through the earpiece |
 | **H6 haptics, LEDs, sensors** | TI DRV2624 haptics (driver drafted in C7, pending acceptance), verified flash controller and ADSP sensors (exact chips/protocol pending) | Vibrate on touch |
 
 ### Track U: Rust UI
 
-The full plan is in [rust-integration.md](rust-integration.md) (phases R0–R7). It is developed now on QEMU Syborg,
+The full plan is in [user-side/rust-integration.md](user-side/rust-integration.md) (phases R0–R7). It is developed now on QEMU Syborg,
 with the real 2010 ARM user side, and moves to the Pixel after M3.
 
 **U1: Rust on the Symbian user side** (now on Syborg; on the Pixel after M3) = R0–R3
@@ -227,7 +227,7 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
 **U3: system apps in Rust**
 - Launcher, status bar (battery from H3, signal from P2), settings, dialer, messages, contacts, Files.
 - Old Symbian text apps keep running from a terminal app.
-- Shell services: the hub is [neoui-shell.md](neoui-shell.md) (its documents moved into `neoui-shell/` on
+- Shell services: the hub is [neoui-shell/README.md](neoui-shell/README.md) (its documents moved into `neoui-shell/` on
   2026-11-21). The settings store is done; home pages and widgets are planned.
 - **Top panel** ([top-panel.md](neoui-shell/top-panel.md), designed 2026-11-21): the status bar v2, notification
   cards, the media session (background playback), banners and inline reply, calls and messages from the panel, the
@@ -252,13 +252,13 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   - English, Armenian and Russian, managed in Settings → Language & keyboard;
   - a terminal mode;
   - shell text fields that bring it up (the Wi-Fi password);
-  - [rust-integration.md](rust-integration.md) R6d.
+  - [user-side/rust-integration.md](user-side/rust-integration.md) R6d.
 - **Phone and Contacts (done 2026-11-14):**
   - first as NEOPHONE, one resident app behind both icons ([NeoSymbian/phone](https://github.com/NeoSymbian/phone));
   - dialer, Recents, speed dial, every call screen, contacts with per-script sections, settings and the blocklist;
   - [telephony.md](hardware/modem.md) C8;
   - the keyboard got number and phone pads and a toolbar key to put it away.
-- **Phone, Contacts and Messages v2 (merged to main and installed into slot a, 2026-11-17):** [phone-apps.md](phone-apps.md).
+- **Phone, Contacts and Messages v2 (merged to main and installed into slot a, 2026-11-17):** [apps/phone.md](apps/phone.md).
   - a board-by-board audit found every `p2-*` board reached on the device. Its fixes:
     - the Return to call timer counts from MODEMD's connect time (modem-ipc 2.6);
     - the launcher badges show missed calls and unread messages;
@@ -274,29 +274,29 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
     conversation with Reply and Call;
   - MODEMD modem-ipc 2.5 (archive, unblock sender, delete all, why a message failed);
   - the gaps left: contact photos (needs a Photos app) and Email (needs an Email app).
-- **Web browser (designed 2026-11-15):** [browser.md](browser.md). Servo, native on the phone, in a new
+- **Web browser (designed 2026-11-15):** [apps/browser/README.md](apps/browser/README.md). Servo, native on the phone, in a new
   `NeoSymbian/browser` repo with forks only where needed; stages WB0–WB7 (about 29–56+ PM). It needs smooth-ui S4
   (FP/NEON, ARMv7 atomics), M4.3 (the RAM map, kernel branch `ram-map`), bigger stacks and VM primitives first. WB0, a host proof on armv7 Linux,
   is the go/no-go. **WB0 done 2026-11-16: GO** (5/10 sites; the other 5 share one 32-bit
   web-font bug; 37–210 MiB per page; SWGL works). The speed gate WB0p waits for real hardware.
   **WB1 done 2026-11-17** (kernel#19): FP/NEON for apps (smooth-ui S4's kernel part), 16 MiB stacks, a seeded
   secure RNG; GC-style memory works with disconnected chunks. Tested on the Pixel. Next: WB2 (Rust `std` over P.I.P.S.).
-  **The app UI is specified** in [browser/ui.md](browser/ui.md) (2026-11-17): every Browser v2 canvas screen in phases
+  **The app UI is specified** in [apps/browser/ui.md](apps/browser/ui.md) (2026-11-17): every Browser v2 canvas screen in phases
   UI0–UI6, built first on a stand-in engine in parallel with WB2–WB4.
-  **WB2 (Rust `std`) done 2026-11-19** ([browser/wb2-std.md](browser/wb2-std.md)): WB2a (ARMv7 + NEON target), WB2b (P.I.P.S.
+  **WB2 (Rust `std`) done 2026-11-19** ([apps/browser/wb2-std.md](apps/browser/wb2-std.md)): WB2a (ARMv7 + NEON target), WB2b (P.I.P.S.
   measured), WB2c (Rust std for `target_os = "symbian"`: STDTEST/MIXTEST pass on QEMU and the Pixel, P.I.P.S. fixes),
   WB2d (Tokio; TCP through P.I.P.S., ESOCK's new link layer and NEONET.PRT fixes: Tokio and std HTTP over Wi-Fi on
   the Pixel).
-  **WB3 (SpiderMonkey) done 2026-11-19** ([browser/wb3-js.md](browser/wb3-js.md)): SpiderMonkey 153, interpreter only and
+  **WB3 (SpiderMonkey) done 2026-11-19** ([apps/browser/wb3-js.md](apps/browser/wb3-js.md)): SpiderMonkey 153, interpreter only and
   without Intl, as `JSSHELL.EXE`; GC memory in a disconnected chunk; the language tests, GC stress, 4 runtimes on 4
   threads and a clean out-of-memory all pass on QEMU and the Pixel.
   **WB4 (Servo) done 2026-11-20:** NEOWEB.EXE shows live Servo frames from the engine process NEOWEBE.EXE on the Pixel.
   **WB5 (input and chrome) done 2026-11-21:** typing into forms, JS dialogs, upload, tabs, the link menu, find,
   selection, bookmarks, history, downloads and settings on Servo; scrolling 15-18 fps. Next: WB6 (browser services).
   **Later: upstream sync.** `std` needs forks of rust (`library/` only), libc and mio on branch `neosymbian`
-  ([why](browser/wb2-std.md#why-forks)). Keep them synced on every nightly bump, offer libc and mio upstream once stable,
+  ([why](apps/browser/wb2-std.md#why-forks)). Keep them synced on every nightly bump, offer libc and mio upstream once stable,
   then propose a tier 3 `symbian` Rust target (as NuttX, Vita and the 3DS did) so the forks go away.
-- **Files (proposed 2026-11-17):** [files-app.md](files-app.md). The canvas's 60 `files2-*` boards in a new
+- **Files (proposed 2026-11-17):** [apps/files/README.md](apps/files/README.md). The canvas's 60 `files2-*` boards in a new
   `NeoSymbian/files` repo (UID 0xE0006001): browsing, copy/move with a per-drive Recycle bin, search, archives,
   viewers for 55 file types and editors for 24, in phases FA0–FA13. **FA0 done 2026-11-17:** NEOFILES moved out of
   neoui into [NeoSymbian/files](https://github.com/NeoSymbian/files), unchanged (Syborg CI and the Pixel).
@@ -320,7 +320,7 @@ with the real 2010 ARM user side, and moves to the Pixel after M3.
   **FA11 merged 2026-11-25:** the PDF viewer (pages at the screen's width, thumbnails, pinch zoom with a sharp tile,
   Contents, Go to page, passwords, the place kept), drawn by our no_std fork of hayro (NeoSymbian/hayro) through
   tiny-skia; merged after the Pixel run (pages in 80–360 ms). Next: FA9 M1b–M6 (more audio formats).
-- **Clock + Calendar (built 2026-11-26, DT0–DT7, Pixel-tested):** [datetime.md](datetime.md). The `NeoSymbian/datetime` repo
+- **Clock + Calendar (built 2026-11-26, DT0–DT7, Pixel-tested):** [apps/datetime.md](apps/datetime.md). The `NeoSymbian/datetime` repo
   (UIDs 0xE0008001–3): NEOCLOCK moves out of neoui and gets a v2 UI (3 tabs); NEOCAL is new (Month, Week, Day,
   To-do, .ics); a resident DTSRV owns alarms, timers, events and to-dos and rings them, replacing clockwork's alarm
   check. Phases DT0–DT7; the canvas's Clock and Calendar pages hold the design.
@@ -338,7 +338,7 @@ C0–C12). The stage names below are kept because the dependency graph uses them
 |---|---|---|
 | **P1 remote processors** (needs H1) | C0–C4: backups, Linux reference run, SCM/SMEM/SMP2P/GLINK, MSS boot, rmtfs/pd-mapper/tqftp | The modem is up and answers QMI |
 | **P2 QMI in Rust** | C5: `modemsrv` + dialer (no ETel at first) | Operator and bars in the status bar; calls ring and answer |
-| **P3 SMS and mobile data** | C9, C10 | SMS round-trip; a web page over LTE. **2026-11-16: C9 done**: SMS in MODEMD over QMI WMS, Messages as NEOPHONE's third app; sent, delivered and received on the phone. **2026-11-17:** Messages is its own app (NEOMSG, [phone-apps.md](phone-apps.md)) |
+| **P3 SMS and mobile data** | C9, C10 | SMS round-trip; a web page over LTE. **2026-11-16: C9 done**: SMS in MODEMD over QMI WMS, Messages as NEOPHONE's third app; sent, delivered and received on the phone. **2026-11-17:** Messages is its own app (NEOMSG, [apps/phone.md](apps/phone.md)) |
 | **P4 Wi-Fi + Bluetooth** | [wifi.md](hardware/wifi.md), [bluetooth.md](hardware/bluetooth.md) | Join a WPA2 network. WCN3990 Wi-Fi runs through the modem subsystem and QMI. **2026-11-12: W0–W3 done** (firmware start, copy engines, HTC/WMI, scanning; Settings → Wi-Fi lists networks on the phone). **W4 done the same day: the phone joins a WPA2-PSK network** from Settings (keys installed, decrypted traffic arriving, status bar icon, network details). **W5 done the same day: an IP address and the internet over Wi-Fi** (smoltcp first in NEONET.EXE: DHCP, DNS, TCP; the NeoNet socket API for apps; ESOCK/TCPIP6 stays the long-term option). **2026-11-13: W7 (copy-engine interrupts instead of polling, a handshake guard) and W5a: the 2010 socket server (ESOCK) runs over NeoNet**, with no TCPIP6 (`neonet.prt`, an always-up tier). 2010 programs fetch over Wi-Fi through `RSocket`; C++ programs can also use `NEONET.DLL`. **2026-11-15: the Bluetooth design** ([bluetooth.md](hardware/bluetooth.md)): a new Rust host stack in neolink, the 2010 client DLLs over a new ESOCK facade, milestones B0–B9 (BLE first) |
 | **P5 voice calls** | C6–C8, C11 | Two-way call audio. 2026-11-08: the owner's network still has 3G, so calls use CSFB first. VoLTE is the C11 stretch. **C6 done 2026-11-09**: two-way call audio on the earpiece and loudspeaker |
 

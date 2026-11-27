@@ -2,33 +2,33 @@
 # neoui shell
 
 The hub for everything the shell (`SYSSTART.EXE`, NeoSymbian/neoui) draws and serves, and how apps talk to it.
-Details live in [`neoui-shell/`](neoui-shell/), one document per area, like [hardware.md](hardware.md) and its
-folder. Roadmap stage U3 ([roadmap.md](roadmap.md)). Reorganised 2026-11-21: this page was the "shell services"
+Details live in [`neoui-shell/`](./), one document per area, like [../hardware/README.md](../hardware/README.md) and its
+folder. Roadmap stage U3 ([../roadmap.md](../roadmap.md)). Reorganised 2026-11-21: this page was the "shell services"
 design (settings, notifications, home pages, widgets); its parts moved into the folder.
 
 ## Documents
 
 | Document | Covers | Stages | Status |
 |---|---|---|---|
-| [neoui-shell/top-panel.md](neoui-shell/top-panel.md) | Status bar, shade, notifications, banners, media session, calls and messages from the panel, live island, control centre, lock screen | TP0–TP9 | designed 2026-11-21 |
-| [neoui-shell/protocol.md](neoui-shell/protocol.md) | Every NeoUi opcode and event 1.0–1.12, and the numbers reserved for designed work | — | reference |
-| [neoui-shell/kit.md](neoui-shell/kit.md) | The kit (shared Slint components), the app API `neoapp`, protocols 1.8–1.12 in detail, creating an app | A1–A5 | built |
-| [neoui-shell/navigation.md](neoui-shell/navigation.md) | Navigation v2: Buttons, Gestures (Thumb map), N9; the recognizer; Open apps, peek, Lanes | G1, NV1–NV12, G2–G5 | NV built 2026-11-17 |
-| [neoui-shell/keyboard.md](neoui-shell/keyboard.md) | The system keyboard (en, hy, ru, pads, terminal) and the old apps' key pads | — | built |
-| [neoui-shell/settings.md](neoui-shell/settings.md) | The settings store (Part 1), the apps rebuilt on it, and the Settings app `NEOSET.EXE` (v2, out of the shell): pages, `SETTINGS_INFO`/`ACTION`, who may write what | Part 1, SE0–SE7 | store built 2026-11-09; app designed 2026-11-25 |
-| [neoui-shell/settings-data.md](neoui-shell/settings-data.md) | The data every Settings board shows: who produces it, the protocol, gates and feasibility | D1–D19 | plan 2026-11-26 |
-| [neoui-shell/home.md](neoui-shell/home.md) | Home pages, pin and unpin, the dock, widgets (Parts 3–4) | Parts 3–4 | planned |
-| [neoui-shell/design-system.md](neoui-shell/design-system.md) | Tokens, layout, glyphs, digits, app tiles, components | — | built |
-| [neoui-shell/smooth-ui.md](neoui-shell/smooth-ui.md) | 60 fps: input pacing, layers, CPU placement, FP/NEON, DPU, GPU | S1–S6 | S1–S3 done |
-| [datetime.md](datetime.md#system-time-shell-built-2026-11-13) | The shell's system time: Date & time, network time, time zones (was Parts 5–6) | — | built 2026-11-13 |
-| [legacy.md](legacy.md) | Old S60 apps through LEGACY.EXE (their key pads are drawn there) | — | — |
-| [files-app.md](files-app.md), [phone-apps.md](phone-apps.md), [datetime.md](datetime.md), [store.md](store.md), [browser/ui.md](browser/ui.md) | The apps built on the kit | — | — |
+| [top-panel.md](top-panel.md) | Status bar, shade, notifications, banners, media session, calls and messages from the panel, live island, control centre, lock screen | TP0–TP9 | designed 2026-11-21 |
+| [protocol.md](protocol.md) | Every NeoUi opcode and event 1.0–1.12, and the numbers reserved for designed work | — | reference |
+| [kit.md](kit.md) | The kit (shared Slint components), the app API `neoapp`, protocols 1.8–1.12 in detail, creating an app | A1–A5 | built |
+| [navigation.md](navigation.md) | Navigation v2: Buttons, Gestures (Thumb map), N9; the recognizer; Open apps, peek, Lanes | G1, NV1–NV12, G2–G5 | NV built 2026-11-17 |
+| [keyboard.md](keyboard.md) | The system keyboard (en, hy, ru, pads, terminal) and the old apps' key pads | — | built |
+| [settings.md](settings.md) | The settings store (Part 1), the apps rebuilt on it, and the Settings app `NEOSET.EXE` (v2, out of the shell): pages, `SETTINGS_INFO`/`ACTION`, who may write what | Part 1, SE0–SE7 | store built 2026-11-09; app designed 2026-11-25 |
+| [settings-data.md](settings-data.md) | The data every Settings board shows: who produces it, the protocol, gates and feasibility | D1–D19 | plan 2026-11-26 |
+| [home.md](home.md) | Home pages, pin and unpin, the dock, widgets (Parts 3–4) | Parts 3–4 | planned |
+| [design-system.md](design-system.md) | Tokens, layout, glyphs, digits, app tiles, components | — | built |
+| [smooth-ui.md](smooth-ui.md) | 60 fps: input pacing, layers, CPU placement, FP/NEON, DPU, GPU | S1–S6 | S1–S3 done |
+| [../apps/datetime.md](../apps/datetime.md#system-time-shell-built-2026-11-13) | The shell's system time: Date & time, network time, time zones (was Parts 5–6) | — | built 2026-11-13 |
+| [../user-side/legacy.md](../user-side/legacy.md) | Old S60 apps through LEGACY.EXE (their key pads are drawn there) | — | — |
+| [../apps/files/README.md](../apps/files/README.md), [../apps/phone.md](../apps/phone.md), [../apps/datetime.md](../apps/datetime.md), [../apps/store.md](../apps/store.md), [../apps/browser/ui.md](../apps/browser/ui.md) | The apps built on the kit | — | — |
 
 ## Who draws what (K01)
 
 The shell draws the status bar, the key row or the gesture band, dialogs (`QUERY`), toasts, the keyboard, the
-shade and everything in [top-panel.md](neoui-shell/top-panel.md), Open apps, the Apps menu, home, the power menu and
-the SIM PIN. An app draws its header, footer and content with the kit ([kit.md](neoui-shell/kit.md#who-draws-what)).
+shade and everything in [top-panel.md](top-panel.md), Open apps, the Apps menu, home, the power menu and
+the SIM PIN. An app draws its header, footer and content with the kit ([kit.md](kit.md#who-draws-what)).
 
 ## Status by area (2026-11-21)
 
@@ -50,19 +50,19 @@ belongs to:
 
 | Page | Boards | Document |
 |---|---|---|
-| Design system | `ds-tokens`, `ds-layout`, `ds-digits`, `ds-icon-formats`, `ds-app-icons`, `ds-glyphs`, `ds-components` | [design-system.md](neoui-shell/design-system.md) |
-| Shell & system UI · system screens | `Main`, `sh-home-buttons`, `sh-home-clock-24h`, `sh-home-clock-12h` | [home.md](neoui-shell/home.md) |
-| | `sh-apps-menu`, `sh-open-apps` | [navigation.md](neoui-shell/navigation.md) |
-| | `sh-shade`, `sh-shade-quick`, `sh-statusbar-states`, `sh-power-menu`, `sh-sim-pin` | [top-panel.md](neoui-shell/top-panel.md#screen-map) |
-| | `sh-dialog` | [kit.md](neoui-shell/kit.md) (QUERY) |
-| | `sh-form-keyboard` | [keyboard.md](neoui-shell/keyboard.md) |
-| Shell & system UI · shell services | `sh-toast`, `sh-shade-app-notify`, `sh-badges` | [top-panel.md](neoui-shell/top-panel.md#screen-map) |
-| Shell & system UI · UI kit, patterns | `kit-header`, `kit-footer`, `kit-lists`, `kit-controls`, `kit-menus`, `kit-feedback`; `pat-prototype`, `pat-clock-buttons`, `pat-clock-gestures`, `pat-tabs-swipe`, `pat-files-select`, `pat-files-search`, `pat-files-refresh`, `pat-settings-top`, `pat-row-actions` | [kit.md](neoui-shell/kit.md) |
-| Shell & system UI · Shell API | `api-overview`, `api-kit-reference`, `api-recipes`, `api-decisions` | [kit.md](neoui-shell/kit.md) |
-| | `api-protocol` | [protocol.md](neoui-shell/protocol.md) |
-| Top panel & notifications | all 26 (`tp-*`, `nt-*`, `di-*`, `api-notify-*`; 8 added in TP0) | [top-panel.md](neoui-shell/top-panel.md#screen-map) |
-| Navigation | all 35 (`nav-*`, `nav2-spec-*`) | [navigation.md](neoui-shell/navigation.md) |
-| Keyboard | `kb2-*` (7), `pad-*` (22) | [keyboard.md](neoui-shell/keyboard.md#canvas-the-keyboard-page-29-boards) |
+| Design system | `ds-tokens`, `ds-layout`, `ds-digits`, `ds-icon-formats`, `ds-app-icons`, `ds-glyphs`, `ds-components` | [design-system.md](design-system.md) |
+| Shell & system UI · system screens | `Main`, `sh-home-buttons`, `sh-home-clock-24h`, `sh-home-clock-12h` | [home.md](home.md) |
+| | `sh-apps-menu`, `sh-open-apps` | [navigation.md](navigation.md) |
+| | `sh-shade`, `sh-shade-quick`, `sh-statusbar-states`, `sh-power-menu`, `sh-sim-pin` | [top-panel.md](top-panel.md#screen-map) |
+| | `sh-dialog` | [kit.md](kit.md) (QUERY) |
+| | `sh-form-keyboard` | [keyboard.md](keyboard.md) |
+| Shell & system UI · shell services | `sh-toast`, `sh-shade-app-notify`, `sh-badges` | [top-panel.md](top-panel.md#screen-map) |
+| Shell & system UI · UI kit, patterns | `kit-header`, `kit-footer`, `kit-lists`, `kit-controls`, `kit-menus`, `kit-feedback`; `pat-prototype`, `pat-clock-buttons`, `pat-clock-gestures`, `pat-tabs-swipe`, `pat-files-select`, `pat-files-search`, `pat-files-refresh`, `pat-settings-top`, `pat-row-actions` | [kit.md](kit.md) |
+| Shell & system UI · Shell API | `api-overview`, `api-kit-reference`, `api-recipes`, `api-decisions` | [kit.md](kit.md) |
+| | `api-protocol` | [protocol.md](protocol.md) |
+| Top panel & notifications | all 26 (`tp-*`, `nt-*`, `di-*`, `api-notify-*`; 8 added in TP0) | [top-panel.md](top-panel.md#screen-map) |
+| Navigation | all 35 (`nav-*`, `nav2-spec-*`) | [navigation.md](navigation.md) |
+| Keyboard | `kb2-*` (7), `pad-*` (22) | [keyboard.md](keyboard.md#canvas-the-keyboard-page-29-boards) |
 
 ## Decisions
 
@@ -74,8 +74,8 @@ belongs to:
 | Where an app's own settings live | **One store.** The Settings app shows global settings and per-app notification switches. An app's own options stay inside the app but are saved in the same store | One file, one format, one change event |
 
 The 2026-11-16/17 decisions K01–K04 (kit), D12–D20 (navigation) and the top panel's TPD1–TPD7 and P01–P06 are in
-[kit.md](neoui-shell/kit.md), [navigation.md](neoui-shell/navigation.md) and
-[top-panel.md](neoui-shell/top-panel.md#decisions).
+[kit.md](kit.md), [navigation.md](navigation.md) and
+[top-panel.md](top-panel.md#decisions).
 
 ## Where the code goes
 
@@ -94,10 +94,10 @@ Processes outside neoui (Apache-2.0, for example in `neohw`) must not link the G
 
 ## Step 0: know who is calling
 
-**Update 2026-11-25:** [neoui-shell/settings.md](neoui-shell/settings.md#the-settings-app-neoset) SE0 builds the first half: `Message::client_sid()` and a
+**Update 2026-11-25:** [settings.md](settings.md#the-settings-app-neoset) SE0 builds the first half: `Message::client_sid()` and a
 check on `SETTING_SET`, so that only `NEOSET.EXE` (SID 0xE0002007) gets `Caller::Settings` and its allowlist of
 user-editable keys. Binding every session by SID at `connect` and `SERVICES` stay as designed below. The version
-bump below is void: NeoUi is 1.12, and minors are assigned in merge order ([protocol.md](neoui-shell/protocol.md)).
+bump below is void: NeoUi is 1.12, and minors are assigned in merge order ([protocol.md](protocol.md)).
 
 **Problem.** `Host::connect` (`symbian/src/host.rs`) binds each new session to "the newest launched app without a
 session" (marked `shortcut:` there). Two things follow:
@@ -128,9 +128,9 @@ and SMS notifications itself from modem events. Step 0 is needed for third-party
 - Waking an app on a schedule to refresh its widget.
 - Apps that describe their own settings pages to the Settings app.
 - An installed-apps registry. `APPS` and the catalogue stay fixed tables until app installation exists; the registry
-  is NeoStore ST4 ([store.md](store.md), opcodes 38/39 in [protocol.md](neoui-shell/protocol.md)).
+  is NeoStore ST4 ([../apps/store.md](../apps/store.md), opcodes 38/39 in [protocol.md](protocol.md)).
 - The notification items that were here (reboot survival, sounds, lock screen) are now phases of
-  [top-panel.md](neoui-shell/top-panel.md).
+  [top-panel.md](top-panel.md).
 
 ## Gates for every part
 - `neoui`: `cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test`, plus
@@ -141,5 +141,5 @@ and SMS notifications itself from modem events. Step 0 is needed for third-party
 - Phone, after part 1 and part 3: install via the ROFS installer path (CLAUDE.md "The phone"). Check that brightness
   changes the backlight and that the home layout survives a power cycle.
 
-When a part lands, mark it **Done** in the table at the top, and update [roadmap.md](roadmap.md) U3 and the org
+When a part lands, mark it **Done** in the table at the top, and update [../roadmap.md](../roadmap.md) U3 and the org
 profile's status list.

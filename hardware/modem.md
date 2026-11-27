@@ -1,6 +1,6 @@
 # Telephony: cellular calls, SMS and data on the Pixel 3a XL
 
-Part of [hardware.md](../hardware.md), the hardware and drivers hub (status of every driver, the neohw processes). Neighbours: [audio](audio.md), [wifi](wifi.md), [bluetooth](bluetooth.md), [battery](battery.md).
+Part of [hardware.md](README.md), the hardware and drivers hub (status of every driver, the neohw processes). Neighbours: [audio](audio.md), [wifi](wifi.md), [bluetooth](bluetooth.md), [battery](battery.md).
 
 Written 2026-11-08. This file is the end-to-end runbook for roadmap Track P: from a silent modem to a phone that
 places and takes calls, sends SMS and uses mobile data. It replaces the outline in `roadmap.md` Track P.
@@ -283,7 +283,7 @@ Failure modes seen on the way:
 One process, `MODEMD.EXE` (uid `0xE0003001`), from the Rust workspace
 [NeoSymbian/neohw](https://github.com/NeoSymbian/neohw). The protocol code is the `no_std` crate `modem-proto`, tested on the Mac
 with vectors from the C1 captures. The `symbian/modemd` glue talks to the kernel through `EHalGroupVariant`
-functions 0x4e0d–0x4e12 (`qcom_telhal.cpp`; table in [rust-integration.md](../rust-integration.md)). It doesn't use LDDs.
+functions 0x4e0d–0x4e12 (`qcom_telhal.cpp`; table in [rust-integration.md](../user-side/rust-integration.md)). It doesn't use LDDs.
 Started by hand for now: Terminal, `modemd`. Auto-start is decided in C5.
 
 | Part | Work |
@@ -521,7 +521,7 @@ No worktrees, duplicate source trees, or replacement build/phone scripts.
   - one original built-in PCM ringtone through ASM → ADM → AFE to the loudspeaker,
     with ring volume, silent and vibration controls;
   - reuse C6's CS35L36 speaker path and its single APR/audio owner;
-  - vibration through **TI DRV2624**, I2C10 at 0x5a, reset GPIO24 (roadmap H6, [driver support D3](../hardware.md));
+  - vibration through **TI DRV2624**, I2C10 at 0x5a, reset GPIO24 (roadmap H6, [driver support D3](README.md));
   - a missed-call notification.
 - **In-call:**
   - preserve C6's working mute, DTMF, volume and speaker controls;
@@ -668,7 +668,7 @@ the unrelated dirty `kernel`/`build` checkouts are preserved. Remote logs are un
   showed the launcher and LTE, and marked slot a successful. Slot b was preserved.
   A normal reboot was then sent successfully; its final visible boot was not independently
   observed because normal-boot USB debug access remains limited. This is installation
-  evidence, not call/recovery acceptance. See [FS5](../filesystem.md#fs5-updates-and-integrity).
+  evidence, not call/recovery acceptance. See [FS5](../storage/filesystem.md#fs5-updates-and-integrity).
 
 ### C8: call log and contacts
 
@@ -679,7 +679,7 @@ the unrelated dirty `kernel`/`build` checkouts are preserved. Remote logs are un
 
 Exit: an incoming call from a saved number shows the contact's name.
 
-Reference: [symbian-phone-sources.md](../symbian-phone-sources.md), the facts C8 takes from the 2010 Symbian phone and contacts
+Reference: [symbian-phone-sources.md](../reference/symbian-phone-sources.md), the facts C8 takes from the 2010 Symbian phone and contacts
 sources (dial-string rules and test vectors, SS codes, caller-name matching, smart dialling, Logs and Speed dial
 behaviour, vCard mapping).
 

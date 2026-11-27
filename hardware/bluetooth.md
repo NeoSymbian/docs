@@ -1,9 +1,9 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Bluetooth on the Pixel 3a XL
 
-Part of [hardware.md](../hardware.md), the hardware and drivers hub (status of every driver, the neohw processes). Neighbours: [modem](modem.md), [audio](audio.md), [wifi](wifi.md), [battery](battery.md).
+Part of [hardware.md](README.md), the hardware and drivers hub (status of every driver, the neohw processes). Neighbours: [modem](modem.md), [audio](audio.md), [wifi](wifi.md), [battery](battery.md).
 
-Written 2026-11-15. This is the Bluetooth part of [driver-support.md](../hardware.md) D6 (roadmap P4), next to
+Written 2026-11-15. This is the Bluetooth part of [driver-support.md](README.md) D6 (roadmap P4), next to
 [wifi.md](wifi.md): from a silent WCN3990 Bluetooth core to BLE devices, file transfer, headsets and old S60 apps that
 use Bluetooth. It is a design and an estimate; nothing here is built yet.
 
@@ -226,7 +226,7 @@ the 2010 `esock_bt_399.cmi` pattern, not `esock_bt.cmi` (which binds to the wron
 EIKSRV notifier plugins decode the original packages and forward to a BTSRV **interaction broker**, which asks neoui
 for a dialog. UIDs: device selection `0x100069D1`, PIN `0x100069C9`, SSP-aware PIN `0x10285D55`, authorisation
 `0x100069CF`, passkey display `0x10285AD4`, numeric comparison `0x10285AD5`. Native callers use the broker directly.
-The LEGACY supervisor ([legacy.md](../legacy.md)) presents; it never owns bond state. Cancel, timeout or UI death means
+The LEGACY supervisor ([legacy.md](../user-side/legacy.md)) presents; it never owns bond state. Cancel, timeout or UI death means
 **reject**.
 
 ### OBEX
@@ -304,7 +304,7 @@ by a host-socket controller simulator; it tests the guest stack and old clients,
 ## Corrections to older notes
 
 - ECOMM loading by name works since T7 (loader aliases in `build/toolchain/efile_exe/ldr_builtin_devices.cpp`,
-  [debug-access-roadmap.md](../debug-access-roadmap.md) T7). The Bluetooth plan doesn't use ECOMM anyway.
+  [debug-access-roadmap.md](../developer-tools/debug-access-roadmap.md) T7). The Bluetooth plan doesn't use ECOMM anyway.
 - The ringtone result proves ADSP playback, not capture or duplex call PCM.
 
 ## Open items

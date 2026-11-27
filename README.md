@@ -3,7 +3,7 @@
 NeoSymbian brings the open-source 2010 Symbian (EKA2, the Symbian^3 release) back to modern hardware:
 
 - **First target:** the Google Pixel 3a XL (bonito, Qualcomm SDM670).
-- **Second device:** the Pixel 3a (sargo, the same SoC), a community port since 2026-11-16 ([hardware.md, devices](hardware.md#devices-where-neosymbian-can-go-next)).
+- **Second device:** the Pixel 3a (sargo, the same SoC), a community port since 2026-11-16 ([hardware.md, devices](hardware/README.md#devices-where-neosymbian-can-go-next)).
 - **Kernel:** ported to AArch64 with 32-bit pointers (ILP32).
 - **User side:** the 2010 Symbian user side runs unchanged in 32-bit mode at AArch32 EL0.
 - **UI:** a new touch UI written in Rust.
@@ -13,25 +13,25 @@ NeoSymbian brings the open-source 2010 Symbian (EKA2, the Symbian^3 release) bac
 | Document | What |
 |---|---|
 | [roadmap.md](roadmap.md) | Plan and status: kernel (K), hardware (H), UI (U) and phone (P) tracks |
-| [hardware.md](hardware.md) | **Hardware and drivers hub:** every driver's status (kernel + neohw), the neohw processes and their IPC, milestones D0–D8, and which phones could be next (the device shortlist). Details in `hardware/`: [modem](hardware/modem.md) (C0–C12), [audio](hardware/audio.md) (A0–A8), [wifi](hardware/wifi.md) (W0–W7), [bluetooth](hardware/bluetooth.md) (B0–), [battery](hardware/battery.md) |
-| [kernel-assessment.md](kernel-assessment.md) | Source audit: legacy architecture, existing defenses, reviewed baseline, coverage and limits |
-| [kernel-issues.md](kernel-issues.md) | Evidence-based kernel/reliability/security register, with all existing known issues mapped |
-| [kernel-modernization.md](kernel-modernization.md) | Phases KM0–KM6: fixes, owners, dependencies, tests and supported-release gates |
-| [kernel audit verification](verification/kernel-audit-2026-11-09.md) | Exact documentation checks, controlled runner probe, artifacts and unexecuted kernel tests |
-| [rust-integration.md](rust-integration.md) | Rust on the Symbian user side: stages R0–R8 |
-| [neoui-shell.md](neoui-shell.md) | **neoui shell hub:** what the shell draws and serves, every stage and the canvas map. Details in `neoui-shell/`: [top panel](neoui-shell/top-panel.md) (status bar, notifications, media, calls/messages, live island, control centre, lock screen; TP0–TP9), [protocol](neoui-shell/protocol.md), [kit](neoui-shell/kit.md), [navigation](neoui-shell/navigation.md), [keyboard](neoui-shell/keyboard.md), [settings](neoui-shell/settings.md), [home](neoui-shell/home.md), [design system](neoui-shell/design-system.md), [smooth UI](neoui-shell/smooth-ui.md) (S1–S6) |
-| [phone-apps.md](phone-apps.md) | Phone, Contacts and Messages v2: three apps that open each other; shared data; missing platform functions |
-| [files-app.md](files-app.md) | Files: the new files repo, every canvas screen, platform gaps, phases FA0–FA13 |
-| [video-sync.md](video-sync.md) | Video sync: how Android and the Linux players keep picture and sound together, and the FA12b plan |
-| [store.md](store.md) | NeoStore: the Go store server, the phone app, the `.npk` format, the on-phone installer for `.npk` and `.sis`, phases ST0–ST11 |
-| [browser.md](browser.md) | **Web browser hub:** the tracker of every stage (WB0–WB7), UI phase and screen, and the open items. Details in `browser/`: [design](browser/design.md) (why Servo), [architecture](browser/architecture.md), [protocol](browser/protocol.md), [UI spec](browser/ui.md) and [screens](browser/ui-screens.md), one file per stage (WB0–WB7) |
-| [port-map.md](port-map.md) | How EKA2 maps onto AArch64: what was reused, adapted and written new |
-| [ekern-backend.md](ekern-backend.md) | The full kernel's AArch64 backend |
-| [filesystem.md](filesystem.md) | File system plan: drives, flash layout, stages FS1–FS6 |
-| [symbian-phone-sources.md](symbian-phone-sources.md) | What the 2010 phone, contacts and phonesrv sources give C8: dialer, smart dialling, call log, speed dial, SS codes, vCard (facts only) |
+| [hardware/README.md](hardware/README.md) | **Hardware and drivers hub:** every driver's status (kernel + neohw), the neohw processes and their IPC, milestones D0–D8, and which phones could be next (the device shortlist). Details in `hardware/`: [modem](hardware/modem.md) (C0–C12), [audio](hardware/audio.md) (A0–A8), [wifi](hardware/wifi.md) (W0–W7), [bluetooth](hardware/bluetooth.md) (B0–), [battery](hardware/battery.md) |
+| [kernel/audits/2026-11-09/assessment.md](kernel/audits/2026-11-09/assessment.md) | Source audit: legacy architecture, existing defenses, reviewed baseline, coverage and limits |
+| [kernel/issues.md](kernel/issues.md) | Evidence-based kernel/reliability/security register, with all existing known issues mapped |
+| [kernel/modernization.md](kernel/modernization.md) | Phases KM0–KM6: fixes, owners, dependencies, tests and supported-release gates |
+| [kernel audit verification](kernel/audits/2026-11-09/verification.md) | Exact documentation checks, controlled runner probe, artifacts and unexecuted kernel tests |
+| [user-side/rust-integration.md](user-side/rust-integration.md) | Rust on the Symbian user side: stages R0–R8 |
+| [neoui-shell/README.md](neoui-shell/README.md) | **neoui shell hub:** what the shell draws and serves, every stage and the canvas map. Details in `neoui-shell/`: [top panel](neoui-shell/top-panel.md) (status bar, notifications, media, calls/messages, live island, control centre, lock screen; TP0–TP9), [protocol](neoui-shell/protocol.md), [kit](neoui-shell/kit.md), [navigation](neoui-shell/navigation.md), [keyboard](neoui-shell/keyboard.md), [settings](neoui-shell/settings.md), [home](neoui-shell/home.md), [design system](neoui-shell/design-system.md), [smooth UI](neoui-shell/smooth-ui.md) (S1–S6) |
+| [apps/phone.md](apps/phone.md) | Phone, Contacts and Messages v2: three apps that open each other; shared data; missing platform functions |
+| [apps/files/README.md](apps/files/README.md) | Files: the new files repo, every canvas screen, platform gaps, phases FA0–FA13 |
+| [apps/files/video-sync.md](apps/files/video-sync.md) | Video sync: how Android and the Linux players keep picture and sound together, and the FA12b plan |
+| [apps/store.md](apps/store.md) | NeoStore: the Go store server, the phone app, the `.npk` format, the on-phone installer for `.npk` and `.sis`, phases ST0–ST11 |
+| [apps/browser/README.md](apps/browser/README.md) | **Web browser hub:** the tracker of every stage (WB0–WB7), UI phase and screen, and the open items. Details in `browser/`: [design](apps/browser/design.md) (why Servo), [architecture](apps/browser/architecture.md), [protocol](apps/browser/protocol.md), [UI spec](apps/browser/ui.md) and [screens](apps/browser/ui-screens.md), one file per stage (WB0–WB7) |
+| [kernel/port-map.md](kernel/port-map.md) | How EKA2 maps onto AArch64: what was reused, adapted and written new |
+| [kernel/ekern-backend.md](kernel/ekern-backend.md) | The full kernel's AArch64 backend |
+| [storage/filesystem.md](storage/filesystem.md) | File system plan: drives, flash layout, stages FS1–FS6 |
+| [reference/symbian-phone-sources.md](reference/symbian-phone-sources.md) | What the 2010 phone, contacts and phonesrv sources give C8: dialer, smart dialling, call log, speed dial, SS codes, vCard (facts only) |
 | [known-issues.md](known-issues.md) | Open problems and their workarounds |
-| [sources.md](sources.md) | Survey of the source repositories and licences |
-| [retired-repos.md](retired-repos.md) | The 91 repositories deleted on 2026-11-06, and how to bring one back |
+| [reference/symbian-sources.md](reference/symbian-sources.md) | Survey of the source repositories and licences |
+| [history/retired-repos.md](history/retired-repos.md) | The 91 repositories deleted on 2026-11-06, and how to bring one back |
 
 ## Repositories
 
@@ -44,8 +44,8 @@ original projects.
 | [build](https://github.com/NeoSymbian/build) | The build system: `neo`, the build image (`ghcr.io/neosymbian/toolchain`), the pinned sources, the 2010 ROM |
 | [e32-rs](https://github.com/NeoSymbian/e32-rs) | Rust crates for the Symbian user side |
 | [neoui](https://github.com/NeoSymbian/neoui) | The Rust UI server and apps |
-| [neohw](https://github.com/NeoSymbian/neohw) | The user side of the hardware in Rust (was `telephony`, with `neolink` merged in): the modem, audio, Wi-Fi and IP daemons and their crates ([hardware.md](hardware.md)) |
-| [neoqemu](https://github.com/NeoSymbian/neoqemu) | QEMU for the AArch64 kernel's `virt` runs: upstream QEMU 11.1.2 plus our fixes, `run-qemu.sh` and `ui-qemu.py` (`ghcr.io/neosymbian/neoqemu`, in the toolchain image's `/opt/neoqemu/bin`). Replaced symbian-qemu (2026-11-25, [retired](retired-repos.md)) |
+| [neohw](https://github.com/NeoSymbian/neohw) | The user side of the hardware in Rust (was `telephony`, with `neolink` merged in): the modem, audio, Wi-Fi and IP daemons and their crates ([hardware/README.md](hardware/README.md)) |
+| [neoqemu](https://github.com/NeoSymbian/neoqemu) | QEMU for the AArch64 kernel's `virt` runs: upstream QEMU 11.1.2 plus our fixes, `run-qemu.sh` and `ui-qemu.py` (`ghcr.io/neosymbian/neoqemu`, in the toolchain image's `/opt/neoqemu/bin`). Replaced symbian-qemu (2026-11-25, [retired](history/retired-repos.md)) |
 | `oss.*` | The SymbianSource packages the build pins (`build/sources.lock`), forked as they are |
 
 ## Where the port's files went

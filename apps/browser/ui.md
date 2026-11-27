@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # The browser app (NEOWEB): UI spec
 
-Part of the [browser docs](../browser.md). Written 2026-11-17: every screen of `NEOWEB.EXE`, the rules its chrome
+Part of the [browser docs](README.md). Written 2026-11-17: every screen of `NEOWEB.EXE`, the rules its chrome
 follows, how it talks to the shell and to the engine. The phases that build the screens, and each screen's status, are
 in [ui-screens.md](ui-screens.md); the engine side is the WB stages.
 
@@ -50,14 +50,14 @@ B01–B07 were the owner's decisions of 2026-11-17 on the canvas; B08–B11 were
 - When the chrome shows, it overlays the page; the page is never resized on hide.
 - **Back uses `can_back`.** Protocol 1.8 removed NAV, so the old design's `claim_nav` is gone.
 - **The Wi-Fi portal hand-off is protocol 1.9 `OPEN`.** Wi-Fi opens `browser` with the portal URL as its argument, and
-  NEOWEB reads it with `ARG` ([kit.md](../neoui-shell/kit.md), protocol 1.9).
+  NEOWEB reads it with `ARG` ([kit.md](../../neoui-shell/kit.md), protocol 1.9).
 
 ## Architecture
 
 **NEOWEB is a normal neoui app**, a separate process like NEOPHONE:
 - it draws its own header and footer with the kit (`@neoui/kit.slint`);
 - it tells the shell about its page with `PAGE`;
-- it gets Back, the area and the keyboard as events ([kit.md](../neoui-shell/kit.md)).
+- it gets Back, the area and the keyboard as events ([kit.md](../../neoui-shell/kit.md)).
 
 It lives in `NeoSymbian/browser`, laid out like `NeoSymbian/phone`:
 

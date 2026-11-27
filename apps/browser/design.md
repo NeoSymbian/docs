@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Browser design: the choice of engine
 
-Part of the [browser docs](../browser.md). Written 2026-11-15, the design that chose Servo (roadmap U3).
+Part of the [browser docs](README.md). Written 2026-11-15, the design that chose Servo (roadmap U3).
 
 **Sources:**
 - a read of our kernel, e32-rs, neoui, neolink, legacy and build trees;
@@ -27,9 +27,9 @@ measurements.
 All of this is solved now except the GPU: see [architecture.md](architecture.md#platform-prerequisites).
 | Need | At design time (2026-11-16) | Where |
 |---|---|---|
-| Sockets | NeoNet (smoltcp: DHCP, DNS, TCP, UDP; IPv4) and the 2010 `RSocket` API over it (W5a) | [wifi.md](../hardware/wifi.md) W5, W5a |
+| Sockets | NeoNet (smoltcp: DHCP, DNS, TCP, UDP; IPv4) and the 2010 `RSocket` API over it (W5a) | [wifi.md](../../hardware/wifi.md) W5, W5a |
 | TLS, HTTP client | **none** (only hand-written `GET /generate_204`) | `neoui/symbian/src/wifi.rs:439` |
-| Hardware FP/NEON at EL0 | **off**: the per-thread FP save/restore hooks are empty | [kernel-issues.md](../kernel-issues.md) KRN-019, [smooth-ui.md](../neoui-shell/smooth-ui.md) S4 |
+| Hardware FP/NEON at EL0 | **off**: the per-thread FP save/restore hooks are empty | [kernel-issues.md](../../kernel/issues.md) KRN-019, [smooth-ui.md](../../neoui-shell/smooth-ui.md) S4 |
 | Atomics | **none**: user code was ARMv5TE, which has no CAS, so Rust had no `Arc` (native atomics since US4, 2026-11-25) | `e32-rs/crates/e32/src/cs.rs` |
 | RAM | **~87 MB** on `main` for the kernel and the whole user side (`A64_BOOT_RAM_END`). M4.3 is in progress: kernel branch `ram-map` (`640aa2ff`, 2026-11-15) takes the RAM banks from the bootloader's DTB, below 4 GiB (`KPhysTop`) | `kernel/baseport/arm64/bonito_variant/variant.conf:8`, `kernel/kernel/eka/kernel/arm64/a64boot.cpp` |
 | Address space | ~2 GiB private VA per process (flexible model) | `kernel/kernel/eka/include/memmodel/epoc/flexible/arm64/mmboot.h` |
@@ -39,7 +39,7 @@ All of this is solved now except the GPU: see [architecture.md](architecture.md#
 | libc | P.I.P.S./Open C sources (libc, libm, libpthread), today only registered for SVG-T. **`mprotect` does nothing**; `poll` is unverified | `legacy/components.py:188`; `ossrv` `genericopenlibs/openenvcore/libc/src/mmap.cpp` |
 | Surface and input | Each app gets a shared XRGB8888 chunk + DAMAGE, and 16-byte touch/key events | `neoui/crates/neoui-proto/src/ipc.rs` |
 | Fonts and images | Slint bakes SDF glyphs (no shaping, no fallback); PNG only | `neoui/Cargo.toml` |
-| GPU | No driver; everything renders on the CPU | [smooth-ui.md](../neoui-shell/smooth-ui.md) S6 |
+| GPU | No driver; everything renders on the CPU | [smooth-ui.md](../../neoui-shell/smooth-ui.md) S6 |
 
 Any modern engine needs hardware floats, real atomics, far more RAM, bigger stacks, a libc that behaves, and a TLS
 stack. Those are platform work, not browser work. Every candidate below except the tiny ones needs them.
@@ -77,7 +77,7 @@ the working set for useful browsing, in MiB. Both are *estimates*.
 | robinson/Kosmonaut-class toy engines | various | 20–100+ | 5–50 | No. Teaching engines |
 | A Gemini/Gopher/text reader | ours | 2–6 | 2–20 | No. A different ecosystem, not the web |
 
-### Old .sis browsers (through [legacy.md](../legacy.md))
+### Old .sis browsers (through [legacy.md](../../user-side/legacy.md))
 
 | Candidate | Verdict |
 |---|---|
@@ -160,7 +160,7 @@ Even running them needs legacy L4+ (installing .sis at runtime), IAP records (ES
 - ✅ What is Servo's one-tab RSS on armv7? **37–210 MiB per page** ([WB0](wb0-host-proof.md)).
 - ✅ Is aws-lc-rs portable here, or should rustls use another provider? **aws-lc-rs works** (https pages since
   [WB4](wb4-servo.md)).
-- ⬜ Does phone audio work (DevSound/MMF) for WB7? The phone plays sound through NeoAudio ([audio.md](../hardware/audio.md));
+- ⬜ Does phone audio work (DevSound/MMF) for WB7? The phone plays sound through NeoAudio ([audio.md](../../hardware/audio.md));
   the browser's path to it is open ([WB7](wb7-media.md)).
 
 ## Prior art in `~/WS/Symbian`

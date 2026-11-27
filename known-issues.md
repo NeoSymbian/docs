@@ -1,7 +1,7 @@
 # Known issues
 
 For the broader legacy-kernel audit, source evidence, priorities and closure tests, see
-[kernel-issues.md](kernel-issues.md) and the [modernization roadmap](kernel-modernization.md).
+[kernel/issues.md](kernel/issues.md) and the [modernization roadmap](kernel/modernization.md).
 The register maps all the sections below, retaining the resolved slot-retry history and the uncertainty of
 open reports. The 2026-11-09 source audit did not rerun these hardware/emulator observations.
 
@@ -24,7 +24,7 @@ open reports. The 2026-11-09 source audit did not rerun these hardware/emulator 
   (read-only Z:, `-12`/`-1`).
 - Same panic, same address, on `2026-11-22-tapirtail` (ARMv5 user side) and on the US3 ARMv8 build.
 - **Next:** map `0x55B5E4` to its import (X-plore's code base + import table) and implement that function
-  ([legacy.md](legacy.md): panic stubs are a stop-gap).
+  ([user-side/legacy.md](user-side/legacy.md): panic stubs are a stop-gap).
 
 ## Phone: the modem crashes under CPU load at boot; restarts fail; Wi-Fi doesn't come back (2026-11-21)
 
@@ -226,7 +226,7 @@ buffer the writer's in/out sequence really protects.
 ## CI: neoui's `syborg` check is red (seen 2026-11-11)
 
 **Status:** obsolete. Syborg was dropped as a target (2026-11-21); its UI checks run on QEMU `virt` since US6b
-(2026-11-25, neoui's `virt-taps` workflow, [user-side-smp.md](user-side-smp.md)). History: neoui #5 (battery UI) was merged
+(2026-11-25, neoui's `virt-taps` workflow, [user-side/user-side-smp.md](user-side/user-side-smp.md)). History: neoui #5 (battery UI) was merged
 past it by the owner.
 - **What:** the QEMU boot test counts the Clock app's `clock: tick` lines and wants at least 2. It logs 1: the
   script taps as soon as Clock shows its surface, then goes back. Both runs of neoui #5 failed this way. Everything

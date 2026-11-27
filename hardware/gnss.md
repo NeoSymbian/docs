@@ -1,9 +1,9 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # GNSS: GNSSD.EXE, QMI LOC on the modem, XTRA over Wi-Fi
 
-Part of [hardware.md](../hardware.md), the hardware and drivers hub (status of every driver, the neohw processes). Neighbours: [modem](modem.md), [audio](audio.md), [wifi](wifi.md), [bluetooth](bluetooth.md), [battery](battery.md).
+Part of [hardware.md](README.md), the hardware and drivers hub (status of every driver, the neohw processes). Neighbours: [modem](modem.md), [audio](audio.md), [wifi](wifi.md), [bluetooth](bluetooth.md), [battery](battery.md).
 
-Started 2026-11-20. D6's GNSS part ([hardware.md](../hardware.md#milestones-and-gates)): the gate is an outdoor
+Started 2026-11-20. D6's GNSS part ([hardware.md](README.md#milestones-and-gates)): the gate is an outdoor
 standalone fix. Decisions (owner, 2026-11-20): a **separate GNSSD.EXE**, not a module in MODEMD; **XTRA over Wi-Fi**
 in the first version.
 

@@ -43,7 +43,7 @@ unmodified S60 app processes
 | The launcher protocol (1.6 `ENTRY`, `FRONT`, `Entry` event) and the Old apps grid | neoui |
 | Telephony for old apps (ETel TSY over MODEMD) | neohw (was telephony) |
 | The key pads (Navigator, Gamepad, Number, Abc, Hidden, the console) | legacy `host/pad.cpp` (legacy#4); the page, haptics and Settings → Old apps in neoui (protocol 1.10, neoui#15) |
-| Sound for old apps (DevSound, the audio server, the WAV player's MMF plugins) | legacy (legacy#5: our `mmfdevsoundadaptor.dll` over NeoAudio); the DSP side is AUDIOD in neohw ([audio.md](hardware/audio.md)) |
+| Sound for old apps (DevSound, the audio server, the WAV player's MMF plugins) | legacy (legacy#5: our `mmfdevsoundadaptor.dll` over NeoAudio); the DSP side is AUDIOD in neohw ([audio.md](../hardware/audio.md)) |
 | Sockets for old apps (ESOCK over NeoNet, `RConnection` included) | build `apps/esock` (build#37) |
 | ELF/E32 emission, unwind tables, ROM/ROFS, the component loader | build |
 
@@ -162,7 +162,7 @@ pad states, console, settings; the spec sheets "Pad keys", "Touch & hold", "Pad 
 | **L1** | A stable runtime and desktop: guest handshake, persistent supervisor, AknCapServer CONE 9 found from evidence, the Avkon service closure. | A minimal Avkon app starts again and again; notes and menus work; a guest failure leaves neoui usable. | **Largely done.** The guest desktop persists, AknCapServer starts first (the CONE 9 cause was found), and closing and reopening Old apps is stable. Open: the explicit guest handshake (guest mode is still detected from the chunk) |
 | **L2** | Two usable apps: Frozen Bubble's `mediaclientaudiostream`, X-plore's dynamic loads, typed providers, controls, basic text. | **X-plore:** lists, copies and renames files, and keeps its settings. **Frozen Bubble:** a full game with held controls. Whether audio works is recorded either way. | **Frozen Bubble done:** a full game with held controls and sound (legacy#4, #5). **X-plore in progress:** it browses C: and E: with the Navigator; copying, renaming and kept settings are not recorded yet |
 | **L3** | Shell integration: damage instead of the 10 Hz full copy, frame ownership, a task protocol, several apps at once. | Two apps keep running while switching; no idle full-frame copies. | Not started |
-| **L4** | Runtime SIS install. Now NeoStore ST6 ([store.md](store.md), 2026-11-18): a Rust SIS installer in NEOINST instead of the SWI engine from mw.appinstall, plus the store's install screens. | Install from C: without a ROM build; the launcher updates; uninstall and upgrade work. | Designed (store.md), not built. Packages still go in at build time (`SIS=` in build) |
+| **L4** | Runtime SIS install. Now NeoStore ST6 ([../apps/store.md](../apps/store.md), 2026-11-18): a Rust SIS installer in NEOINST instead of the SWI engine from mw.appinstall, plus the store's install screens. | Install from C: without a ROM build; the launcher updates; uninstall and upgrade work. | Designed (store.md), not built. Packages still go in at build time (`SIS=` in build) |
 | **L5** | Breadth: screen modes and rotation, a FEP bridge to the neoui keyboard, media, a corpus of apps. | Per-app feature results published. | **Partly done.** Input: the key pads, the landscape console, multi-touch, key vibration and per-app pad memory ([Key pads](#key-pads-s60-apps-take-keys-not-touch)); text from neoui's keyboard through the Abc pad, as key events (no FEP needed). Media: sound and the WAV player's MMF plugins. Network: sockets on an `RConnection` work. Open: AknFep (multi-tap, T9), the apps' own screen modes and rotation (the console turns the canvas, the app keeps its mode), IAP records, a corpus of apps |
 
 Each step is tested on the Pixel (until 2026-11-21 first on QEMU Syborg, watched over VNC with `neo live`; both removed in US5).
@@ -173,7 +173,7 @@ Each step is tested on the Pixel (until 2026-11-21 first on QEMU Syborg, watched
   - Frozen Bubble is played with the Gamepad, in portrait or in the landscape console, with sound.
   - X-plore 1.64 browses C: and E: with the Navigator.
   - Closing and reopening Old apps is stable.
-- **Sound** (2026-11-18, [audio.md](hardware/audio.md) A3/A4):
+- **Sound** (2026-11-18, [audio.md](../hardware/audio.md) A3/A4):
   - The path: old apps' DevSound → our `mmfdevsoundadaptor.dll` → NeoAudio → the ADSP (16 kHz mono).
   - The 2010 audio server runs with our launcher.
   - The WAV player's MMF plugins are built.

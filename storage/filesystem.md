@@ -88,7 +88,7 @@ the same on any file system.
 `modemst1`, `modemst2`, `fsg`, `persist`, and the boot chain (`xbl*`, `abl*`, `tz*`, `hyp*`, `rpm*`, `keymaster*`,
 `devcfg*`, …). They hold the IMEI, radio and sensor calibration, and the bootloaders. Losing them disables the modem
 or bricks the phone.
-Telephony reads `modemst1/2`, `fsg`, `fsc`, `modemcal` and `modem_a` read-only ([telephony.md](hardware/modem.md)); writing them is gate G4.
+Telephony reads `modemst1/2`, `fsg`, `fsc`, `modemcal` and `modem_a` read-only ([telephony.md](../hardware/modem.md)); writing them is gate G4.
 
 **The allow-list.** The block driver keeps a list of the partition names it may write: `userdata`, `system_a/b` and
 `vendor_a/b`.
@@ -105,7 +105,7 @@ owner's explicit approval at the time:
 | G1 | Writes to `system_a/b` by our bounded driver | FS4b |
 | G2 | The first write to `boot_a/b`: the phone then boots NeoSymbian without `fastboot boot` | FS5b |
 | G3 | Changing the A/B slot attributes: GPT entry attribute bits, rewritten with both GPT copies and their CRCs, or `fastboot --set-active` from a PC | FS5b |
-| G4 | Writes to the radio partitions (`modemst1`, `modemst2`, `fsg`, `fsc`, `modemcal`, `persist`, `modem_a/b`), e.g. rmtfs persisting the modem's EFS | [telephony.md](hardware/modem.md) C12 |
+| G4 | Writes to the radio partitions (`modemst1`, `modemst2`, `fsg`, `fsc`, `modemcal`, `persist`, `modem_a/b`), e.g. rmtfs persisting the modem's EFS | [telephony.md](../hardware/modem.md) C12 |
 
 ## Stages
 
@@ -356,7 +356,7 @@ on the phone; `a64_sha256.S`, self-tested at boot, the C one as fallback), so th
 
 **The problem.** Test images and the installer carry the whole ROFS (Z:) *inside the kernel* (`ROFS=1`, and
 `ROFS_INSTALL=1` for `a64_medrofs.cpp` `Install()`). The Pixel's bootloader refuses `fastboot boot` once the *unpacked*
-kernel passes about 71.6–72.2 MB ("Volume Corrupt"; measured by the Settings session, [settings.md](neoui-shell/settings.md#board-parity-owner-2026-11-26)).
+kernel passes about 71.6–72.2 MB ("Volume Corrupt"; measured by the Settings session, [settings.md](../neoui-shell/settings.md#board-parity-owner-2026-11-26)).
 The ~28.6 MB `boot.img` figure used before was only the gzipped stand-in for it. About 15.6 MB of kernel and core ROM
 plus a 52 MB ROFS was at the limit, so Files with video and PDF (NEOFILES, 17.5 MB; 12.75 MB built for size) didn't
 fit, and every app will keep growing.
