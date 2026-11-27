@@ -44,7 +44,7 @@ Every stage ID has one owning document; its status lives in that document's `sta
 | KRN-001… | [kernel/issues.md](kernel/issues.md) | Findings; their fixes are recorded in [known-issues.md](known-issues.md) |
 | US0–US6 | [user-side/user-side-smp.md](user-side/user-side-smp.md) | |
 | R0–R10, H3a | [user-side/rust-integration.md](user-side/rust-integration.md) | |
-| L0–L5 | [user-side/legacy.md](user-side/legacy.md) | Not debug-access's L1–L3, not settings' L0–L2 |
+| L0–L5 | [user-side/legacy.md](user-side/legacy.md) | Not debug-access's L1–L3 |
 | FS1–FS7, G1–G4 | [storage/filesystem.md](storage/filesystem.md) | G = safety gates. Not navigation's G2–G5 |
 | D0–D8 | [hardware/README.md](hardware/README.md) | Driver milestones. Not settings-data's D1–D19 |
 | C0–C12 | [hardware/modem.md](hardware/modem.md) | |
@@ -54,7 +54,7 @@ Every stage ID has one owning document; its status lives in that document's `sta
 | GN0–GN5 | [hardware/gnss.md](hardware/gnss.md) | |
 | OP0–OP13 | [hardware/devices/fajita.md](hardware/devices/fajita.md) | |
 | TP0–TP9, POWER | [neoui-shell/top-panel.md](neoui-shell/top-panel.md) | POWER = the power menu v2 |
-| SE0–SE7, V0–V3, L0–L2 | [neoui-shell/settings.md](neoui-shell/settings.md) | L = display language (SE5). Not legacy's L0–L5 |
+| SE0–SE7, V0–V3, LG0–LG2 | [neoui-shell/settings.md](neoui-shell/settings.md) | LG = display language (SE5) |
 | D1–D19 | [neoui-shell/settings-data.md](neoui-shell/settings-data.md) | Settings data. Not hardware's D0–D8 |
 | NV1–NV12, G2–G5 | [neoui-shell/navigation.md](neoui-shell/navigation.md) | |
 | S1–S6 | [neoui-shell/smooth-ui.md](neoui-shell/smooth-ui.md) | |

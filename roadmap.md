@@ -231,7 +231,7 @@ board below, so check the board when they differ.
 | D4 | App identity, size by owner, Clear data | ✅ done | 2026-11-27 | neoui#61 (INFO 8, OWNER_REPORT, INFO 13); owners in other apps left | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
 | D5 | Screen-on time since full charge | ✅ done | 2026-11-27 | neoui#61: charge-cycle recorder, INFO 9 | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
 | D6 | Profile feedback, previews, your own ringtones | ✅ done | 2026-11-27 | neoui#61, neohw#21 (modem-ipc 2.8, NeoAudio 1.1); WAV import not run on the phone | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
-| D7 | Wallpaper, font scale, display language | 🔵 active | 2026-11-27 | colours and font size built; left: pictures (INSTALL_WALLPAPER, protocol 1.22), language strings (settings.md L0–L2), other apps' font scale | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
+| D7 | Wallpaper, font scale, display language | 🔵 active | 2026-11-27 | colours and font size built; left: pictures (INSTALL_WALLPAPER, protocol 1.22), language strings (settings.md LG0–LG2), other apps' font scale | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
 | D8 | Clipboard notice, permissions, diagnostics | ✅ done | 2026-11-27 | toast and diagnostics built; read-only app permissions deferred | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
 | D9 | Notification policy and pages | ✅ done | 2026-11-27 | with TP4, protocol 1.21; left: MODEMD's alert policy, inline reply | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
 | D10 | Navigation settings and Edit home | ✅ done | 2026-11-27 | G3–G5 and the home editor; left: Add to home from the menu, 2×2 widgets | [neoui-shell/settings-data](neoui-shell/settings-data.md) |
@@ -250,10 +250,10 @@ board below, so check the board when they differ.
 | SE2c-2 | Ringtones longer than 2 s | ⏸ parked | 2026-11-26 | needs a kernel audio-buffer change; the owner's call | [neoui-shell/settings](neoui-shell/settings.md) |
 | SE3 | Battery, input, storage, font size, wallpaper | ✅ done | 2026-11-27 | neoui#47 #48; font size and colours as D7 (neoui#61); pictures wait (D7) | [neoui-shell/settings](neoui-shell/settings.md) |
 | SE4 | Stop, Clear data, resets, notification pages | 🔵 active | 2026-11-27 | SE4a neoui#49 neohw#20; TP4 + D9 neoui#61; left: TP7, the capabilities view | [neoui-shell/settings](neoui-shell/settings.md) |
-| SE5 | Language, SIM PIN, panel, navigation rows | 🔵 active | 2026-11-27 | G3–G5 rows (D10), SIM lock page read-only (D11); left: display language (L0–L2), PIN changes | [neoui-shell/settings](neoui-shell/settings.md) |
-| L0 | Prove Slint `@tr` in our `no_std` build | ⬜ open | 2026-11-27 | O2; bundled translations and a runtime switch through `neoui_kit::compile` | [neoui-shell/settings](neoui-shell/settings.md) |
-| L1 | `ui.language` and the string catalogue | ⬜ open | 2026-11-27 | O2; SYSSTART, NEOSET and kit strings; a Rust catalogue (~600 strings) | [neoui-shell/settings](neoui-shell/settings.md) |
-| L2 | Armenian and Russian | ⬜ open | 2026-11-27 | O2; hy + ru; the Display language row goes live; NeoSans glyph check | [neoui-shell/settings](neoui-shell/settings.md) |
+| SE5 | Language, SIM PIN, panel, navigation rows | 🔵 active | 2026-11-27 | G3–G5 rows (D10), SIM lock page read-only (D11); left: display language (LG0–LG2), PIN changes | [neoui-shell/settings](neoui-shell/settings.md) |
+| LG0 | Prove Slint `@tr` in our `no_std` build | ⬜ open | 2026-11-27 | O2; bundled translations and a runtime switch through `neoui_kit::compile` | [neoui-shell/settings](neoui-shell/settings.md) |
+| LG1 | `ui.language` and the string catalogue | ⬜ open | 2026-11-27 | O2; SYSSTART, NEOSET and kit strings; a Rust catalogue (~600 strings) | [neoui-shell/settings](neoui-shell/settings.md) |
+| LG2 | Armenian and Russian | ⬜ open | 2026-11-27 | O2; hy + ru; the Display language row goes live; NeoSans glyph check | [neoui-shell/settings](neoui-shell/settings.md) |
 | SE6 | Hardware pages and lock | ⬜ open | 2026-11-27 | update status row only (D18); waits for TP8/TP9, B3, C10, FS6 | [neoui-shell/settings](neoui-shell/settings.md) |
 | SE7 | Erase C: through recovery | ⬜ open | — | waits for recovery support (D19) | [neoui-shell/settings](neoui-shell/settings.md) |
 | V0 | Board check tool | ✅ done | 2026-11-26 | neoui#53, docs#74 | [neoui-shell/settings](neoui-shell/settings.md) |

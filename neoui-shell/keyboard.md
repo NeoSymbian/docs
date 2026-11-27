@@ -89,7 +89,7 @@ With `keyboard.vibrate` on (Settings → Sounds), each key of the system keyboar
 ### Not yet
 Key repeat, long-press (accents, ё/ъ for Russian), Ctrl, suggestions, Western Armenian, layouts for hardware keys
 (all keyboard work in the finishing plan's W1, [README.md](README.md#finishing-plan-2026-11-27)), and translating the
-UI itself ([settings.md](settings.md#o-display-language-l-se5) L0–L2).
+UI itself ([settings.md](settings.md#o-display-language-lg-se5) LG0–LG2).
 
 
 ## Canvas: the Keyboard page (29 boards)

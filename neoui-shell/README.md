@@ -114,7 +114,7 @@ and session binding by SID and process id in 1.20.
 
 The owner asked for everything left in this folder in one push, built to the canvas (every page; proposals count as
 approved), by agents in waves. The decisions O1–O6 are above and in [top-panel.md](top-panel.md#decisions) (O1, O5)
-and [settings.md](settings.md#o-display-language-l-se5) (O2).
+and [settings.md](settings.md#o-display-language-lg-se5) (O2).
 
 | Wave | What it builds | Stages |
 |---|---|---|
@@ -122,7 +122,7 @@ and [settings.md](settings.md#o-display-language-l-se5) (O2).
 | W1 | The shell, part 1 (neoui): media, control centre and the 7 missing glyphs, navigation, home, keyboard, Settings | TP3, TP7, G2, home Part 3/4, keyboard extras, D1/D3/D7, SE4 |
 | W2 | The shell, part 2 (neoui): lock screen and PIN; calls, island and inline reply; power menu v2 | TP8, TP9, TP5, TP6, TP4 reply, POWER |
 | W3 | Producers and repins (phone, files, datetime, neohw, browser); the D11 fixes and SIM PIN changes | TP2c, TP5, TP6, FA9 M1b, D4, D9, D11 |
-| W4 | Display language, then the wrap-up (docs, canvas AS BUILT, a named build and a Pixel run) | L0, L1, L2, SE5 |
+| W4 | Display language, then the wrap-up (docs, canvas AS BUILT, a named build and a Pixel run) | LG0, LG1, LG2, SE5 |
 
 **Out of scope** (their "Not yet" rows stay):
 - blocked on the kernel or hardware: hidden Wi-Fi (D12), mobile data (D13), Bluetooth (D14), per-app battery shares

@@ -21,7 +21,7 @@ Codex inspected the local `origin/main` trees, including `docs b1e2d91`, `neoui 
 | D4 | App identity, size by owner, Clear data | done | 2026-11-27 | neoui#61 (INFO 8, OWNER_REPORT, INFO 13); owners in other apps left |
 | D5 | Screen-on time since full charge | done | 2026-11-27 | neoui#61: charge-cycle recorder, INFO 9 |
 | D6 | Profile feedback, previews, your own ringtones | done | 2026-11-27 | neoui#61, neohw#21 (modem-ipc 2.8, NeoAudio 1.1); WAV import not run on the phone |
-| D7 | Wallpaper, font scale, display language | active | 2026-11-27 | colours and font size built; left: pictures (INSTALL_WALLPAPER, protocol 1.22), language strings (settings.md L0–L2), other apps' font scale |
+| D7 | Wallpaper, font scale, display language | active | 2026-11-27 | colours and font size built; left: pictures (INSTALL_WALLPAPER, protocol 1.22), language strings (settings.md LG0–LG2), other apps' font scale |
 | D8 | Clipboard notice, permissions, diagnostics | done | 2026-11-27 | toast and diagnostics built; read-only app permissions deferred |
 | D9 | Notification policy and pages | done | 2026-11-27 | with TP4, protocol 1.21; left: MODEMD's alert policy, inline reply |
 | D10 | Navigation settings and Edit home | done | 2026-11-27 | G3–G5 and the home editor; left: Add to home from the menu, 2×2 widgets |
