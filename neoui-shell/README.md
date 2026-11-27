@@ -28,7 +28,7 @@ settings, notifications, home pages, widgets) and 2026-11-27 (finished plans mov
 | [history/](history/) | Finished plans kept as written: [step-0.md](history/step-0.md) (who is calling), [settings-plans.md](history/settings-plans.md) (SE1–SE4), [navigation-v1.md](history/navigation-v1.md) (Five places and G1) | record |
 
 Elsewhere: [../user-side/legacy.md](../user-side/legacy.md) (old S60 apps through LEGACY.EXE; their key pads are drawn
-there) and the apps built on the kit: [../apps/files/README.md](../apps/files/README.md),
+there; their launcher becomes **Classic apps**, below) and the apps built on the kit: [../apps/files/README.md](../apps/files/README.md),
 [../apps/phone.md](../apps/phone.md), [../apps/datetime.md](../apps/datetime.md), [../apps/store.md](../apps/store.md),
 [../apps/browser/ui.md](../apps/browser/ui.md).
 
@@ -48,7 +48,7 @@ belongs to:
 | Design system | `ds-tokens`, `ds-layout`, `ds-digits`, `ds-icon-formats`, `ds-app-icons`, `ds-glyphs`, `ds-components` | [design-system.md](design-system.md) |
 | Shell & system UI · system screens | `Main`, `sh-home-buttons`, `sh-home-clock-24h`, `sh-home-clock-12h` | [home.md](home.md) |
 | | `sh-apps-menu`, `sh-open-apps` | [navigation.md](navigation.md) |
-| | `sh-shade`, `sh-shade-quick`, `sh-statusbar-states`, `sh-power-menu`, `sh-sim-pin` | [top-panel.md](top-panel.md#screen-map) |
+| | `sh-shade`, `sh-shade-quick`, `sh-statusbar-states`, `sh-power-menu`, `sh-power-menu-v2`, `sh-sim-pin` | [top-panel.md](top-panel.md#screen-map) |
 | | `sh-dialog` | [kit.md](kit.md) (QUERY) |
 | | `sh-form-keyboard` | [keyboard.md](keyboard.md) |
 | Shell & system UI · shell services | `sh-toast`, `sh-shade-app-notify`, `sh-badges` | [top-panel.md](top-panel.md#screen-map) |
@@ -67,6 +67,9 @@ belongs to:
 | Home layout | **Belle style:** home pages hold widgets and shortcuts; every app stays in the Menu; pinning adds a shortcut or a dock slot | Keeps the "Belle, modernized" direction of `neoui/design/DESIGN.md` |
 | What a new notification does | Always a status bar icon, a badge on the app's icon and a row in the shade. **Urgent** ones (call, alarm, SMS) also slide down a banner | Visible without being noisy |
 | Where an app's own settings live | **One store.** The Settings app shows global settings and per-app notification switches. An app's own options stay inside the app but are saved in the same store | One file, one format, one change event |
+| Boards or docs (O4, 2026-11-27) | **Boards win** over docs, and the docs are updated to match. Exception: stage and spec boards that are simply stale (`nav2-spec-stages`, `pad-spec-stages`, opcode numbers) are corrected to match the code | The canvas is the approved design; its stage notes went stale as the code moved |
+| Terminal (O3, 2026-11-27) | **Moves to a new repo NeoSymbian/neoterm:** `NEOTERM.EXE` 0xE0002003, crate `neoui-term`, GPL because it links Slint | The shell repo keeps only the shell and its own apps |
+| Old apps (O3, 2026-11-27) | **Renamed "Classic apps":** a kit app `CLASSIC.EXE` in the `legacy` repo reads INFO kind 4 and opens entries with `ACTION_OPEN_ENTRY`; the shell keeps only the entries (`host.entries("legacy")`) | The old-app launcher lives with the old-app runtime ([../user-side/legacy.md](../user-side/legacy.md)) |
 
 The 2026-11-16/17 decisions K01–K04 (kit), D12–D20 (navigation) and the top panel's TPD1–TPD7 and P01–P06 are in
 [kit.md](kit.md), [navigation.md](navigation.md) and
@@ -96,6 +99,9 @@ and session binding by SID and process id in 1.20.
 
 ## Not in this design (later)
 
+- **Music, Photos and Camera** (O6, 2026-11-27; still being designed): only the protocols they will use are built
+  now. Music uses MEDIA (TP3); Camera uses ACTIVITY kind Recording plus the privacy dot; Photos uses OPEN (1.9) plus
+  WIDGET. The shell's demo screens stay as they are.
 - App-drawn (`Surface`) widgets: a small surface chunk per widget, drawn by a running app.
 - Waking an app on a schedule to refresh its widget.
 - Apps that describe their own settings pages to the Settings app.
@@ -103,6 +109,28 @@ and session binding by SID and process id in 1.20.
   is NeoStore ST4 ([../apps/store.md](../apps/store.md), opcodes 38/39 in [protocol.md](protocol.md)).
 - The notification items that were here (reboot survival, sounds, lock screen) are now phases of
   [top-panel.md](top-panel.md).
+
+## Finishing plan (2026-11-27)
+
+The owner asked for everything left in this folder in one push, built to the canvas (every page; proposals count as
+approved), by agents in waves. The decisions O1–O6 are above and in [top-panel.md](top-panel.md#decisions) (O1, O5)
+and [settings.md](settings.md#o-display-language-lg-se5) (O2).
+
+| Wave | What it builds | Stages |
+|---|---|---|
+| W0 | Protocol 1.22 (MEDIA, ACTIVITY, TILE, WIDGET, REPLY_TEXT, STICKY, LOCK_DIALOG, INSTALL_WALLPAPER, new keys); the canvas (`sh-power-menu-v2`, V3 sync, Classic apps page); these docs; the repo moves | V3, MV1, MV2 |
+| W1 | The shell, part 1 (neoui): media, control centre and the 7 missing glyphs, navigation, home, keyboard, Settings | TP3, TP7, G2, home Part 3/4, keyboard extras, D1/D3/D7, SE4 |
+| W2 | The shell, part 2 (neoui): lock screen and PIN; calls, island and inline reply; power menu v2 | TP8, TP9, TP5, TP6, TP4 reply, POWER |
+| W3 | Producers and repins (phone, files, datetime, neohw, browser); the D11 fixes and SIM PIN changes | TP2c, TP5, TP6, FA9 M1b, D4, D9, D11 |
+| W4 | Display language, then the wrap-up (docs, canvas AS BUILT, a named build and a Pixel run) | LG0, LG1, LG2, SE5 |
+
+**Out of scope** (their "Not yet" rows stay):
+- blocked on the kernel or hardware: hidden Wi-Fi (D12), mobile data (D13), Bluetooth (D14), per-app battery shares
+  (D16), USB Eject/Share (D17), Erase C: (D19); ringtones over 2 s (SE2c-2), the display processor (S5), double-tap
+  wake, pinch on `virt` (one pointer), headset keys (A8), the unbacked tiles (Flashlight, Rotate, Hotspot, Cast;
+  Bluetooth tiles hidden);
+- blocked on release infrastructure: a signed update feed (D18);
+- deferred: AknFep multi-tap/T9 and legacy L3 (several old apps at once), Surface widgets.
 
 ## Gates for every part
 - `neoui`: `cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test`, plus

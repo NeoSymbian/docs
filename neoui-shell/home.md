@@ -49,7 +49,8 @@ Item   = Shortcut(AppKey)                                   // 1×1
   - pages 1–2 start empty.
 
 ### Pin and unpin
-- In the Menu, a long-press on an app opens the Options sheet (the existing `OptionsMenu`). It offers:
+- In the Apps menu, a long-press on an app opens the kit's `Menu` at the finger (`ui/components/menu.slint`; v2
+  retired the Options sheet; not built yet, finishing plan W1). It offers:
   - "Add to home" (to the current home page, or the first page with room);
   - "Add to dock" (the first free slot, or replace one);
   - "Remove from home" when the app is already pinned.
@@ -65,8 +66,9 @@ Item   = Shortcut(AppKey)                                   // 1×1
   - dragging an item reorders it, and the others reflow live;
   - holding an item at the left or right screen edge for 400 ms moves it to that page, adding a page at the end if
     needed;
-  - a "+" button in the toolbar opens a sheet with two tabs: **Widgets** (the catalogue, part 4) and **Apps**.
-- **Leave:** "Done" in the toolbar, or Back. The layout is saved to `home.layout`, and empty pages beyond the first
+  - **+** in the `EditBar` at the top of home (`ui/screens/home-edit.slint`: +, ‹ the page ›, Done) opens the
+    `AddSheet` with two tabs: **Widgets** (the catalogue, part 4) and **Apps**.
+- **Leave:** Done in the `EditBar`, or Back. The layout is saved to `home.layout`, and empty pages beyond the first
   are dropped.
 
 ### Rendering
@@ -98,15 +100,18 @@ Item   = Shortcut(AppKey)                                   // 1×1
 
 - Each template draws at every size it allows. For example, `Text` at 2×2 shows the title and 2 lines, and at 4×1
   the title and 1 line.
-- Each widget is a `Card` with radius 14 dp (`DESIGN.md` tokens).
+- Each widget is a `Card` with radius 14 dp (the `radius` token, [design-system.md](design-system.md#tokens-ds-tokens-uithemeslint)).
 
 ### Catalogue
 A table beside `APPS` in the server: `(app, name, template, sizes, label)`.
-- **Built-in, fed by the shell:**
-  - `shell.clock` (Clock 4×2, 2×2);
-  - `calendar.agenda` (Agenda 4×2, 2×2);
-  - `music.now` (Media 4×1, 4×2);
-  - `contacts.favourites` (People 4×1).
+- **Built-in, fed by the shell** (as built: `neoui-proto/src/home.rs:83-88` `CATALOGUE`, `(Widget, app, sizes,
+  label)`, one size each today):
+  - `Clock` → `clock`, Tall (4×2); 2×2 comes with Part 4;
+  - `Agenda` → `calendar`, Tall (4×2); 2×2 comes with Part 4;
+  - `Favourites` → `contacts`, Wide (4×1);
+  - `Media` → `music`, Wide (4×1); 4×2 comes with Part 4.
+  - The design's names (`shell.clock`, `calendar.agenda`, `music.now`, `contacts.favourites`) become the
+    `(app, name)` keys with WIDGET (protocol 1.22).
 - **App widgets:** declared in the same table. The first is `clock.next` ("Next alarm / world clock", Text 2×2, 4×1).
 
 ### Protocol

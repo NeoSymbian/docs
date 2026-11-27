@@ -412,11 +412,19 @@ boot, and close and reopen it fast.
 - **Erase C: (SE7):** a recovery-only formatter for the C: window. It runs after the phone PIN is confirmed (if
   set), keeps E:, the ROM and the slots, and survives a power cut.
 
-#### O. Display language (L, SE5)
+#### O. Display language (LG, SE5)
 - **The key:** `ui.language` (≤ 8, default `en`), independent of the keyboard.
 - **Translations:** Slint 1.18's bundled translations (`@tr`, `.po` catalogues compiled in, no gettext on the
   device), in the shell, the kit and each app. Rust-made strings (dates, statuses) are translated too.
 - **The choice** offers a language only when its catalogue and glyphs are complete.
+- **The owner's decision O2 (2026-11-27):** build the mechanism (Slint `@tr`, the `ui.language` key, a Rust string
+  catalogue) plus **Armenian and Russian** for SYSSTART, NEOSET and the kit. The other apps adopt it at their next
+  repin. Stages LG0–LG2 below:
+  - **LG0:** prove `@tr` with bundled translations and a runtime switch in our `no_std` Slint build, through
+    `neoui_kit::compile`. If it doesn't work, stop and ask the owner.
+  - **LG1:** `ui.language`; wrap the SYSSTART, NEOSET and kit strings; a Rust-side catalogue (about 600 strings:
+    rows, dates, plurals).
+  - **LG2:** hy and ru translations; the Display language row goes live; NeoSans covers every glyph.
 
 #### P. Panel, notifications, old apps (S, SE0; L, SE4/SE5)
 - **Panel & notifications** (`tp-settings`) sits at Device → Notifications in both roots. Apps → an app →
@@ -446,7 +454,7 @@ Each stage ends with a gate:
 | **SE2** profiles | Profiles end to end, shade and power menu, Offline, ringtone and message tone, WAV import | neoui, neohw | real call and SMS tones per profile; Offline through a reboot |
 | **SE3** appearance and device data | Font size, wallpaper, storage, battery saver, show %, battery usage, Show touches, keyboard vibration | neoui, files (picker) | sizes switched with Phone and Files open; a bad picture leaves the old wallpaper |
 | **SE4** management | Stop, Clear data, Reset network / settings, notification masters, clipboard-read toast, capabilities view | neoui, neohw, phone | a reset keeps contacts, SMS and files; a disabled app's NOTIFY is refused |
-| **SE5** language, SIM, panel | Display language; SIM PIN lock and change; Panel & notifications as TP1–TP7 land; G3/G4/G5 rows | neoui, neohw, apps | Armenian UI through a reboot; SIM PIN on a spare SIM |
+| **SE5** language, SIM, panel | Display language (O2: LG0–LG2); SIM PIN lock and change; Panel & notifications as TP1–TP7 land; G3/G4/G5 rows | neoui, neohw, apps | Armenian UI through a reboot; SIM PIN on a spare SIM |
 | **SE6** hardware pages and lock | Lock (TP8, TP9 PIN); Bluetooth B3/B6–B8; C10 mobile data; FS6 Share E:; Check for updates | neoui, neohw, kernel, build | each owner's own device gate |
 | **SE7** erase | Erase C: through recovery | kernel, build, neoui | on a disposable C: image first |
 
@@ -508,9 +516,10 @@ a stand-in for it. Installed phones read Z: from `system_x` and aren't limited. 
 ramdisk (a kernel/build change, to plan with the kernel stream), Settings test images leave `NEOFILES` out.
 
 Boards that are wrong about what is built get fixed on the canvas (V3): the `wifi.dat` path (`e0004002`), the user
-side (ARMv8-A, not ARMv5TE), Reset under About. Boards still without a page: `bt-device`, `bt-pair`, `fontsize`,
-`lock`, `lock-pin`, `notifications`, `notify-app`, `sim-lock`, `storage-drive`, `wallpaper`, `wifi-hidden` (their D
-stages), `reset-query` (the shell's QUERY dialog, already built).
+side (ARMv8-A, not ARMv5TE), Reset under About. Boards still without a page (no `set2-*`
+snapshot in neoui `snapshots/`, 2026-11-27): `bt-device`, `bt-pair`, `lock`, `lock-pin`, `storage-drive`,
+`wifi-hidden` (their D stages), `reset-query` (the shell's QUERY dialog, already built). `fontsize`, `notifications`,
+`notify-app`, `sim-lock` and `wallpaper` got theirs in the Settings run.
 
 | Stage | What |
 |---|---|
@@ -532,7 +541,10 @@ stages), `reset-query` (the shell's QUERY dialog, already built).
 | SE2c-2 | Ringtones longer than 2 s | parked | 2026-11-26 | needs a kernel audio-buffer change; the owner's call |
 | SE3 | Battery, input, storage, font size, wallpaper | done | 2026-11-27 | neoui#47 #48; font size and colours as D7 (neoui#61); pictures wait (D7) |
 | SE4 | Stop, Clear data, resets, notification pages | active | 2026-11-27 | SE4a neoui#49 neohw#20; TP4 + D9 neoui#61; left: TP7, the capabilities view |
-| SE5 | Language, SIM PIN, panel, navigation rows | active | 2026-11-27 | G3–G5 rows (D10), SIM lock page read-only (D11); left: display language, PIN changes |
+| SE5 | Language, SIM PIN, panel, navigation rows | active | 2026-11-27 | G3–G5 rows (D10), SIM lock page read-only (D11); left: display language (LG0–LG2), PIN changes |
+| LG0 | Prove Slint `@tr` in our `no_std` build | open | 2026-11-27 | O2; bundled translations and a runtime switch through `neoui_kit::compile` |
+| LG1 | `ui.language` and the string catalogue | open | 2026-11-27 | O2; SYSSTART, NEOSET and kit strings; a Rust catalogue (~600 strings) |
+| LG2 | Armenian and Russian | open | 2026-11-27 | O2; hy + ru; the Display language row goes live; NeoSans glyph check |
 | SE6 | Hardware pages and lock | open | 2026-11-27 | update status row only (D18); waits for TP8/TP9, B3, C10, FS6 |
 | SE7 | Erase C: through recovery | open | — | waits for recovery support (D19) |
 | V0 | Board check tool | done | 2026-11-26 | neoui#53, docs#74 |

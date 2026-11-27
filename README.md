@@ -53,12 +53,12 @@ Every stage ID has one owning document; its status lives in that document's `sta
 | B0–B9 | [hardware/bluetooth.md](hardware/bluetooth.md) | |
 | GN0–GN5 | [hardware/gnss.md](hardware/gnss.md) | |
 | OP0–OP13 | [hardware/devices/fajita.md](hardware/devices/fajita.md) | |
-| TP0–TP9 | [neoui-shell/top-panel.md](neoui-shell/top-panel.md) | |
-| SE0–SE7, V0–V3 | [neoui-shell/settings.md](neoui-shell/settings.md) | |
+| TP0–TP9, POWER | [neoui-shell/top-panel.md](neoui-shell/top-panel.md) | POWER = the power menu v2 |
+| SE0–SE7, V0–V3, LG0–LG2 | [neoui-shell/settings.md](neoui-shell/settings.md) | LG = display language (SE5) |
 | D1–D19 | [neoui-shell/settings-data.md](neoui-shell/settings-data.md) | Settings data. Not hardware's D0–D8 |
 | NV1–NV12, G2–G5 | [neoui-shell/navigation.md](neoui-shell/navigation.md) | |
 | S1–S6 | [neoui-shell/smooth-ui.md](neoui-shell/smooth-ui.md) | |
-| A1–A5 | [neoui-shell/kit.md](neoui-shell/kit.md) | Not audio's A0–A8 |
+| A1–A5, MV1–MV2 | [neoui-shell/kit.md](neoui-shell/kit.md) | Not audio's A0–A8. MV = repo moves (neoterm, Classic apps) |
 | FA0–FA13, FA12b | [apps/files/README.md](apps/files/README.md) | FA12b's plan: [apps/files/video-sync.md](apps/files/video-sync.md) |
 | DT0–DT7 | [apps/datetime.md](apps/datetime.md) | |
 | ST0–ST11, NS01–NS12 | [apps/store.md](apps/store.md) | NS = decisions |

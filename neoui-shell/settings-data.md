@@ -17,11 +17,11 @@ Codex inspected the local `origin/main` trees, including `docs b1e2d91`, `neoui 
 |---|---|---|---|---|
 | D1 | Shared row values, search, both roots | done | 2026-11-27 | neoui#61: one row model; left: dynamic instances, scroll to a hit |
 | D2 | Wi-Fi details, console overlay, slot | done | 2026-11-27 | neoui#61: WIFID link record, HAL 0x4e02/03, active slot |
-| D3 | Drive totals, per-drive kinds, C: free | done | 2026-11-27 | neoui#61; the per-drive kinds page waits for FS6 |
+| D3 | Drive totals, per-drive kinds, C: free | done | 2026-11-27 | neoui#61; left: the per-drive kinds page, shell work (finishing plan W1), not FS6 (that is USB sharing, D17) |
 | D4 | App identity, size by owner, Clear data | done | 2026-11-27 | neoui#61 (INFO 8, OWNER_REPORT, INFO 13); owners in other apps left |
 | D5 | Screen-on time since full charge | done | 2026-11-27 | neoui#61: charge-cycle recorder, INFO 9 |
 | D6 | Profile feedback, previews, your own ringtones | done | 2026-11-27 | neoui#61, neohw#21 (modem-ipc 2.8, NeoAudio 1.1); WAV import not run on the phone |
-| D7 | Wallpaper, font scale, display language | active | 2026-11-27 | colours and font size built; left: pictures, language strings, other apps' font scale |
+| D7 | Wallpaper, font scale, display language | active | 2026-11-27 | colours and font size built; left: pictures (INSTALL_WALLPAPER, protocol 1.22), language strings (settings.md LG0–LG2), other apps' font scale |
 | D8 | Clipboard notice, permissions, diagnostics | done | 2026-11-27 | toast and diagnostics built; read-only app permissions deferred |
 | D9 | Notification policy and pages | done | 2026-11-27 | with TP4, protocol 1.21; left: MODEMD's alert policy, inline reply |
 | D10 | Navigation settings and Edit home | done | 2026-11-27 | G3–G5 and the home editor; left: Add to home from the menu, 2×2 widgets |
@@ -29,7 +29,7 @@ Codex inspected the local `origin/main` trees, including `docs b1e2d91`, `neoui 
 | D12 | Hidden Wi-Fi join | open | 2026-11-27 | "Not yet" row; needs the kernel's directed scan (SE1c-2) |
 | D13 | Mobile bearer, mode, APNs, traffic | open | 2026-11-27 | "Not yet" row; waits for C10 |
 | D14 | Bluetooth discovery, pairing, profiles | open | 2026-11-27 | "Not yet" row; waits for B0–B8 |
-| D15 | Lock policy, device PIN, double-tap wake | open | 2026-11-27 | "Not yet" row; waits for TP8/TP9 |
+| D15 | Lock policy, device PIN, double-tap wake | open | 2026-11-27 | "Not yet" row; TP8/TP9 are shell software (finishing plan W2); only double-tap wake needs the kernel |
 | D16 | Attributed battery estimates | open | 2026-11-27 | "Not yet" row; after D5 and radio instrumentation |
 | D17 | Eject E: and share over USB | open | 2026-11-27 | "Not yet" row; waits for FS6 |
 | D18 | Check for OS updates | active | 2026-11-27 | status row built ("Update service unavailable"); a signed feed is open |
@@ -42,7 +42,7 @@ What each built and what it left:
 |---|---|---|
 | D1 | `settings_app/row_model.rs`: stable row ids, instances, one provider for page, search and root; search keeps its query, scroll and selection on Back | visible APs / saved SSIDs as instances; a hit below the fold isn't scrolled into view |
 | D2 | Wi-Fi details from WIFID's link record; Console overlay (HAL 0x4e02/03, `REPAINT` 45 after off); About's active slot (HAL 0x4e09) | — |
-| D3 | C: and E: counted apart, C:'s Apps/Files/Other bar, file system per drive (e32 `file_system_name`/`sub_type`), mount generation, root "C: … free" | the per-drive kinds page (FS6) |
+| D3 | C: and E: counted apart, C:'s Apps/Files/Other bar, file system per drive (e32 `file_system_name`/`sub_type`), mount generation, root "C: … free" | the per-drive kinds page (NEOSET only; it doesn't need FS6) |
 | D4 | INFO 8 from SYSSTART (catalogue, EXE found, measurements), owners Dev tools and Terminal (`OWNER_REPORT` 42), confirmed Clear data with tickets (INFO 13), the shell's own measurement on a worker | owners in datetime, Files, Browser, Phone/Messages; full-colour app icons |
 | D5 | the charge-cycle recorder (discharge + display-on only, gaps counted), A/B checkpoints, INFO 9, Battery usage's card and Screen-on time | per-app shares (D16) |
 | D6 | message-tone line; keypad tones and vibrate on touch per profile (`CONTROL_FEEDBACK` 44); preview pause/elapsed; your own ringtones (WAV import, modem-ipc 2.8, NeoAudio 1.1) | Contacts/Messages feedback; picking your sound as a message tone; ring-gain preview |

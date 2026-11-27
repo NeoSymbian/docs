@@ -255,7 +255,13 @@ The app can live in another repo, as NEOPHONE does (NeoSymbian/phone). It pins n
 | A1 | The kit, tokens, glyphs, gallery | done | 2026-11-17 | `snapshots/kit-*.png`; installed on slot a 2026-11-17 |
 | A2–A3 | Apps and the shell's screens on the kit | done | 2026-11-17 | Clock, Files, Dev tools, Terminal, NEOKIT, NEOPHONE ported |
 | A5 | Protocol 1.8, `nav.mode` 0..=2 | done | 2026-11-17 | with Navigation v2 (NV1) |
+| MV1 | Terminal moves to NeoSymbian/neoterm | open | 2026-11-27 | O3: `NEOTERM.EXE` 0xE0002003, crate `neoui-term` (GPL), history kept; neoui's `virt-taps` clones it |
+| MV2 | Old apps become Classic apps in legacy | open | 2026-11-27 | O3: kit app `CLASSIC.EXE` reads INFO kind 4, opens with `ACTION_OPEN_ENTRY`; the shell keeps the entries |
 <!-- /stages -->
+
+MV1 and MV2 are the repo moves of the 2026-11-27 finishing plan ([README.md](README.md#finishing-plan-2026-11-27)). Until
+they land, Terminal (`symbian/apps/term`, `crates/neoui-term`) and the Old apps screen (`ui/screens/oldapps.slint`)
+are still in neoui.
 
 The Navigation v2 stages (NV1–NV12) are in [navigation.md](navigation.md). Also built with the kit: the keyboard's
 edit bar for apps' fields (copy/paste); protocol 1.9 (OPEN / ARG / DONE, notification actions, two residents, Keypad /

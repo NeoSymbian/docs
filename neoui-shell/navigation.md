@@ -131,8 +131,8 @@ This is written from memory of using the phone. No Nokia material is copied.
 - **Back:** a swipe right anywhere on a page goes back. That clashes with apps that scroll sideways (maps, tabs,
   photos), so each app has to opt in. Our apps already claim Back explicitly (`NAV`), and an edge gesture needs no
   opt-in.
-- **Pulley menus:** pulling a list past its top opens a menu. That would take over every list's overscroll; our
-  Options sheet already does the job.
+- **Pulley menus:** pulling a list past its top opens a menu. That would take over every list's overscroll; the
+  header's ⋮ Menu already does the job.
 - **Cover actions:** buttons on the running-app cards. That is a later idea for G3, not a navigation gesture.
 
 ## The map
@@ -154,28 +154,39 @@ The owner chose this map on 2026-11-16. It is the N9's with two changes:
 ```
 
 ### Every gesture
-"Classic" and "Gestures" are the values of `nav.mode`. "—" means the gesture does nothing there.
+The three values of `nav.mode` (v2): Buttons, Gestures (the Thumb map, the default) and N9 gestures. "—" means the
+gesture does nothing there; "all" means every mode. The live edges per screen are in neoui `symbian/src/lib.rs:372-377`
+(home keeps only the bottom edge, and in N9 also the right one); what each gesture does is
+`neoui-render`'s `Renderer::gesture` (`src/lib.rs:1048-1077`).
 
-| Gesture | App | Home | Apps menu | Open apps | Lock | Mode | Stage |
-|---|---|---|---|---|---|---|---|
-| Left edge, swipe right | Back: the app's Back if it claimed it, else the shell's `back()` | — (the left edge stays with the home pages' slide) | Back (home) | Back | — | Gestures | G1 |
-| Right edge, swipe left | Open apps | Open apps | Open apps | — | — | Gestures | G1 (fade), G2 (peek) |
-| Bottom edge, short swipe up | Home | Apps menu | Home | Home | — | Gestures | G1 |
-| Bottom edge, long swipe up (past half) | Apps menu | Apps menu | — | Apps menu | — | Gestures | G1 |
-| Top edge (status bar), swipe down | Shade | Shade | Shade | Shade | — | Both | Exists (`StatusBar.pulled`) |
-| Top edge, swipe down, `nav.swipe_close` on | Close the app (it quits) | Shade | Shade | Shade | — | Gestures | G4 |
-| Tap on the status bar | Shade | Shade | Shade | Shade | — | Both | Exists |
-| Swipe sideways on the home pages | — | Next page (Pages) or lane (Lanes) | — | — | — | Both | Exists (S2c); lanes G5 |
-| Long press on an Open apps card | — | — | — | × on every card (N9 close mode) | — | Both | G3 |
-| Tap × on an Open apps card | — | — | — | Close that app | — | Both | Exists |
-| Swipe in from any edge | — | — | — | — | Unlock | Both | G6 |
-| Double-tap on the dark screen | — | — | — | — | Wake | Both | G6 (needs the driver) |
-| Toolbar Back button | Back | — | Back | Back | — | Classic only | Exists |
-| Toolbar Action, Options | the app's | — | Open apps (Action) | — | — | Both | Exists |
-| Pinch on Open apps | — | — | — | 2 ↔ 3 columns | — | Both | Later (multi-touch) |
+| Gesture | App | Home | Apps menu | Open apps | Modes | Stage |
+|---|---|---|---|---|---|---|
+| Either side edge, inward | Back: the app's if it claimed it, else the shell's `back()` | — (the side edges stay with the pages) | Back | Back | Gestures | NV |
+| Left edge, inward | Back, as above | — | Back | Back | N9 | G1, NV |
+| Right edge, drag | Open apps | Open apps | Open apps | — | N9 | G1 (fade), G2 (peek) |
+| Right edge, quick flick (≥ 24 dp at ≥ 0.5 dp/ms) | the last app | the last app | the last app | the last app | N9 | NV |
+| Bottom edge, swipe up | Home | Apps menu | Home | Home | Gestures, N9 | G1, NV |
+| Bottom edge, past half the screen | Apps menu | Apps menu | Apps menu | Apps menu | N9 | G1 |
+| Bottom edge, up and held still ~300 ms | Open apps | Open apps (Lanes: its lane) | Open apps | — | Gestures | NV, G5 |
+| Along the bottom band, past 72 dp | the previous (rightwards) or next (leftwards) running app | same | same | same | Gestures | NV |
+| Key row ← (˅ with the keyboard up) | Back (or hide the keyboard) | dim | Back | Back | Buttons | NV |
+| Key row ⌂, ▢ | Home, Open apps | —, Open apps | Home, Open apps | Home, — | Buttons | NV |
+| Tap on the status bar, or a pull down from it | Shade | Shade | Shade | Shade | all | TP1 |
+| Top edge, swipe down, `nav.swipe_close` on | Close the app (a resident is hidden) | Shade | Shade | Shade | Gestures, N9 | G4 |
+| Swipe down on the home pages (`shell.swipehome`) | — | Shade | — | — | all | TP1 |
+| Swipe sideways on the home pages | — | Next page (Pages) or lane (Lanes) | — | — | all | S2c; lanes G5 |
+| Long press on home | — | Edit home · Wallpaper | — | — | all | NV, D10 |
+| Long press on an Open apps card | — | — | — | × on every card (N9 close mode) | Gestures, N9 (Buttons keeps its ×) | G3 |
+| Tap × on an Open apps card | — | — | — | Close that app | all | G3 |
+| Swipe down on the keyboard's top band | Hide the keyboard | — | — | — | all | NV |
+| Pinch on Open apps | — | — | — | 2 ↔ 3 columns | all | later (phone only: `virt` has one pointer) |
 
-Not taken from Android or iOS: no swipe-up-and-hold for recents, no sideways swipe along the bottom between apps,
-no back from both side edges.
+The lock screen's swipe up (any edge in Gestures and N9) and double-tap wake are [top-panel.md](top-panel.md#lock-screen-tp8)'s
+TP8. The key row is `KeyRow` (`ui/components/frame.slint`); Apps is always in the dock (rule 12).
+
+The Thumb map takes three things from Android and iOS on purpose: up-and-hold for Open apps, a sideways swipe along
+the bottom between apps, and Back from both side edges (rule 7 above). The N9 map keeps the N9's own: Back from the
+left only, Open apps from the right.
 
 ## Five places: one strip, every app, two modes (v1, replaced by Navigation v2)
 
@@ -221,8 +232,9 @@ G1's host tests and Syborg CI walk (2026-11-16): [history/navigation-v1.md](hist
 - Letting go before the commit point settles back in 250 ms; letting go past it settles onto the target.
 - **Memory:** the same single 9.3 MB snapshot the fades use, reserved with `try_reserve_exact`. Without memory, G1's
   hint-and-fade runs instead.
-- Back gets no peek: what the app shows after Back is drawn by the app only after it gets the event. It keeps G1's
-  hint.
+- **Back slides the page too** (O4: the board `nav-map-back-arrow` wins over this doc's earlier "Back gets no peek").
+  What the app shows after Back is drawn by the app only after it gets the event, so the slide moves the current
+  frame with the bubble and the page behind appears when the app redraws.
 - **A preview is not a screen change** (from the Codex review). Today a screen change replaces `old`, starts a fade
   and hides the app (`host.set_screen`), which would destroy the layer being slid.
   - While a peek runs, the shell's `screen`, `view` and `origin` are saved, and the fade and the app lifecycle are
@@ -280,8 +292,8 @@ unlock and double-tap wake are kept there. The notes below are the original G6 s
 - **Multi-touch:** since neoui `93a02a3` (2026-11-17) fingers after the first reach the app they pressed in (an old
   app's Gamepad moves and fires at once); gestures and the shell's widgets still follow finger 0. A pinch on Open apps
   (2 ↔ 3 columns) needs the shell to follow a second finger.
-- **A slimmer toolbar** in gesture mode (above).
-- **Haptics** on commit, once there is a vibrator driver.
+- **Haptics** on commit: the vibrator works (`haptic()`, neoui `symbian/src/lib.rs:1669`; the keyboard's key pulse
+  uses it), so a pulse when a gesture commits is shell work (finishing plan W1, navigation).
 
 ## Gates for every stage
 - `neoui`: `cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test`, plus
