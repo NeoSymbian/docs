@@ -1,11 +1,30 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Kernel modernization roadmap
 
-Plan date: 2026-11-09. Status: proposed implementation program based on the
-[source assessment](audits/2026-11-09/assessment.md) and [34-item issue register](issues.md).
+Part of [Kernel](README.md) · Status: plan · Updated: 2026-11-27
+
+Plan date: 2026-11-09. A proposed implementation program based on the
+[source assessment](audits/2026-11-09/assessment.md) and the [issue register](issues.md) (34 items then).
 Research/documentation is complete for that bounded snapshot; the fixes and runtime acceptance below are pending.
 This plan adds security, correctness and support gates to the [product roadmap](../roadmap.md), without changing its
 accepted kernel/user ABI or treating earlier feature milestones as production acceptance.
+
+## Status
+
+No phase has started as a program. Some register items were fixed by feature work since the plan; the register
+([issues.md](issues.md)) says which. Statuses re-checked 2026-11-27 against the kernel's history.
+
+<!-- stages -->
+| Stage | What | State | Updated | Next / evidence |
+|---|---|---|---|---|
+| KM0 | Reproducible baseline and trustworthy gates | open | 2026-11-25 | KRN-022 open: no marker still exits 0; Syborg CI gone, virt CI runs user-side tests |
+| KM1 | Preserve persistent data, honest repair | open | 2026-11-09 | KRN-007–010 open; C: and E: still FS_FORMAT_CORRUPT |
+| KM2 | Least privilege and end-to-end trust | open | 2026-11-17 | KRN-003 partly: seeded secure RNG (kernel c2b9c6e7); the rest open |
+| KM3 | Time, SMP, VM and legacy ABI | open | 2026-11-21 | done on the way: user FP/NEON (kernel#19), global-page TLB fix (kernel#36); KRN-017/018/020/033 open |
+| KM4 | Hardware lifecycle and recovery | open | 2026-11-22 | KRN-029 fixed; modem restart fixed with follow-ups (KRN-037); USB cold boot parked (KRN-027) |
+| KM5 | Measured performance, maintainable board support | open | 2026-11-25 | KRN-031 fixed (QEMU screenshot); KRN-025/026/028/035 open |
+| KM6 | Complete audits, operate a supported release | open | 2026-11-09 | KRN-023/034 open |
+<!-- /stages -->
 
 ## Outcome and order
 
@@ -49,9 +68,9 @@ sequential. Concurrent implementation needs disjoint ownership or isolated workt
   deliberate failed test and unexpected skip. A known-bad image must fail.
 - [ ] Add a manifest/build route for legacy e32test/f32test groups with per-test pass/fail/skip reasons. Existing
   source files and user-side smoke tests do not substitute for this.
-- [ ] Run full-kernel and nkernsa jobs for QEMU virt, with 1/2/8-CPU coverage. Retain Syborg user-side compatibility
-  jobs separately. Reconcile the kernel pin with the actual selected checkout and ROM; do not repin over another
-  session's uncommitted work.
+- [ ] Run full-kernel and nkernsa jobs for QEMU virt, with 1/2/8-CPU coverage. Keep the user-side compatibility
+  jobs separate (Syborg's until US5, 2026-11-25; QEMU `virt` since). Reconcile the kernel pin with the actual
+  selected checkout and ROM; do not repin over another session's uncommitted work.
 
 **Exit:** a clean checkout produces an identifiable candidate and a machine-readable result. Every injected
 gate failure fails; a real completed suite passes only after its failure/skip counts are checked. Preserve ELF,
@@ -115,7 +134,7 @@ remain deferred with its residual address exposure documented.
 
 ## KM3: Time, concurrency, VM and legacy ABI correctness
 
-**Owner:** scheduler/VM/architecture maintainers. **Primary issues:** KRN-017–020, KRN-033.
+**Owner:** scheduler/VM/architecture maintainers. **Primary issues:** KRN-017–020, KRN-033, KRN-036.
 **Dependencies:** KM0; coordinated boundary contracts from KM2. Timer work precedes tickless/power changes.
 
 - [ ] Fix elapsed-tick accounting with bounded expiry delivery; test delayed IRQs, long critical sections and
@@ -139,8 +158,8 @@ with mixed SMP/IPC/VM/I/O and all skips counted. A shorter focused run is develo
 
 ## KM4: Independent hardware lifecycle and recovery
 
-**Owner:** board/SoC drivers and telephony/audio services.
-**Primary issues:** KRN-024, KRN-027, KRN-029, KRN-030, KRN-032.
+**Owner:** board/SoC drivers and modem/audio services.
+**Primary issues:** KRN-024, KRN-027, KRN-029, KRN-030, KRN-032, KRN-037.
 **Dependencies:** KM1–KM3, particularly timer, DMA, trust and crash contracts.
 
 - [ ] Make USB and every supported peripheral start without relying on ABL state; define clocks, rails, reset,
@@ -156,12 +175,12 @@ with mixed SMP/IPC/VM/I/O and all skips counted. A shorter focused run is develo
 plus USB reconnect, peripheral failure, modem restart and repeated call-route tests. Each must identify the
 tested firmware/build and startup state. Establish measured overnight idle/charger/thermal behavior and an
 explicit daily-use power budget before claiming a daily phone. These are future acceptance targets; this audit
-did not access or write the phone. Existing filesystem/telephony write gates remain applicable.
+did not access or write the phone. Existing filesystem/modem write gates remain applicable.
 
 ## KM5: Measured performance and maintainable board support
 
 **Owner:** subsystem maintainers with performance/test support.
-**Primary issues:** KRN-025, KRN-026, KRN-028, KRN-031.
+**Primary issues:** KRN-025, KRN-026, KRN-028, KRN-031, KRN-035.
 **Dependencies:** correctness gates for each affected subsystem; power baselines from KM4.
 
 - [ ] Measure context-switch/exec/IPC costs, SWP traps, allocator contention, IRQ/DFC latency, memory pressure,

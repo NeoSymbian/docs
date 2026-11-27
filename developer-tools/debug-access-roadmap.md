@@ -1,8 +1,12 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Debug access roadmap: tasks in order
 
-Written 2026-11-10. The design is [debug-access.md](debug-access.md): fshell over ECOMM and a second USB serial
-port, with the kernel monitor kept. This file is the work list. Do **one task at a time, in order**.
+Part of [Developer tools](README.md) · Status: record · Updated: 2026-11-11
+
+Written 2026-11-10. The design is [debug-access.md](debug-access.md): fshell over ECOMM and a second USB serial port,
+with the kernel monitor kept. This file was the work list, done **one task at a time, in order**. T1–T11 are done
+and T12 is parked (2026-11-11); it is now the record of how each task was accepted, with the [Progress](#progress)
+table at the end.
 
 **Decisions (owner, 2026-11-10):**
 - **SSH is dropped.** The USB-SSH work (CDC-ECM, smoltcp, Sunset SSH) was never merged. Its useful parts came back
@@ -12,6 +16,8 @@ port, with the kernel monitor kept. This file is the work list. Do **one task at
   USB client framework (`usbcc`, `usbc.ldd`) comes later (L1).
 
 ## Rules for every task
+
+These applied while the tasks ran (2026-11-10/11). Builds ran on ZimaOS then; atlas replaced it on 2026-11-20.
 
 1. **Where (owner, 2026-11-10):** edit the existing checkouts directly; no worktrees. Commit each task separately
    in each repo. One PR per repo per task, rebased on current `main` just before merging. Build pins (`sources.lock`)

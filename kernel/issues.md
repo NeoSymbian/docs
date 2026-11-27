@@ -1,6 +1,8 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Kernel issue register
 
+Part of [Kernel](README.md) · Status: active · Updated: 2026-11-27
+
 Baseline: kernel 792d36ef1a9169b3fc9084fcc494b209501a7487, reviewed 2026-11-09.
 Read [assessment and scope](audits/2026-11-09/assessment.md) before interpreting these findings.
 Implementation order, owners, dependencies and release gates are in [modernization.md](modernization.md).
@@ -18,9 +20,16 @@ current behavior unsuitable for the stated release scope; **Risk** = a plausible
 **Optimization/Debt** = improvement requiring measurements/design; **Resolved** = retain as a regression.
 No runtime kernel reproduction was performed in this audit. The runner probe is explicitly identified below.
 
-All items remain open except KRN-032's historically resolved slot-retry behavior. A future fix needs a commit,
-affected configurations, regression evidence and closure rationale; adding code or finding a passing older log
-does not close it. Do not renumber IDs. Split newly distinct defects into new IDs, and link duplicates.
+**Status (re-synced 2026-11-27).** One page owns each status. For issues that came from
+[known-issues.md](../known-issues.md) (KRN-018, KRN-027–032, KRN-035–037), that page holds the disposition (open, or
+fixed with date and fix); the entry here keeps its finding and a one-line **Status** link. The audit's own findings
+stay open here until a fix meets the closure rule below. Resolved and kept as regressions: KRN-029, KRN-031, KRN-032,
+KRN-036; KRN-037 is fixed with three follow-ups open. KRN-019's FP/NEON part is done; KRN-003 is partly addressed.
+Every other item is open.
+
+A future fix needs a commit, affected configurations, regression evidence and closure rationale; adding code or
+finding a passing older log does not close it. Do not renumber IDs. Split newly distinct defects into new IDs, and
+link duplicates.
 
 | ID | Priority | Origin | Class | Subject | Primary phase |
 |---|---|---|---|---|---|
@@ -52,12 +61,15 @@ does not close it. Do not renumber IDs. Split newly distinct defects into new ID
 | KRN-026 | P2 | Port/build | Debt | Driver wiring and layering | KM5 |
 | KRN-027 | P1 | Hardware | Reported | USB fails on normal cold boot | KM4 |
 | KRN-028 | P2 | Input | Reported | Monitor typing drops characters | KM5 |
-| KRN-029 | P1 | Modem | Reported | Connected call stays on 3G | KM4 |
+| KRN-029 | Regression | Modem | Resolved | Connected call stays on 3G | KM4 |
 | KRN-030 | P1 | Audio | Reported | No audio calibration/protection coverage | KM4 |
-| KRN-031 | P2 | Syborg/display | Reported | Odd-width framebuffer shear | KM5 |
+| KRN-031 | Regression | Emulator/display | Resolved | Odd-width framebuffer shear | KM5 |
 | KRN-032 | Regression | Boot/update | Resolved | ABL slot retries and image mismatch | KM4 |
 | KRN-033 | P1 | Legacy ABI/VM | Gap | Address widths and resource limits | KM3 |
 | KRN-034 | P1 | Product/services | Gap | Maintained firmware and system support | KM6 |
+| KRN-035 | P2 | Port/USB | Reported | USB debug serial: backpressure and restart | KM5 |
+| KRN-036 | Regression | Port/VM | Resolved | TLB maintenance for global pages | KM3 |
+| KRN-037 | P1 | Port/remote processors | Reported | Modem restart and Wi-Fi data path | KM4 |
 
 ## Legacy security and boundary findings
 
@@ -94,6 +106,10 @@ symbols and USB descriptors on release builds; a hostile host cannot read logs/m
 or change power/slot state. Development tooling must have its own positive tests.
 
 ### KRN-003: Secure RNG entropy integration
+
+**Status:** open, partly addressed 2026-11-17 (kernel `c2b9c6e7`, browser WB1): interrupt timing feeds DSecureRNG once
+the variant's extension starts, and on SDM670 the SoC PRNG seeds it with 512 bits at boot. The acceptance tests below
+have not been run.
 
 A committed-tree search finds no RandomSalt/AddTimingEntropy caller in the arm64 board, kernel or nanokernel
 adapters. The inherited generator initially mixes time but remains unready; credited entropy is what changes its
@@ -305,6 +321,8 @@ and callback counts under SMP/I/O load and later suspend/resume. Correct this be
 
 ### KRN-018: Protected-buffer failures
 
+**Status:** open, parked 2026-11-06; see [known issues](../known-issues.md#qemu-only-rare-half-written-protected-buffers-in-dorwtest-nkernsa-suspendkillmigrate).
+
 [Known issues](../known-issues.md) records QEMU TCG interlocked suspend/kill/migrate failures and a separate phone
 pass. The cause remains unknown. The older reschedule handshake defect was fixed; the proposed iCsCount ordering
 explanation is a hypothesis, not a demonstrated root cause.
@@ -317,9 +335,10 @@ regression. A hardware pass alone does not close the supported-emulator failure.
 
 ### KRN-019: Register and FP context support
 
-**Update 2026-11-17 (kernel#19, browser WB1):** the FP/NEON part is done: per-thread eager save/restore of
+**Status:** FP/NEON part done 2026-11-17 (kernel#19, browser WB1): per-thread eager save/restore of
 Q0–Q15/FPSR/FPCR, FPEN on, the SHA path preserves the thread's state; preemption and migration tested on QEMU and the
-Pixel (`NEOWB1.EXE`). Get/SetUserContext and the remote context accessor remain open.
+Pixel (`NEOWB1.EXE`). Get/SetUserContext and the remote context accessor remain open. The finding below is as of
+2026-11-09.
 
 NThread Get/SetUserContext are empty, CompleteContextSave is empty, and the generic context accessor can report a
 stale frame for a thread running on another CPU. FP save/restore hooks default to no-ops. Existing S4 work remains
@@ -363,6 +382,10 @@ warning dispositions, no new diagnostics, guard/canary fault injection, artifact
 ABI/boot/interrupt behavior. Do not change compiler/toolchain versions merely to silence old code.
 
 ### KRN-022: False-success runner and acceptance gaps
+
+**Status:** open. Since 2026-11-25 `run-qemu.sh` lives in NeoSymbian/neoqemu (`tools/run-qemu.sh`); it now fails when
+QEMU itself fails, but with no expected line it still exits 0. The Syborg CI job below was replaced by QEMU `virt`
+runs (build's `build` workflow runs fshell on `virt`; e32-rs's `virt` workflow); the kernel still has no workflow.
 
 run-qemu.sh does not require a success marker by default. It waits for QEMU, prints the log, then returns the
 empty-expectation test result; neo qemu supplies no marker. A controlled probe replaced only the timeout launcher
@@ -463,6 +486,8 @@ Each of the existing debt rows needs a disposition; a tree move alone does not c
 
 ### KRN-027: USB fails on normal boot
 
+**Status:** open, parked 2026-11-08; see [known issues](../known-issues.md#phone-usb-power-on-a-normal-boot-doesnt-work-yet-parked-2026-11-08).
+
 [Known issues](../known-issues.md) records PHY registers reading zero after attempted power-up, with RPMh votes
 surviving warm reset. Debug/FS6 use works only in the reported fastboot RAM-boot state. Not reproduced here.
 **Fix/close:** establish independent clock/rail/PHY/reset ownership and a cold-start sequence with bounded errors.
@@ -471,6 +496,8 @@ without inherited ABL USB state. Retain KRN-002's release access policy.
 
 ### KRN-028: Monitor typing drops characters
 
+**Status:** open; see [known issues](../known-issues.md#phone-the-monitors-type-can-drop-the-end-of-a-line).
+
 [Known issues](../known-issues.md) reports a 29-character command truncated on the phone; short lines are the current
 workaround. Queue saturation/pacing remain hypotheses. **Fix/close:** instrument enqueue/dequeue/drop counts and
 apply backpressure or acknowledged injection. **Acceptance:** long/spaced command bursts under UI/I/O load on phone
@@ -478,13 +505,18 @@ and QEMU, exact received bytes and no silent truncation. Development tooling sti
 
 ### KRN-029: Connected call stays on 3G
 
-[Known issues](../known-issues.md) and [telephony C7](../hardware/modem.md#c7-complete-calls) record LTE return after ringing
+**Status:** fixed 2026-11-12 (kernel `69bb4cd3`, the codec rails voted on PM660L), see
+[known issues](../history/known-issues-fixed.md#phone-the-modem-stays-on-3g-after-a-connected-call-seen-2026-11-09). Keep the acceptance below as a regression.
+
+[Known issues](../known-issues.md) and [modem.md C7](../hardware/modem.md#c7-complete-calls) record LTE return after ringing
 but not after a connected call, despite a separately reported Linux return. CDSP/PDR/ADSP teardown are investigation
 directions, not established causes. **Fix/close:** compare resource/session lifecycle and implement the causal fix.
 **Acceptance:** repeated incoming/outgoing connected/declined/cancelled calls return to the expected network,
 including remote hangup, weak signal and modem restart; no remote-processor crash or leaked resource.
 
 ### KRN-030: Audio calibration and protection
+
+**Status:** open (a known limit); see [known issues](../known-issues.md#phone-call-audio-has-no-calibration-2026-11-09).
 
 [Known issues](../known-issues.md) documents uncalibrated call audio; the board driver also states amplifier protection
 errors are only logged at start.
@@ -495,12 +527,17 @@ protection faults and long calls without resource leakage. Loopback feedback alo
 
 ### KRN-031: Odd-width framebuffer shear
 
+**Status:** fixed 2026-11-25 (QEMU's `ppm_save` row length, fixed in NeoSymbian/neoqemu; the guest frame was right),
+see [known issues](../history/known-issues-fixed.md#syborg-an-odd-screen-width-shears-the-picture-seen-2026-11-08). Keep the acceptance below as a regression.
+
 [Known issues](../known-issues.md) reports shear at 539x1079 and correct output at 540x1080, with guest-driver stride
 and screenshot path still unverified. **Fix/close:** trace programmed stride/end-to-end capture before assigning
 cause. **Acceptance:** deterministic pixel patterns at odd/even widths, guest-visible stride, host capture and
 rendered screenshots agree. Keep emulator display evidence separate from phone display acceptance.
 
 ### KRN-032: ABL slot retries and image mismatch
+
+**Status:** fixed 2026-11-08 (FS5b, kernel `5b0ba6b`), see [known issues](../history/known-issues-fixed.md#phone-slot-a-runs-out-of-retries-abl-switches-to-slot-b-test-images-may-die-with-a-black-screen).
 
 Historically resolved by FS5b per [known issues](../known-issues.md); not revalidated here. Keep the corrected ABL
 RAM-boot retry behavior and matched boot/ROFS checks as regressions. **Acceptance:** successful/failed boot,
@@ -522,20 +559,72 @@ patch process, service crash/restart/DoS and network negative tests, and an expl
 If required firmware cannot be maintained to the chosen threat model, keep bonito as a development target and
 select supportable hardware for the supported product.
 
+### KRN-035: USB debug serial: backpressure and restart
+
+**Status:** open; see [the flood and full C:](../known-issues.md#phone-fshell-over-usb-a-typed-flood-and-a-full-c-seen-2026-11-11-debug-access-t11) (2026-11-11), [fshell after a USB debugging
+switch](../known-issues.md#phone-fshell-doesnt-come-back-after-usb-debugging-is-switched-off-and-on-2026-11-25) (2026-11-25), and possibly [the Run checks freeze](../known-issues.md#phone-dev-tools-run-checks-can-freeze-the-phone-2026-11-18) (2026-11-18, cause not
+confirmed).
+
+Three reports on the bonito debug ACM function (`a64_usb_acm_debug.cpp`, ECOMM unit 1) that the 2026-11-09 audit did
+not cover. About 8 KB typed while fshell is busy overflows ECOMM's receive ring (`KErrCommsOverrun`): a USB PDD has no
+RTS, so it must hand ECOMM only what its ring holds and keep the rest queued. After USB debugging is switched off and
+on, the port returns but fshell exits -18 (KErrNotReady) at every restart until a reboot. Twice the phone froze a few
+minutes after Dev tools ran its checks; the suspect is the `serial1` check opening the same ECOMM unit.
+
+**Fix/close:** flow control from the PDD's queue into ECOMM's ring; a defined teardown and re-add of the ACM function
+that leaves the ECOMM channel openable. **Acceptance:** a typed flood larger than the ring reaches fshell intact;
+repeated USB debugging switches each give a working fshell; the `serial1` check alone, with the console captured,
+neither freezes nor stalls the console.
+
+### KRN-036: TLB maintenance for global pages
+
+**Status:** fixed 2026-11-21 (kernel#36, `c788e0af`), see [known issues](../history/known-issues-fixed.md#phone-the-modem-crashes-under-cpu-load-at-boot-restarts-fail-wi-fi-doesnt-come-back-2026-11-21). Keep as a regression.
+
+Found under CPU load while the modem booted: an L3 translation fault in HWHUB's `memclr`. TLB maintenance for global
+pages was ASID-0 only, so a user thread's walk cache kept a freed page table. The fix invalidates global pages for all
+ASIDs (VAAE1), flushes before freeing page tables, and makes the completion barrier a DSB. **Acceptance:** KM3's
+unmap/reuse tests (no stale translations) and stressed modem boots (8 busy threads while the modem boots).
+
+### KRN-037: Modem restart and Wi-Fi data path
+
+**Status:** fixed 2026-11-19/22 with three follow-ups open; see [modem under load](../history/known-issues-fixed.md#phone-the-modem-crashes-under-cpu-load-at-boot-restarts-fail-wi-fi-doesnt-come-back-2026-11-21),
+[Wi-Fi reason 4](../history/known-issues-fixed.md#phone-wi-fi-drops-after-a-few-minutes-reason-4-2026-11-18) and [restart after a WLAN assert](../history/known-issues-fixed.md#phone-a-modem-restarted-after-a-wlan-firmware-assert-crashes-again-2026-11-19); the follow-ups are in
+[hardware/modem.md](../hardware/modem.md).
+
+Remote-processor faults the audit did not cover: too few HTT receive buffers stalled Wi-Fi's receive path (128 → 1024,
+kernel#25); SMP2P reported a stopped modem's stale bits as the restarted one's (kernel#26); blocking GLINK sends and the
+TFTP window starved the modem's WLAN process (kernel#37, neohw#13); restarts did not recover until the Linux-grade
+SSR (kernel#38, neohw#14: 8/8 forced faults recover). Open: one AXI port logs "failed to halt" after a clean
+stop-ack, a real ADSP restart is avoided, and Linux's `ipa_modem_crashed` teardown is not ported (needed for mobile
+data, C10). **Fix/close:** the three follow-ups, under KM4's modem restart policy. **Acceptance:** KM4's modem
+restart tests, with Wi-Fi and calls checked after each restart.
+
 ## Existing known-issues coverage
 
-No historical issue has been silently closed or re-diagnosed by this audit.
+No historical issue has been silently closed or re-diagnosed by this audit. Re-synced 2026-11-27: fixed sections
+now live in [history/known-issues-fixed.md](../history/known-issues-fixed.md).
 
-| Section of known-issues.md | Register |
+| Section of known-issues | Register |
 |---|---|
-| Slot retries / black screen / ROFS mismatch | KRN-032, historically resolved; regression retained |
-| QEMU DoRWTest protected buffers | KRN-018 |
-| Monitor type drops a line ending | KRN-028 |
-| Modem remains on 3G after connected call | KRN-029 |
-| Call audio calibration | KRN-030 |
-| USB power on a normal boot | KRN-027 |
-| Syborg odd-width shear | KRN-031 |
+| [Slot retries / black screen / ROFS mismatch](../history/known-issues-fixed.md#phone-slot-a-runs-out-of-retries-abl-switches-to-slot-b-test-images-may-die-with-a-black-screen) | KRN-032 (fixed; regression) |
+| [QEMU DoRWTest protected buffers](../known-issues.md#qemu-only-rare-half-written-protected-buffers-in-dorwtest-nkernsa-suspendkillmigrate) | KRN-018 |
+| [Monitor type drops a line ending](../known-issues.md#phone-the-monitors-type-can-drop-the-end-of-a-line) | KRN-028 |
+| [Modem stays on 3G after a connected call](../history/known-issues-fixed.md#phone-the-modem-stays-on-3g-after-a-connected-call-seen-2026-11-09) | KRN-029 (fixed; regression) |
+| [Call audio calibration](../known-issues.md#phone-call-audio-has-no-calibration-2026-11-09) | KRN-030 |
+| [USB power on a normal boot](../known-issues.md#phone-usb-power-on-a-normal-boot-doesnt-work-yet-parked-2026-11-08) | KRN-027 |
+| [Odd-width shear](../history/known-issues-fixed.md#syborg-an-odd-screen-width-shears-the-picture-seen-2026-11-08) | KRN-031 (fixed; regression) |
+| [fshell over USB: typed flood, full C:](../known-issues.md#phone-fshell-over-usb-a-typed-flood-and-a-full-c-seen-2026-11-11-debug-access-t11) | KRN-035 |
+| [fshell after a USB debugging switch](../known-issues.md#phone-fshell-doesnt-come-back-after-usb-debugging-is-switched-off-and-on-2026-11-25) | KRN-035 |
+| [Dev tools Run checks freeze](../known-issues.md#phone-dev-tools-run-checks-can-freeze-the-phone-2026-11-18) | KRN-035 (suspected, not confirmed) |
+| [Modem crashes under load; restarts fail](../history/known-issues-fixed.md#phone-the-modem-crashes-under-cpu-load-at-boot-restarts-fail-wi-fi-doesnt-come-back-2026-11-21) | KRN-036 (TLB), KRN-037 (restart) |
+| [Wi-Fi drops, reason 4](../history/known-issues-fixed.md#phone-wi-fi-drops-after-a-few-minutes-reason-4-2026-11-18) | KRN-037 |
+| [Modem restart after a WLAN assert](../history/known-issues-fixed.md#phone-a-modem-restarted-after-a-wlan-firmware-assert-crashes-again-2026-11-19) | KRN-037 |
+| [X-plore `EUSRNIMP`](../known-issues.md#phone-x-plore-closes-with-eusrnimp-after-a-menu-tap-2026-11-22) | not kernel: the legacy user side ([user-side/legacy.md](../user-side/legacy.md)) |
+| [ESock_DIP crash](../history/known-issues-fixed.md#phone-esock_dip-crashes-and-the-phone-reboots-cross-thread-sockets-2026-11-20) | not kernel: ESock (commsfw#1) |
+| [TFTP `/readwrite/`](../history/known-issues-fixed.md#phone-tftp-readwrite-writes-are-kept-but-not-readable-2026-11-19) | not kernel: HWHUB (neohw#13) |
+| [2.4 GHz BSSID pings](../known-issues.md#phone-the-24-ghz-bssid-of-the-home-ap-doesnt-answer-unicast-pings-from-the-lan-2026-11-19) | not kernel: not investigated, likely the AP |
+| [CI: neoui's `syborg` check](../history/known-issues-fixed.md#ci-neouis-syborg-check-is-red-seen-2026-11-11) | not kernel: obsolete CI |
 
 Broader existing plans map to KRN-019 (smooth-ui S4), KRN-024 (H3), KRN-025 (M4/S5/S6 and storage concurrency),
-KRN-026 (all baseport layout debts), KRN-015/016 (filesystem trust/encryption), and KRN-034 (telephony/system
+KRN-026 (all baseport layout debts), KRN-015/016 (filesystem trust/encryption), and KRN-034 (modem/system
 support). These mappings add release acceptance requirements without rewriting earlier milestone history.

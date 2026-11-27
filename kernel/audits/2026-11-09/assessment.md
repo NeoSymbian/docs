@@ -1,6 +1,8 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Kernel modernization assessment
 
+Part of [Kernel](../../README.md) · Status: record · Updated: 2026-11-09
+
 Research snapshot: 2026-11-09. This assessment, the [issue register](../../issues.md), and the
 [modernization roadmap](../../modernization.md) describe the work required for a supported system.
 The existing [product roadmap](../../../roadmap.md) continues to track hardware and application features.

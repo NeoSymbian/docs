@@ -1,8 +1,13 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
 # Port map: EKA2 → AArch64 ILP32 kernel, AArch32 EL0 user side unchanged
 
-Written 2026-11-05 from clones that now sit next to this repo in the NeoSymbian workspace (`../<repo>`; they were in
+Part of [Kernel](README.md) · Status: reference · Updated: 2026-11-06
+
+Written 2026-11-05 from clones that sat next to this repo in the NeoSymbian workspace (`../<repo>`; they were in
 `ref/` until 2026-11-06): SymbianSource `oss.FCL.sf.os.kernelhwsrv` (KHS, `kernel/eka`),
-Phorepoc `adaptation-x86-64`, `adaptation-a64` and `core`. Line counts come from `wc -l`; "asm" is the number of `asm(` lines.
+Phorepoc `adaptation-x86-64`, `adaptation-a64` and `core`. The Phorepoc clones were deleted on 2026-11-06
+([history/retired-repos.md](../history/retired-repos.md)). This is the pre-port research; where the port ended up is in
+the [kernel README](README.md#where-the-port-lives). Line counts come from `wc -l`; "asm" is the number of `asm(` lines.
 Lines marked **GUESS** were not verified. Action legend:
 - **new**: write for AArch64;
 - **adapt**: copy with marked deltas;
@@ -264,13 +269,13 @@ The neutral `nkernsmp/*.cpp` (9.7k) + `nkern/nklib.cpp` are reused.
 | Boot (MMU/caches, super page stub) | 500 |
 | nkernsa glue | 500 |
 
-**Later milestones (GUESS):** (the full staged plan beyond this, to a daily phone with a Rust UI, is in `roadmap.md`)
+**Later milestones (GUESS):** (the full staged plan beyond this, to a daily phone with a Rust UI, is in [roadmap.md](../roadmap.md))
 - ekern arch (exec gate, LDTR/STTR umem, ExcTrap, EpocThreadFunction, exec atomics): ~1.5–2.5k.
 - VMSAv8 MMU delta + IPC alias redesign + ASID: ~1.5k touched.
 - AArch32-EL0 compat (SWP, alignment, VFP vectors): ~450, ported from ekern_seam.
 
 ## 8. Risks and unverified points
-- **ILP32 toolchain:** see `sources.md` (GCC deprecated but present; clang has none). The fallback is an LP64 census to measure the damage.
+- **ILP32 toolchain:** see [symbian-sources.md](../reference/symbian-sources.md) (GCC deprecated but present; clang has none). The fallback is an LP64 census to measure the damage.
 - **Not checked against the ARM ARM:** ESR ISS width for AArch32 SVC, CPACR_EL1.FPEN for AArch32 EL0.
-- **Not in these repos:** the NaviEngine nktest glue, Phorepoc `virt/bootstrap`, and the pdk tools (`symcc`, `rombuild.py`). The pdk is now checked out on ZimaOS.
+- **Not in these repos:** the NaviEngine nktest glue, Phorepoc `virt/bootstrap`, and the pdk tools (`symcc`, `rombuild.py`). The pdk was then checked out on ZimaOS (since replaced by atlas; the pdk repo was deleted 2026-11-06).
 - **Not read line by line:** `ncthrd.cpp`, `xmmu.cpp` and the boot `.s` bodies. Their actions come from function lists and grep.

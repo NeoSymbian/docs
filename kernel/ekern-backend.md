@@ -1,4 +1,14 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
 # ekern backend: what the AArch64 port still has to provide
+
+Part of [Kernel](README.md) · Status: done · Updated: 2026-11-17
+
+**Read first:**
+- The step numbers M4.2–M4.7 here are the roadmap's **M2** (the full kernel); the roadmap's M4 is performance. See
+  the [kernel stages](README.md#stages).
+- Paths are as of 2026-11-06 (`port/arm64/{ekern,mm}`, `board/`, `boot/`, `platform/`). The port has since moved into
+  Symbian's own layout in the kernel repo; the [README](README.md#where-the-port-lives) maps it.
+- All of the backend below is done. The open shortcuts at the end are tracked in the [issue register](issues.md).
 
 Produced by `port/arm64/tools/ekern-census.sh` with `LINK=1` (2026-11-06, HEAD after 2689b0a):
 - **Compile:** all 94 ekern + flexible memory-model translation units compile from unmodified 2010 kernelhwsrv source.
@@ -22,16 +32,17 @@ These 79 are the arch backend still to write: the M4.2 work list.
   - GIC driver: `Gicv3_*`;
   - board constants and functions: `A64_GicdBase/GicrBase/PsciSmc/TimerPpi`, `A64_CpuCount/CpuMpidr`;
   - `A64_TickHook`.
-- **Shortcuts still open:**
-  - `NKern::BootAP` (one CPU);
-  - user threads in `EpocThreadFunction`;
-  - `PreprocessHandler` and `ThreadGetUserContext` (M4.4);
-  - crash IPI / debugger. Templates:
-- **Phorepoc x86-64** (`adaptation-x86-64/os/tools/phorepoc-x86`):
-  - `port/x64ekern/xe_kernel.cpp`: umem, TExcTrap, EpocThreadFunction, exception info;
-  - `xe_nkern.cpp`: Init0, timeslice, user-mode callbacks, BTrace stubs;
-  - `xe_mmu.cpp`: process switch.
-- **The ARM `.cia` files** these symbols came from, for semantics.
+- **Shortcuts open at step 2** (status as of 2026-11-17):
+  - `NKern::BootAP` (one CPU): done in step 6 (`211931b`);
+  - user threads in `EpocThreadFunction`: done in M4.4;
+  - `PreprocessHandler` and `ThreadGetUserContext` (M4.4): done in M4.4;
+  - crash IPI / debugger: still open (KRN-020).
+- **Templates:**
+  - **Phorepoc x86-64** (`adaptation-x86-64/os/tools/phorepoc-x86`; the repo was deleted 2026-11-06):
+    - `port/x64ekern/xe_kernel.cpp`: umem, TExcTrap, EpocThreadFunction, exception info;
+    - `xe_nkern.cpp`: Init0, timeslice, user-mode callbacks, BTrace stubs;
+    - `xe_mmu.cpp`: process switch.
+  - **The ARM `.cia` files** these symbols came from, for semantics.
 
 ## 1. Board / variant (nkernsa had them in its board glue)
 - `A64_CpuCount`, `A64_CpuMpidr`
@@ -164,15 +175,15 @@ PSCI `AFFINITY_INFO`. On QEMU (`-smp` 1/2/4/8) and on the Pixel (8 cores), every
 - **neoui** (SYSSTART.EXE) is the default user side (`USERROM_SKIP='Sys\Bin\SYSSTART.EXE'` gives eshell). It
   captures the event queue and draws its launcher through the display HAL on QEMU and on the Pixel.
 
-Shortcuts still open:
+Shortcuts left after M4.7 (2026-11-06), with what changed by 2026-11-17:
 - input polling: keys every 20 ms instead of the SPMI interrupt, touch every 10 ms instead of the TLMM interrupt;
-  one finger;
+  one finger. Multi-touch is done (up to five fingers, kernel#20, 2026-11-17); the polling was not re-checked here;
 - I2C at 100 kHz, without DMA;
-- VFP for user code (an FP trap panics);
-- VFP short vectors;
+- VFP for user code (an FP trap panics): **done** 2026-11-17 (FP/NEON per thread, kernel#19, browser WB1);
+- VFP short vectors: open (KRN-019);
 - `NThread::Get/SetUserContext` (unused; `ThreadGetUserContext` reads a stale frame for a thread running on another
-  CPU);
-- the crash IPI / debugger.
+  CPU): open (KRN-019);
+- the crash IPI / debugger: open (KRN-020).
 
 What was originally listed as still needed before a boot (all done):
 - **Bootstrap** (`boot/a64boot.cpp`): tables, super page, ROM header, `KRootTableBase` with the kernel root, MAIR/TCR.

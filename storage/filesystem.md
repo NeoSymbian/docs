@@ -1,7 +1,10 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
 # File system plan: Symbian's storage on the Pixel 3a XL
 
-Status: plan, revised 2026-11-07 after H2.3. Android is not kept on the phone, so NeoSymbian owns the eMMC, except for
-the partitions listed under "Never touched".
+Part of [Storage](README.md) · Status: active · Updated: 2026-11-26
+
+First written 2026-11-07 after H2.3; each stage's status is in [Stages](#stages). Android is not kept on the phone, so
+NeoSymbian owns the eMMC, except for the partitions listed under "Never touched".
 
 The design stays Symbian's own, from the 2010 sources:
 - F32 with its file system plugins;
@@ -12,38 +15,8 @@ A new file system is written only if one of these fails in daily use (see "Later
 
 ## Where we start
 
-- **The file server is Symbian's own.** F32 (`efile.exe`) runs on the user side and loads one plugin (`.fsy`) per
-  file system. The 2010 tree (`kernel/userlibandfileserver/fileserver`) has:
-  - `srom`, `srofs` (`erofs.mmp`) and `scomp` (`ecomp.mmp`): the ROM, ROFS and composite file systems behind `Z:`;
-  - `sfat32` (`efat32.mmp`): FAT12/16/32 with long names, rugged FAT, ScanDrive and delete notification (TRIM). It
-    also needs `fs_utils/filesystem_utils.cpp` and `bit_vector.cpp`;
-  - `sfat`: the older FAT12/16 plugin, marked obsolete in its `.mmp`;
-  - `smassstorage`, `shostmassstorage` and `automounter`: USB mass storage for a PC, USB sticks plugged into the
-    phone, and mounting removable drives.
-- **The drives today:**
-  - `baseport/arm64/common/estart.txt` mounts local drive 0 as `C:` with
-    `ELOCAL FAT FS_FORMAT_CORRUPT,FS_SYNC_DRIVE`;
-  - `Z:` is the whole ROM, held in RAM inside `boot.img`.
-- **Our `ELOCAL.FSY` is built from `sfat`, not `sfat32`.** `build/emitter/build_elocal_fsy.py` uses the
-  `elocal.mmp` file set, so `C:` is FAT12/16, the obsolete plugin.
-  - It cannot make a volume above 2 GB: an 8 GB `C:` stays "Corrupt or unformatted" after its format, on QEMU and on
-    the phone.
-  - `efat32.mmp` keeps the same UID3 (0x100000d6), so `sfat32` can be built under the name `ELOCAL`.
-- **The 8.3 names come from `build/tools/mkfat.py`,** which writes the syborg `c_drive.img` with short names only.
-  The plugins themselves carry `sl_vfat.cpp`, so a `C:` that F32 formats can hold long names.
-- **Since FS1 (2026-11-07)** `ELOCAL.FSY` is `sfat32` and `C:` is 8 GB FAT32 at userdata + 7168 sectors; the
-  points below describe the start (H2.3).
-- **The phone's `C:` (H2.3, kernel `8629702`):**
-  - in `EMMC_C=1` builds, `qcom_sdhci.cpp` gives `C:` the first 2000 MB of `userdata`, starting at its sector 0, as
-    FAT16;
-  - two guards keep writes inside that window: `a64_blk.cpp` and `A64BlkDev_Write`;
-  - the eMMC runs 1-bit at 19.2 MHz, ADMA2, polled (about 2 MB/s).
-- **The media driver** (`common/specific/a64_medblk.cpp`):
-  - formatting is a no-op (FAT writes its own structures);
-  - it reports 1 GB per format step, and no erase block size.
-- **Rugged FAT** is on unless a drive is flagged `FS_NOT_RUGGED`. `estart` forces ScanDrive on a rugged FAT volume
-  and warns when `FS_SCANDRIVE` is missing. Other `estart.txt` flags used below: `FS_SYSTEM_DRIVE` and
-  `FS_COMPOSITE` (`estart.cpp`).
+The state before FS1 (2026-11-07, after H2.3): F32 with Symbian's own plugins, `C:` as 2000 MB FAT16 from the obsolete
+`sfat`, `Z:` as the whole ROM in RAM. Moved to [history/filesystem-start.md](history/filesystem-start.md).
 
 ## Target layout
 
@@ -88,28 +61,42 @@ the same on any file system.
 `modemst1`, `modemst2`, `fsg`, `persist`, and the boot chain (`xbl*`, `abl*`, `tz*`, `hyp*`, `rpm*`, `keymaster*`,
 `devcfg*`, …). They hold the IMEI, radio and sensor calibration, and the bootloaders. Losing them disables the modem
 or bricks the phone.
-Telephony reads `modemst1/2`, `fsg`, `fsc`, `modemcal` and `modem_a` read-only ([telephony.md](../hardware/modem.md)); writing them is gate G4.
+The modem code reads `modemst1/2`, `fsg`, `fsc`, `modemcal` and `modem_a` read-only ([modem.md](../hardware/modem.md)); writing them is gate G4.
 
 **The allow-list.** The block driver keeps a list of the partition names it may write: `userdata`, `system_a/b` and
 `vendor_a/b`.
 - Writes anywhere else fail in the driver, whatever the caller asks for.
-- Each entry is enabled only when its stage is approved. Today only `userdata` is.
+- Each entry is enabled only when its stage is approved. At first only `userdata` was; FS4b added `system_a/b` (see
+  FS7's facts).
 
 ### Safety gates
 
-Some stages go past what is approved today: RAM boot only, and eMMC writes only inside `userdata`. Each needs the
-owner's explicit approval at the time:
+Some stages went past what was approved at first: RAM boot only, and eMMC writes only inside `userdata`. Each needs
+the owner's explicit approval at the time (G1–G3 were given for FS4b and FS5b):
 
 | Gate | What it allows | Stage |
 |---|---|---|
 | G1 | Writes to `system_a/b` by our bounded driver | FS4b |
 | G2 | The first write to `boot_a/b`: the phone then boots NeoSymbian without `fastboot boot` | FS5b |
 | G3 | Changing the A/B slot attributes: GPT entry attribute bits, rewritten with both GPT copies and their CRCs, or `fastboot --set-active` from a PC | FS5b |
-| G4 | Writes to the radio partitions (`modemst1`, `modemst2`, `fsg`, `fsc`, `modemcal`, `persist`, `modem_a/b`), e.g. rmtfs persisting the modem's EFS | [telephony.md](../hardware/modem.md) C12 |
+| G4 | Writes to the radio partitions (`modemst1`, `modemst2`, `fsg`, `fsc`, `modemcal`, `persist`, `modem_a/b`), e.g. rmtfs persisting the modem's EFS | [modem.md](../hardware/modem.md) C12 |
 
 ## Stages
 
 Each stage is usable on its own. FS1–FS3 complete roadmap stage H2 (storage).
+
+<!-- stages -->
+| Stage | What | State | Updated | Next / evidence |
+|---|---|---|---|---|
+| FS1 | The FAT32 plugin: 8 GB C: | done | 2026-11-07 | kernel 6c404ef, build 584ba4e; f32test FAT tests not in the ROM |
+| FS2 | eMMC speed: DDR52, write allow-list | done | 2026-11-07 | kernel fc0c929: 70 MB/s read, 39 MB/s write |
+| FS3 | C: and E: on userdata, TRIM | done | 2026-11-07 | kernel 92586a0; survives a watchdog reset during a copy |
+| FS4 | Z: on ROFS, from RAM then flash | done | 2026-11-07 | kernel f93a432 (FS4a), 2fd7deb (FS4b); the phone is installed |
+| FS5 | Block hashes and A/B updates | done | 2026-11-08 | kernel 20b8f44 (FS5a), 5b0ba6b (FS5b); a bad update rolls back |
+| FS6 | USB mass storage for E: | parked | 2026-11-08 | researched; blocked on USB power on a normal boot (known issues) |
+| FS7 | Install a big Z: | active | 2026-11-26 | step 0 done (ROFS=ramdisk, kernel#45); plan steps 2–4 open |
+| Later | Encryption, journaled C:, exFAT, MTP, paging, CQHCI | open | — | each when needed; encryption before personal data (KRN-016) |
+<!-- /stages -->
 
 Every stage is tested on QEMU first (virtio-blk disk), then on the phone with a RAM boot, with the watchdog armed and
 `lastlog` for crashes.
@@ -255,66 +242,9 @@ on the phone; `a64_sha256.S`, self-tested at boot, the C one as fallback), so th
   - Updates: `fastboot flash boot_b`; `system_b` is written by a `ROFS_INSTALL` image RAM-booted on slot b, since
     ABL refuses `system_*` outside fastbootd; then `fastboot set_active b`.
   - Tested on the phone: update into b, then a broken b rolls back to a by itself.
-  - **Installed 2026-11-17 into slot a** (now current): UI v2 and NEOPHONE v2. It includes:
-    - the neoui kit and protocol 1.9;
-    - Phone, Contacts and Messages as three EXEs;
-    - modem-ipc 2.6: conference flag, connect time, IMEI, SILENCE.
-
-    Revisions: build `27bc36b`, kernel `f0b70dff`, neoui `e6aa05e`, phone `d7012d6`, telephony `4095a4b`, neolink `3c19f03`.
-
-    How it was built: a clean build in a fresh volume (`FULL=1`), with `SIS=xplore,frozenbubble` and `ROFS_CORE='\.dll$'`.
-
-    Before the install, a RAM test boot showed the UI, MODEMD registered and reading the IMEI, and Phone and Messages started.
-
-    The install: `system_a` got 33640 KB written, verified, hash check passed; `boot_a` was flashed (6188 KB).
-
-    Images are in `private/uiv2-20261117` and ZimaOS `logs/uiv2-1117`. Slot b keeps its earlier install as the fallback.
-  - **Installed 2026-11-12 (evening) into slot a** (replaced 2026-11-17): everything merged that day: Wi-Fi W4 (joins WPA2,
-    Settings current network + details, status bar icon), C7 calls (IPC v2, multi-call, SIM PIN, airplane, ringtone +
-    haptics, modem recovery that never stops the ADSP) and the codec-rails fix (no more modem crash or 3G after a
-    call). Kernel `e4323c37`, build `f865a34`, neoui `1ee3245`, telephony `b99883f`, neolink `7db5000`.
-    `system_a`: 22337 KB written, verified (hash check passed); `boot_a` flashed (1116 KB). A RAM test boot of the
-    same ROM first: a call returned to LTE, Wi-Fi joined (owner checked). Images in `private/install-c7-20261112` and
-    ZimaOS `logs/install-c7-20261112`. Slot b keeps the keyboard install as the fallback.
-  - **Installed 2026-11-12 into slot a** (replaced the same evening): shell text fields bring up the system keyboard (the Wi-Fi
-    password, Contacts/Messages search), neoui `32b783a`, build `76515bd`, kernel `71c5c87d`. `system_a`: 21836 KB
-    written, verified; `boot_a` flashed (1100 KB). A RAM test boot first: Settings -> Wi-Fi -> a secured network's
-    sheet raised the keyboard and took a masked password. Images in ZimaOS `logs/install-fields-20261112`. Slot b
-    keeps the keyboard install below as the fallback.
-  - **Installed 2026-11-12 into slot b**: the system keyboard (English, Armenian, Russian; terminal
-    mode), neoui `d579fa0`, build `76515bd`, kernel `71c5c87d` (the Wi-Fi W3 install's sources). `system_b`: 21792 KB
-    written, verified; `boot_b` flashed (1100 KB). Built in an isolated ZimaOS copy (`isolated/kbd`, volume
-    `neosymbian-kbd`); images in `logs/install-kbd-20261112`. Slot a keeps the 2026-11-12 Wi-Fi install as fallback.
-  - **Installed 2026-11-10 into slot a** (C7 candidate; replaced by the 2026-11-12 installs above): kernel `8dbcc89f`,
-    build `b52e502`, neoui `bf93051` (current Clock and Dev tools retained), telephony `63a2b1f`,
-    e32 `e97e2eb`. Built on ZimaOS from coordinated `feat/c7-complete-calls` branches.
-    The `ROFS=1 ROFS_INSTALL=1 EMMC_C=1` installer wrote/read-back-verified 21003 KB to
-    `system_a`; the matching `ROFS=flash` image was flashed to `boot_a` (1076 KB).
-    Diagnostic fault injection was disabled. A RAM boot of that exact image mounted
-    `system_a`, showed the launcher and LTE, and marked slot a successful; then a normal
-    reboot was sent. Normal-boot visual confirmation and C7 call acceptance remain pending.
-    Slot b was preserved. Private installation logs remain outside Git.
-  - **Installed 2026-11-10 into slot a**: kernel `090bb5e` (device status registry, HAL `0x4e19`),
-    build `269ec50` (Old apps: `LEGACY.EXE`, its UID moved to `0xE0002006` off MODEMD's), neoui `ed9202f` (Dev tools,
-    Clock and the settings store rebuilt), telephony `54a8114`, e32 `e97e2eb`. `system_a`: 19991 KB written,
-    verified; `boot_a` flashed (1060 KB). A RAM test boot showed Dev tools listing the drivers and the modem on LTE.
-    This replaced the USB-SSH session's slot-a install of the same morning. Slot b keeps the 2026-11-09 install.
-  - **Installed 2026-11-09 into slot b**: telephony C6, calls with two-way audio. Kernel `792d36e`
-    (`b12d1ba` + the GLINK fix that lost the modem's VOICE announcement on the first install),
-    build `a1e418d` (+ the kernel override), neoui `2d55d01`, telephony `3f4af12` (MODEMD in the ROM: the modem and
-    the ADSP start at every boot). `system_b`: 11106 KB written, verified; `boot_b` flashed (984 KB). Slot a keeps
-    the 2026-11-08 install as the successful fallback.
-  - **Installed 2026-11-08 into slot a**: kernel `bee9830`, build `26c6325`, neoui `07b987c`, e32
-    `e97e2eb` (smooth-ui S2: fades, home swipe, list scrolling). `system_a`: 10709 KB written, verified; it booted
-    from eMMC to the launcher. Built in isolated ZimaOS copies (`build-s2`, `kernel-s2`, volume `neosymbian-s2`).
-    Slot b keeps the previous install as the successful fallback.
-  - **Installed 2026-11-08 into slot b** (earlier the same day): kernel `bee9830`, build `26c6325`, neoui `16958f7`, e32
-    `c5fda36` (H3a power/clock, S1–S3, build info).
-    Steps: `fastboot set_active b`; RAM-boot the `AUTOFASTBOOT=600 ROFS=1 ROFS_INSTALL=1 EMMC_C=1` installer
-    (`system_b`: 10460 KB written, verified); back to fastboot at once (the installer's neoui marks b successful,
-    while `boot_b` is still old); `fastboot flash boot_b` the `ROFS=flash EMMC_C=1` image; `fastboot reboot`.
-    Build all images from one ROM build (one volume), so the ROFS and its hashes match.
-  - ABL's quirks are in `known-issues.md`.
+  - **Installs** 2026-11-08 to 2026-11-17 (revisions, sizes, build steps, images): moved to
+    [history/fs5-install-log.md](history/fs5-install-log.md).
+  - ABL's quirks are in [known issues](../history/known-issues-fixed.md#phone-slot-a-runs-out-of-retries-abl-switches-to-slot-b-test-images-may-die-with-a-black-screen) (fixed by FS5b).
 
 - **FS5a, integrity (no gates):** a hash tree over the ROFS image, checked block by block in a media driver
   extension (`DMediaDriverExtension`). Its root hash is in the core ROM.
@@ -338,7 +268,7 @@ on the phone; `a64_sha256.S`, self-tested at boot, the C one as fallback), so th
   - `usbcsc_bil.dll` must be in the ROM;
   - the debug console and mass storage take turns owning the controller.
 - **Blocked on the installed phone** by USB power on a normal boot. It works on fastboot RAM boots, where ABL powers
-  USB. See `known-issues.md`.
+  USB. See [known issues](../known-issues.md#phone-usb-power-on-a-normal-boot-doesnt-work-yet-parked-2026-11-08).
 
 - **Spike first:** `smassstorage` speaks to the Symbian USB client LDD (`RDevUsbcClient`, `kernel/eka/drivers/usbc`).
   Our `qcom_dwc3_acm.cpp` is a standalone polled gadget for the debug console. The spike picks between:
@@ -427,7 +357,7 @@ about updates from the running system rather than a blocker.
 | Item | Plan | When |
 |---|---|---|
 | Encryption | AES-XTS as a media driver extension on `userdata`, with the key derived from the user's PIN. The SDM670's inline crypto engine (ICE) speeds it up later. A hardware keystore through TrustZone is a separate, large job. | Before the phone holds personal data |
-| Journaled `C:` | Only if rugged FAT fails in daily use. A new `.fsy` plugin: plugins run inside the user-side file server, so it can be mostly Rust behind a thin C++ layer (`CFileSystem`, `CMountCB`, `CFileCB`, `CDirCB`). ext4 is the pick: it has a journal, files over 4 GB and hashed directories, and Linux tools (`mkfs.ext4`, `e2fsck`, `debugfs`, mounting on ZimaOS) build and check the images. littlefs is power-safe but slow on large volumes; F2FS is too complex. | Only if needed |
+| Journaled `C:` | Only if rugged FAT fails in daily use. A new `.fsy` plugin: plugins run inside the user-side file server, so it can be mostly Rust behind a thin C++ layer (`CFileSystem`, `CMountCB`, `CFileCB`, `CDirCB`). ext4 is the pick: it has a journal, files over 4 GB and hashed directories, and Linux tools (`mkfs.ext4`, `e2fsck`, `debugfs`, mounting on the build server) build and check the images. littlefs is power-safe but slow on large volumes; F2FS is too complex. | Only if needed |
 | exFAT on `E:` | For files over 4 GB (video). Not in the 2010 sources; a new plugin. | When FAT32's 4 GB file limit matters |
 | MTP | Replaces mass storage so `E:` stays mounted on the phone too. Symbian's MTP framework (`mw.mtpfws`) was deleted from the org; re-fork it from SymbianSource if this is taken up. | After FS6 |
 | Demand paging | EKA2 pages code in from ROFS (and data, with a swap partition such as `vendor_x`), so `Z:` code needn't stay resident in RAM. | With M4 (performance), if RAM is short |
@@ -441,6 +371,6 @@ about updates from the running system rather than a blocker.
 | ~~Where the 8.3 limit comes from~~ **Answered 2026-11-07:** `build/tools/mkfat.py` writes short names only; F32's own format and `sl_vfat.cpp` handle long names. FS1 confirms it on `C:` | FS1 | done |
 | The eMMC's erase group size (EXT_CSD `HC_ERASE_GRP_SIZE`, `ERASE_GROUP_DEF`) | FS1, FS3 | `blk info` |
 | The phone's partition names and sizes, and the slot attributes | FS3–FS5 | `blk gpt` (it already prints all 72 entries); `fastboot getvar all` |
-| Whether the 2010 tree's `rofsbuild` and `scomp` run unchanged with our ROM tools | FS4 | Build a small ROFS on ZimaOS and mount it on QEMU |
+| Whether the 2010 tree's `rofsbuild` and `scomp` run unchanged with our ROM tools | FS4 | Build a small ROFS on the build server and mount it on QEMU |
 | Which A/B slot attributes ABL reads (active, successful, retry count) | FS5b | ABL source for SDM670 (Qualcomm LinuxLoader) and a `fastboot set_active` test |
 | Whether the usbc framework's controller interface fits DWC3, and how the debug console survives the switch | FS6 | Read `kernel/eka/drivers/usbc` and its PSL interface (`usbcshared`) |

@@ -1,7 +1,10 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Debug access: shell, files and logs from the Mac over USB
 
-Written 2026-11-09, revised 2026-11-10. **Status: design (DA0). Work list: [debug-access-roadmap.md](debug-access-roadmap.md) (T1–T12).**
+Part of [Developer tools](README.md) · Status: done · Updated: 2026-11-11
+
+Written 2026-11-09, revised 2026-11-10. Built through the tasks of [debug-access-roadmap.md](debug-access-roadmap.md);
+the status of each stage is in [Stages](#stages).
 
 The goal is what `adb` gives an Android developer: a shell, pushing and pulling files, launching programs and
 reading logs, from the Mac through the USB cable. NeoSymbian gets it from Symbian's own 2010 tools, unchanged.
@@ -12,12 +15,14 @@ through the roadmap's T1–T11.
 
 ## What exists today
 
+As written for the design (2026-11-09), before the user-side channel below was built.
+
 **The kernel debug monitor.** The phone's USB already carries one CDC-ACM serial port, owned by the kernel.
 - **Commands:** `A64Mon_Line` in `kernel/baseport/arm64/common/specific/a64_dbgmon.cpp`, plus the telephony words in
   `sdm670_assp/qcom_telmon.cpp`. They cover the log ring and the previous boot's log, registers, block I/O, slots,
   input, screenshots, threads, CPUs, USB, and the telephony subsystems.
 - **Mac side:** `kernel/baseport/arm64/tools/phone.py` (`run`, `cmd`, `dump`, `put`, `shot`, `console`).
-- **Speed:** a SHA-256-checked `blk dump` runs at 2.0 MB/s ([telephony C0](../hardware/modem.md#c0-recon-and-backups)).
+- **Speed:** a SHA-256-checked `blk dump` runs at 2.0 MB/s ([modem.md C0](../hardware/modem.md#c0-recon-and-backups)).
 - **Limits:**
   - input lines are 160 bytes, and longer ones are cut silently;
   - output lines are 256 bytes, and longer ones fault the kernel;
@@ -62,13 +67,14 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
   requests inline unless `NKern::CurrentContext()==EInterrupt`; from a thread they self-deadlock on ECOMM's spinlock.
   A polled PDD cannot work. The bonito ACM PDD (T8) needs the same: call the `...Isr` functions from a real or
   pended interrupt.
-- **A serial PDD per board** (a `DComm`, `kernel/kernel/eka/include/drivers/comm.h`). The models are
-  `symbian-qemu/baseport/syborg/serial/syborg_serial.cpp` and `kernel/kernel/eka/drivers/ecomm/uart16550.cpp`.
+- **A serial PDD per board** (a `DComm`, `kernel/kernel/eka/include/drivers/comm.h`). The models were
+  `symbian-qemu/baseport/syborg/serial/syborg_serial.cpp` (symbian-qemu is archived) and
+  `kernel/kernel/eka/drivers/ecomm/uart16550.cpp`.
   - **bonito:** a PDD over a **second CDC-ACM function** in the USB composite gadget.
     - **USB driver layering (T2, kernel `96f60d6`):** a controller core (`sdm670_assp/qcom_dwc3.cpp`: bring-up,
-      events, EP0, endpoint DMA buffers) runs function drivers through `common/inc/a64_usb_function.h`. Today there is
-      one, the monitor ACM (`common/specific/a64_usb_acm_monitor.cpp`); the debug ACM that this PDD sits on comes in
-      T8 (below). **T3 (kernel `b7133e2`)** added, without ECM: endpoint DMA ownership (a stop frees a buffer only on its
+      events, EP0, endpoint DMA buffers) runs function drivers through `common/inc/a64_usb_function.h`. At T2 there
+      was one, the monitor ACM (`common/specific/a64_usb_acm_monitor.cpp`); the debug ACM that this PDD sits on came
+      in T8 (below). **T3 (kernel `b7133e2`)** added, without ECM: endpoint DMA ownership (a stop frees a buffer only on its
       ENDTRANSFER command-complete event; failures quarantine), SET_CONFIGURATION deferred until its stops end, a
       controller restart (halt, core reset, bring-up) as the only recovery for a live control transfer or a quarantine,
       and the UTMI/PIPE clock mux restore that `usb cold` needs (a GCC reset leaves QSCRATCH GENERAL_CFG at 04, not
@@ -153,6 +159,21 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
 
 ## Stages
 
+<!-- stages -->
+| Stage | What | State | Updated | Next / evidence |
+|---|---|---|---|---|
+| DA0 | Design | done | 2026-11-10 | this document |
+| DA1 | fshell runs | done | 2026-11-10 | T6: on QEMU through econs (build#12, graphics#1); on the phone over USB since DA3 |
+| DA2 | Serial and fshell on QEMU, in CI | done | 2026-11-11 | T5, T7: kernel#4, kernel#6, build#14; the build CI job passes |
+| DA3 | Second ACM function on the phone | done | 2026-11-11 | T8: kernel#7; two cu.usbmodem ports, monitor kept |
+| DA4 | Files and programs from the Mac | done | 2026-11-11 | T9: kernel#8; phone.py sh, push, pull with SHA-256 |
+| DA5 | Robustness | done | 2026-11-11 | T10, T11: kernel#9, kernel#10; the flood and full C: checks failed, skipped by the owner |
+| DA6 | Installed boot | parked | 2026-11-11 | T12: kernel#11; the host never sees the phone on a cold boot (KRN-027) |
+| Later | memoryaccess, TRK, OST traces, coredumps | open | — | each needs its own design (roadmap L1–L3) |
+<!-- /stages -->
+
+Exit tests:
+
 | Stage | Exit test |
 |---|---|
 | DA0 design | This document. |
@@ -165,6 +186,9 @@ driver**. fshell's own `core/group/comm.script` starts it this way on boards lik
 | Later | memoryaccess LDD port (`top`, `objinfo`, `fdb`); TRK with c32, a `TrkDriver` port and `runonphone`; OST traces; coredumps. |
 
 ## Risks and open questions
+
+The design's risks, as written; T6–T9 answered them (see the roadmap's [Progress](debug-access-roadmap.md#progress)
+table).
 
 - **fshell's library closure** against our minimal ROM (DA1). This may pull in more 2010 packages than its list
   suggests.

@@ -1,6 +1,8 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Kernel audit verification: 2026-11-09
 
+Part of [Kernel](../../README.md) · Status: record · Updated: 2026-11-09
+
 This record distinguishes source/documentation checks from kernel acceptance. See
 [assessment](assessment.md), [issue register](../../issues.md) and
 [roadmap](../../modernization.md). Source baseline: kernel
