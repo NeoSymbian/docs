@@ -1,4 +1,7 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
 # The user side on modern cores: SMP-safe, one ARMv8-A AArch32 flavour (US0–US6)
+
+Part of [User side](README.md) · Status: done · Updated: 2026-11-26
 
 Written 2026-11-20 (browser WB4c session). It extends [smooth-ui.md](../neoui-shell/smooth-ui.md) S4 (the Rust ARMv7 target) to
 the whole user side, and puts one urgent fix in front. Revised 2026-11-21 after US1: the owner chose one user-side
@@ -6,7 +9,7 @@ flavour, 32-bit ARMv8-A; the stages below follow a Codex (`gpt-6.2-astra`) resea
 
 ## Why
 
-- **Two worlds today.**
+- **Two worlds (2026-11-20, before US0).**
   - The kernel is AArch64 SMP on 8 cores.
   - The user side is the 2010 code built for one ARMv5TE core.
 - **Already modern:**
@@ -16,6 +19,8 @@ flavour, 32-bit ARMv8-A; the stages below follow a Codex (`gpt-6.2-astra`) resea
 - **Still ARMv5TE:**
   - every other user-side binary: euser's C++, efsrv, P.I.P.S., the window server stack, legacy apps;
   - all no_std Rust (`armv5te-none-eabi`: neoui, phone, files, neohw).
+- **Since US5 (2026-11-25)** every user-side image is ARMv8-A AArch32 ([stages](#stages)); only the GNU helpers
+  libgcc/libsupc++ stay ARMv5TE.
 
 ### Finding (2026-11-20): user-side locks have no memory barriers
 
@@ -33,7 +38,7 @@ flavour, 32-bit ARMv8-A; the stages below follow a Codex (`gpt-6.2-astra`) resea
   - in `RHybridHeap::SlabFree`/`DlFree`;
   - with garbage strings and jumps to data.
 - **Fix:** in those three files, `__SMP__` only adds barriers (`cpudefs.h` selects `DMB` for ARMv7). It is a build-flag
-  change. Cortex-A8 (QEMU Syborg) runs DMB too.
+  change. Cortex-A8 (QEMU Syborg, then still a target) ran DMB too.
 
 ## What "modern" means here
 
@@ -61,16 +66,31 @@ flavour, 32-bit ARMv8-A; the stages below follow a Codex (`gpt-6.2-astra`) resea
 
 ## Stages
 
-| Stage | What | Where | Exit |
-|---|---|---|---|
-| **US0** | euser `.cia` built with `-D__CPU_CORTEX_A9__ -D__SMP__` (A8N + `__SMP__` is a `cpudefs.h` `#error`): 133 DMBs, none before | build `emitter/build_euser_device.py` (`_extra_flags_tu`), **build#41** | **Pixel 2026-11-20:** 3.5 min of browsing with no crash, against 3/3 crashes within 2 min before; the 15-min browser soak passed with US3 (2026-11-22). **Done** |
-| **US1** | The user side's other synchronisation, audited for single-core assumptions; [list below](#us1-the-audit). Fixes: `RReadWriteLock` order and the SWP emulation's barrier (kernel), 11 P.I.P.S. races (ossrv), a barrier after a polled `TRequestStatus` (e32-rs) | kernel#32, ossrv#4, e32-rs#8 (merged 2026-11-21) | Every site fixed or marked safe; STDTEST's `smp` checks fail before and pass after on the Pixel |
-| **US6a** | CI baseline on QEMU `virt` (our kernel, 4 × Cortex-A55): C: fixture, R0–R3, the seven named `smp` checks, PASS markers. Record the US1 baseline: E32 hashes, sizes, 5 Pixel boot medians, AArch32 CRC/AES/SHA known-answer tests on both clusters. A time-boxed Syborg `-cpu max,has_el2=off` spike | build `.github/workflows/build.yml`, kernel `tools/test-fshell-qemu.py`, e32-rs#13, browser#17 | The US1 payload is green on `virt`; baseline numbers below. **Done 2026-11-25, [results below](#us6a-results-2026-11-25)** |
-| **US2** | euser, efsrv, hal as ARMv8-A AArch32 (`-march=armv8-a+crc+crypto -mfloat-abi=softfp`, A9 + `__SMP__` profile), through one target setting; [three blockers first](#us2-what-to-fix-first) | build `toolchain/symcc`, `emitter/*.py`; kernel euser; build#46 (**merged 2026-11-21**) | Pixel RAM boot and `virt`; export/ordinal/stub/layout diff clean; TLS and nested-TRAP FP tests; R0–R3, `smp` 3/3; X-plore and Frozen Bubble; size and boot time against the baseline |
-| **US6b** | UI CI parity: neoui's Syborg tap, gesture, app-switch and old-app assertions ported to `virt` (pointer input, 539×1079) | neoui `syborg.yml`, `symbian/taps.sh`, kernel `qemu_variant`; kernel#40, legacy#8, build#60, neoui#36 | Same assertions and screenshots on `virt`; then the Syborg user-side jobs retire. **Done 2026-11-25, [results below](#us6b-results-2026-11-25)** |
-| **US3** | The rest of the 2010 ROM (P.I.P.S., ESOCK, graphics, middleware, old-app providers) through the same setting; rebuild the reachable GNU runtime members | build#52, ossrv#6 (**merged 2026-11-22**) | Fresh full build: no rejected relocations, lost ordinals or new stubs; full UI, old apps, 15-min browser soak, R0–R3, `smp`, CI. **Done, [results below](#us3-results-2026-11-22)** |
-| **US4** | Rust and the browser on one `armv8a-symbian-eabi.json` (`llvm-target armv8a-none-eabi`, `llvm-floatabi soft`, `max-atomic-width 64`, `+v8,+thumb2,+neon,+crc,…`, `c-enum-min-bits 32`, ARM state): real atomics, `Arc`, NEON. `e32` picks its runtime by feature, not `target_os`; `e32-sys` uses `fence(Acquire)`; NEOWB1's FP test fixed first | e32-rs, neoui, phone, files, neohw, browser | Both build-std modes; R0–R3, NEOWB1 6/6, MIXTEST 225, 64-bit atomic stress, `smp` 3/3, browser soak; neoui ns/px before/after (smooth-ui S4 exit). **Done 2026-11-25, [results below](#us4-results-2026-11-25)** |
-| **US5** | Clean-up: drop the ARMv5TE paths and aliases; docs (rust-integration, port-map, CLAUDE.md ABI rules) | build, docs | One user-side ABI; phone and CI run identical user E32 hashes. **Done 2026-11-25, [results below](#us5-results-2026-11-25)** |
+<!-- stages -->
+| Stage | What | State | Updated | Next / evidence |
+|---|---|---|---|---|
+| US0 | Barriers in euser's `.cia` locks | done | 2026-11-21 | build#41; 3.5 min browsing, no crash; installed finchmane |
+| US1 | Audit user-side sync for single-core assumptions | done | 2026-11-21 | kernel#32, ossrv#4, e32-rs#8; `smp` 3/3 on the Pixel |
+| US2 | euser, efsrv, hal as ARMv8-A AArch32 | done | 2026-11-21 | build#46; NeoTrapFp keeps d8–d15 across a leave |
+| US3 | The rest of the 2010 ROM as ARMv8 | done | 2026-11-22 | build#52, ossrv#6; 276/276 accepted, boot median 15.1 s |
+| US4 | Rust and the browser on one ARMv8 target | done | 2026-11-25 | e32-rs#12 and seven repos; native atomics, `Arc`; neoui 32 ms home frame |
+| US5 | Clean-up: one user-side ABI | done | 2026-11-25 | build#56 #58 #59; CI and phone build the same 286 E32 images |
+| US6a | CI baseline on QEMU `virt` | done | 2026-11-25 | e32-rs#13, browser#17; NEOCPU, `smp` ×3, MIXTEST in CI |
+| US6b | UI CI parity on `virt` | done | 2026-11-25 | kernel#40, legacy#8, build#60, neoui#36; `virt-taps` green |
+| ARMv8 profile | `__CPU_ARMV8A__`: CRC32, LDA/STL measured | done | 2026-11-26 | kernel#43; CRC32 ships (8–11×), LDA/STL under the 10 % bar, not used |
+| A0–A3 | A 64-bit (ILP32) user side | parked | 2026-11-21 | studied; revisit for cores without AArch32 EL0 |
+<!-- /stages -->
+
+What each stage did, where, and its exit check:
+
+- **US0**: euser `.cia` built with `-D__CPU_CORTEX_A9__ -D__SMP__` (A8N + `__SMP__` is a `cpudefs.h` `#error`): 133 DMBs, none before. *Where:* build `emitter/build_euser_device.py` (`_extra_flags_tu`), **build#41**. **Exit:** **Pixel 2026-11-20:** 3.5 min of browsing with no crash, against 3/3 crashes within 2 min before; the 15-min browser soak passed with US3 (2026-11-22). **Done**.
+- **US1**: The user side's other synchronisation, audited for single-core assumptions; [list below](#us1-the-audit). Fixes: `RReadWriteLock` order and the SWP emulation's barrier (kernel), 11 P.I.P.S. races (ossrv), a barrier after a polled `TRequestStatus` (e32-rs). *Where:* kernel#32, ossrv#4, e32-rs#8 (merged 2026-11-21). **Exit:** Every site fixed or marked safe; STDTEST's `smp` checks fail before and pass after on the Pixel.
+- **US6a**: CI baseline on QEMU `virt` (our kernel, 4 × Cortex-A55): C: fixture, R0–R3, the seven named `smp` checks, PASS markers. Record the US1 baseline: E32 hashes, sizes, 5 Pixel boot medians, AArch32 CRC/AES/SHA known-answer tests on both clusters. A time-boxed Syborg `-cpu max,has_el2=off` spike. *Where:* build `.github/workflows/build.yml`, kernel `tools/test-fshell-qemu.py`, e32-rs#13, browser#17. **Exit:** The US1 payload is green on `virt`; baseline numbers below. **Done 2026-11-25, [results below](#us6a-results-2026-11-25)**.
+- **US2**: euser, efsrv, hal as ARMv8-A AArch32 (`-march=armv8-a+crc+crypto -mfloat-abi=softfp`, A9 + `__SMP__` profile), through one target setting; [three blockers first](#us2-what-to-fix-first). *Where:* build `toolchain/symcc`, `emitter/*.py`; kernel euser; build#46 (**merged 2026-11-21**). **Exit:** Pixel RAM boot and `virt`; export/ordinal/stub/layout diff clean; TLS and nested-TRAP FP tests; R0–R3, `smp` 3/3; X-plore and Frozen Bubble; size and boot time against the baseline.
+- **US6b**: UI CI parity: neoui's Syborg tap, gesture, app-switch and old-app assertions ported to `virt` (pointer input, 539×1079). *Where:* neoui `syborg.yml`, `symbian/taps.sh`, kernel `qemu_variant`; kernel#40, legacy#8, build#60, neoui#36. **Exit:** Same assertions and screenshots on `virt`; then the Syborg user-side jobs retire. **Done 2026-11-25, [results below](#us6b-results-2026-11-25)**.
+- **US3**: The rest of the 2010 ROM (P.I.P.S., ESOCK, graphics, middleware, old-app providers) through the same setting; rebuild the reachable GNU runtime members. *Where:* build#52, ossrv#6 (**merged 2026-11-22**). **Exit:** Fresh full build: no rejected relocations, lost ordinals or new stubs; full UI, old apps, 15-min browser soak, R0–R3, `smp`, CI. **Done, [results below](#us3-results-2026-11-22)**.
+- **US4**: Rust and the browser on one `armv8a-symbian-eabi.json` (`llvm-target armv8a-none-eabi`, `llvm-floatabi soft`, `max-atomic-width 64`, `+v8,+thumb2,+neon,+crc,…`, `c-enum-min-bits 32`, ARM state): real atomics, `Arc`, NEON. `e32` picks its runtime by feature, not `target_os`; `e32-sys` uses `fence(Acquire)`; NEOWB1's FP test fixed first. *Where:* e32-rs, neoui, phone, files, neohw, browser. **Exit:** Both build-std modes; R0–R3, NEOWB1 6/6, MIXTEST 225, 64-bit atomic stress, `smp` 3/3, browser soak; neoui ns/px before/after (smooth-ui S4 exit). **Done 2026-11-25, [results below](#us4-results-2026-11-25)**.
+- **US5**: Clean-up: drop the ARMv5TE paths and aliases; docs (rust-integration, port-map, CLAUDE.md ABI rules). *Where:* build, docs. **Exit:** One user-side ABI; phone and CI run identical user E32 hashes. **Done 2026-11-25, [results below](#us5-results-2026-11-25)**.
 
 US0 and US1 are done (merged 2026-11-21, installed as `2026-11-20-finchmane`); US2 (2026-11-21), US3
 (2026-11-22), US4 and US5 (2026-11-25) are merged: every 2010 C++ and every Rust user-side image is ARMv8-A AArch32,
@@ -224,7 +244,7 @@ build#56 #58 #59, kernel#39, legacy#7, neoui#35, neohw#16, files#13, phone#9, br
   (`scripts/build-user-manifest.sh` writes the same `.ekern-build/rombuild.args`, identical, 888 lines); deleted:
   the Syborg kernel scripts and glue, the bootstrap translator, the whole-ROM writer, `boot.sh`, `neo boot`,
   `neo live`, `symcc -k` (its user flags unchanged). legacy's `mif.py` takes `uid_checksum` from
-  `emitter/e32image.py` (legacy#7). neoui's Syborg tap job is kept as the US6b spec (`symbian/us6b/syborg-taps.yml`).
+  `emitter/e32image.py` (legacy#7). neoui's Syborg tap job became the `virt-taps` workflow (`.github/workflows/virt-taps.yml` running `symbian/taps.sh`, US6b).
 - **Rust:** the "Arc needs compare-and-swap" workarounds are `Arc` now (neoui Wi-Fi and USB debugging, neohw GNSSD
   and WIFID, Files' job slot); the browser SDK's wrappers are `armv8-symbian-*` (regenerate with
   `tools/symbian-sdk.sh`); Settings > About says ARMv8-A.
@@ -274,7 +294,7 @@ build#52 (`ad7f8807`) and ossrv#6 (`4337f805`), compared with `2026-11-22-tapirt
 
 - **One setting:** `toolchain/symcc` builds all user-side C++ as `-march=armv8-a+crc+crypto -mfloat-abi=softfp
   -mword-relocations -mno-unaligned-access`, A9 + `__SMP__` profile: the 276 step-19 components plus efile, estart,
-  eshell and elocal. The 2010 Syborg kernel build (`symcc -k`) stays ARMv5.
+  eshell and elocal. The 2010 Syborg kernel build (`symcc -k`) stayed ARMv5 (deleted in US5).
 - **FP registers across a leave or `longjmp`** (d8–d15 are callee-saved; TTrap and `jmp_buf` are frozen):
   - TRAP/TRAPD/TRAP_IGNORE: `NeoTrapFp` (US2, overlay `e32cmn.h`).
   - `__ASSERT_ALWAYS_NO_LEAVE` (`e32std.h`, a hand-expanded TRAP; its leave path panics): overlay `e32std.h`.
@@ -367,7 +387,7 @@ starts, crash `c32exe.exe::ESock_DIP` (KERN-EXEC 3, null read) and C32Start rebo
 **Safe, nothing to do:** the rest of euser's sync now that its atomics have barriers (`LockedInc`/`SafeInc`,
 `RCriticalSection`, `RHybridHeap`, TLS, the active scheduler); efsrv and hal have no `.cia`; the other 2010 packages only
 call euser's atomics (gdi/textbase `hextree.cpp`, commsfw `User::LockedInc`); CP15 barriers are enabled at EL0; no
-`__sync_*` anywhere. ARMv5TE Rust has no atomics at all (`critical-section` is a kernel `RMutex`), and every hand-off
+`__sync_*` anywhere. ARMv5TE Rust had no atomics at all (until US4) (`critical-section` is a kernel `RMutex`), and every hand-off
 between threads goes through a kernel object.
 
 **Left, recorded:** libstdcpp is built with `_STLP_NO_THREADS` (the browser doesn't link it); the backend's
@@ -408,7 +428,7 @@ Investigated 2026-11-21 (owner's question): AArch64 user code next to the old AA
 
 ## Risks
 
-- **Kernel and user side out of step:** `__SMP__` on euser's C++ arrives with US2. Measured: no exported struct
+- **Kernel and user side out of step:** `__SMP__` on euser's C++ arrived with US2 (2026-11-21). Measured: no exported struct
   changes; `TLocalThreadData` comes with the A9 CPU profile, and the kernel already sets it up (`a64e_exec.cpp:162`).
 - **Code size** grows a little with Thumb-2 + NEON and barriers. The ROFS limit is 256 MB (kernel `wb4-rofs`).
 - **Old binaries:** apps built for ARMv5 keep their own inline SWP. They stay correct only while the kernel emulation

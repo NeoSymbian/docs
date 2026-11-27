@@ -1,4 +1,7 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
 # Sources for the EKA2 → AArch64 (ILP32) port
+
+Part of [Reference](README.md) · Status: reference · Updated: 2026-11-25
 
 Researched 2026-11-05 with `gh api`, raw.githubusercontent.com, and web search/fetch.
 Dates are **last-commit dates** from the commits API. GitHub's `pushed_at` can be later (kernelhwsrv says 2021, but its last commit is 2010).
@@ -16,22 +19,10 @@ Dates are **last-commit dates** from the commits API. GitHub's `pushed_at` can b
 
 ## Our forks (neosymbian)
 
-Everything the build fetches is forked into https://github.com/neosymbian. Nothing is pushed back upstream.
-
-- **The 99 SymbianSource packages** pinned in Phorepoc `core/sources.lock` (126 entries over `master` and
-  `BRANCH_RCL_3`) are forked from **SymbianSource**, the root of the fork network, not from Phorepoc's identical mirrors.
-- **Phorepoc `core` and `pdk`** are forked too. Our `core` fork's `fetch.sh` defaults `SOURCES_URL` to neosymbian.
-- **Also forked:** Phorepoc `adaptation-a64` and `adaptation-x86-64`, as read-only references. `symbian-2010` and
-  `qemu-syborg` are forked for the Rust stream.
-- **Not forked** until a stage needs them: `toolchain` (its container images are published separately) and the layers
-  (`tls`, `qt-symbian`, …).
-- **Local layout:** every repo we work in is cloned side by side in one workspace folder, `NeoSymbian/`:
-  `symbian-pixel`, `oss.FCL.sf.os.kernelhwsrv`, `core`, `pdk`, `symbian-2010`, `e32-rs`, `neoui`, `adaptation-*`.
-  The workspace's `CLAUDE.md` describes them.
-- **Branch rule:** upstream branches stay untouched; our work is on `main`, the default branch.
-  - `oss.FCL.sf.os.kernelhwsrv` `main` starts at `0c32086` (tag `201043_12`), the commit `sources.lock` pins.
-  - In-place kernel edits are commits there. After each one, `core/sources.lock` is re-pinned to it.
-  - New code goes into new repos, starting with `symbian-pixel`.
+The fork list of 2026-11-05 (99 SymbianSource packages pinned in Phorepoc's `core`, the `core`/`pdk`/adaptation forks,
+the `symbian-pixel` workspace layout) is history: [../history/sources-2026-11-05.md](../history/sources-2026-11-05.md#our-forks-neosymbian).
+Today's forks and their rules are in the workspace `CLAUDE.md` and [../README.md](../README.md#repositories); the
+retired ones in [../history/retired-repos.md](../history/retired-repos.md).
 
 ## Top 10 sources (ranked)
 
@@ -184,6 +175,9 @@ Every `arm/*.cia` must be rewritten as A64. The generic `.cpp` (nkernsmp core, f
 **License:** EPL-1.0 (headers; GitHub reports none).
 
 ### 6. SymbianSource/oss.FCL.sf.adapt.Qemu (Syborg) and the Phorepoc symbian-2010 / qemu-syborg repos
+
+**History:** Syborg stopped being a target on 2026-11-21 and our forks of it are archived; this section is kept as
+the record of what the package holds.
 
 **URLs:**
 - https://github.com/SymbianSource/oss.FCL.sf.adapt.Qemu (last commit 2010-10-29)
@@ -343,30 +337,10 @@ Also relevant: `oss.FCL.interim.SFTools.LinuxBuild` (2010-12-01), the Linux-host
 
 ## Gaps (no source provides these)
 
-1. **GICv3:**
-   - No EKA2 code anywhere uses system-register GIC CPU interfaces (`ICC_*_EL1`), the redistributor, or affinity routing.
-   - Only GICv1/ARM11MP-style `arm_gic.h` exists (and a GIC-400 board in Phorepoc a64).
-   - We must write the GICv3 interrupt controller and the IPI code (`ICC_SGI1R_EL1`) from scratch.
-2. **An A64 nanokernel arch layer:** no AArch64 code exists for EKA2:
-   - context switch, `vectors`, exception entry/exit with an AArch32-EL0 frame (SPSR/ELR, banked regs to `x0–x14`);
-   - `nccpu`, `ncirq`, `ncutils`;
-   - atomics (`common/arm/atomic_*` are LDREX/STREX A32).
-
-   The x86-64 port is the only 64-bit template, and it is a different ISA.
-3. **The memory model on VMSAv8-64:**
-   - `flexible/mmu/arm/xmmu.*` targets ARMv6/v7 short-descriptor tables.
-   - Nothing implements 4 KB-granule 64-bit descriptors with 32-bit VA user and kernel spaces (or ASIDs via TTBR0 per process).
-   - Phorepoc `x64mm` (x86 4-level paging) is the nearest conceptual example.
-4. **Generic timer, PSCI and DTB-driven boot in our setting:**
-   - Phorepoc a64 has generic-timer and PSCI patches for an *AArch32* kernel only.
-   - No EKA2 code parses a DTB. The bootstrap expects a variant-specific boot table and superpage, so a DTB-to-boot-table shim is ours to write.
-5. **A bootstrap at AArch64 EL1, MMU off:** the generic bootstrap (`bootmain.s`, `bootcpu.s`, `bootutils.s`) is A32 armasm. It needs a full A64 rewrite; the Phorepoc armasm2gas tooling only helps for A32.
-6. **AArch32 EL0 under AArch64 EL1 specifics.** Undocumented in any Symbian source:
-   - SVC immediate recovery (ESR gives only imm16; read the opcode);
-   - TPIDRURO/TPIDRURW handling (Symbian uses CP15 thread ID registers);
-   - VFP/NEON lazy save from EL1 (`kernel/arm/vfp.*` is AArch32 VFP).
-7. **ROM tooling for a 64-bit kernel:** rombuild/elf2e32 handle 32-bit ARM or x86 kernel images only. Phorepoc's pdk `rombuild.py` is the place to extend (not inspected).
-8. **Docs on the SMP nanokernel internals:** "Symbian OS Internals" (2005) predates nkernsmp. Beyond code comments, the 4 SMP topics in docscontent and the e32test SMP tests, there is no design document for `nk_bal`, tied events or IPI generation.
+On 2026-11-05 no source covered GICv3, an A64 nanokernel layer, the memory model on VMSAv8-64, the generic timer, PSCI
+and DTB boot, an AArch64 bootstrap, AArch32 EL0 under AArch64 EL1, ROM tooling for a 64-bit kernel, or SMP nanokernel
+design docs. The port has since written the code for all but the last: the list is in
+[../history/sources-2026-11-05.md](../history/sources-2026-11-05.md#gaps-no-source-provides-these).
 
 ## Not verified
 
@@ -445,7 +419,7 @@ Several gauravssnl links are dead (404): `Symbian9/Symbian_Server`, `Symbian9/si
   - **The Symbian bible (#3)** adds a third exec-ABI oracle. It counts 269 execs on 9.3, against 337 in S^3 `execs.txt`. Check the overlap before relying on it; its quality is unverified.
   - **Already in kernelhwsrv, not yet named above:** `etshell`, `estart` and `tshell.oby` (see "Category 3" above). Neither list mentions them; they belong with the bring-up tests under #1.
 - **Contradicts:** nothing. Neither list has a newer kernel mirror, another source release, or any AArch64 kernel work.
-- **AArch64 EKA2 efforts:** none in either list. A GitHub search on 2026-11-05 ("eka2 aarch64", "symbian aarch64", "eka2 kernel", "nanokernel symbian") found none either, which supports Gap 2 above. It turned up these repos, which are *not in either list*:
+- **AArch64 EKA2 efforts:** none in either list. A GitHub search on 2026-11-05 ("eka2 aarch64", "symbian aarch64", "eka2 kernel", "nanokernel symbian") found none either, which supports Gap 2 ([history](../history/sources-2026-11-05.md#gaps-no-source-provides-these)). It turned up these repos, which are *not in either list*:
   - **AnmiTaliDev/neka** (GPL-3.0, 2026-07-08): "a free reimplementation of the Symbian EKA2 kernel architecture". It targets 32-bit ARM (`arm-none-eabi`, `qemu-system-arm -M versatilepb` running an `nktest.elf`). It is clean-room code, not EKA2 source, and too GPL to borrow from; worth watching only.
   - **atreia108/eka2_build_guide** (2023-10-22): a step-by-step build of EKA2 from **BRANCH_GCC_SURGE** of kernelhwsrv and adapt.Qemu. It uses Sourcery `arm-2010q1-190-arm-none-symbianelf`, PDK 4.0a and `oss.FCL.interim.SFTools.LinuxBuild` in an Ubuntu 10.04 VM. It is a period-correct reference build to compare Phorepoc's results against.
   - **IarChep/symix** (2026-10-31): a Linux kernel with an EKA2 compatibility layer. It is an empty idea.

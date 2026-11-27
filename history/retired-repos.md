@@ -1,4 +1,7 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
 # Retired repositories
+
+Part of [history](README.md) · Status: record · Updated: 2026-11-25
 
 On 2026-11-06, after the restructure into `kernel`, `build` and `docs`, these 91 repositories were deleted from the
 NeoSymbian organization: nothing builds from them any more. This page keeps what is needed to bring any of them back.

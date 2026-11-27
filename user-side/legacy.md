@@ -1,4 +1,7 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
 # Legacy apps: old S60 apps inside neoui
+
+Part of [User side](README.md) · Status: active · Updated: 2026-11-21
 
 **Goal:** old, unmodified Symbian S60 apps run inside neoui. These are 3rd and 5th edition `.sis` packages: first X-plore 1.64 and Frozen Bubble, later a wider corpus.
 
@@ -155,17 +158,30 @@ pad states, console, settings; the spec sheets "Pad keys", "Touch & hold", "Pad 
 
 ## Milestones
 
-| | Work | Done when | Status (2026-11-20) |
-|---|---|---|---|
-| **L0** | Ownership and inventory: the legacy repo, the run time in compsupp, the manifest loading, honest audit reports. | The same ROM before and after; build owns no legacy runtime. | **Done** (2026-11-14) |
-| **L0.5** | The AppArc launcher: protocol 1.6, the Old apps grid, real icons (SVG-T engine). | Old apps shows X-plore and Frozen Bubble with their icons; a tap starts the app in the guest. | **Done** |
-| **L1** | A stable runtime and desktop: guest handshake, persistent supervisor, AknCapServer CONE 9 found from evidence, the Avkon service closure. | A minimal Avkon app starts again and again; notes and menus work; a guest failure leaves neoui usable. | **Largely done.** The guest desktop persists, AknCapServer starts first (the CONE 9 cause was found), and closing and reopening Old apps is stable. Open: the explicit guest handshake (guest mode is still detected from the chunk) |
-| **L2** | Two usable apps: Frozen Bubble's `mediaclientaudiostream`, X-plore's dynamic loads, typed providers, controls, basic text. | **X-plore:** lists, copies and renames files, and keeps its settings. **Frozen Bubble:** a full game with held controls. Whether audio works is recorded either way. | **Frozen Bubble done:** a full game with held controls and sound (legacy#4, #5). **X-plore in progress:** it browses C: and E: with the Navigator; copying, renaming and kept settings are not recorded yet |
-| **L3** | Shell integration: damage instead of the 10 Hz full copy, frame ownership, a task protocol, several apps at once. | Two apps keep running while switching; no idle full-frame copies. | Not started |
-| **L4** | Runtime SIS install. Now NeoStore ST6 ([../apps/store.md](../apps/store.md), 2026-11-18): a Rust SIS installer in NEOINST instead of the SWI engine from mw.appinstall, plus the store's install screens. | Install from C: without a ROM build; the launcher updates; uninstall and upgrade work. | Designed (store.md), not built. Packages still go in at build time (`SIS=` in build) |
-| **L5** | Breadth: screen modes and rotation, a FEP bridge to the neoui keyboard, media, a corpus of apps. | Per-app feature results published. | **Partly done.** Input: the key pads, the landscape console, multi-touch, key vibration and per-app pad memory ([Key pads](#key-pads-s60-apps-take-keys-not-touch)); text from neoui's keyboard through the Abc pad, as key events (no FEP needed). Media: sound and the WAV player's MMF plugins. Network: sockets on an `RConnection` work. Open: AknFep (multi-tap, T9), the apps' own screen modes and rotation (the console turns the canvas, the app keeps its mode), IAP records, a corpus of apps |
+<!-- stages -->
+| Stage | What | State | Updated | Next / evidence |
+|---|---|---|---|---|
+| L0 | Ownership and inventory | done | 2026-11-14 | the legacy repo, the runtime in compsupp, honest audit reports |
+| L0.5 | The AppArc launcher and Old apps grid | done | — | X-plore and Frozen Bubble listed with their icons, protocol 1.6 |
+| L1 | A stable runtime and desktop | active | 2026-11-20 | desktop persists, AknCapServer first; open: the explicit guest handshake |
+| L2 | Two usable apps | active | 2026-11-20 | Frozen Bubble done (legacy#4, #5); X-plore copy, rename, kept settings open |
+| L3 | Shell integration, several apps at once | open | — | not started: damage-based drawing, a task protocol |
+| L4 | Runtime SIS install | dropped | 2026-11-18 | moved to NeoStore ST6 (apps/store.md): a Rust SIS installer in NEOINST; designed, not built |
+| L5 | Breadth: modes, FEP, media, a corpus | active | 2026-11-20 | key pads, sound, sockets done; open: AknFep, rotation, IAP records, a corpus |
+<!-- /stages -->
 
-Each step is tested on the Pixel (until 2026-11-21 first on QEMU Syborg, watched over VNC with `neo live`; both removed in US5).
+What each milestone covers, when it is done, and where it stood on 2026-11-20:
+
+- **L0**: Ownership and inventory: the legacy repo, the run time in compsupp, the manifest loading, honest audit reports. **Done when:** The same ROM before and after; build owns no legacy runtime. **Status:** **Done** (2026-11-14).
+- **L0.5**: The AppArc launcher: protocol 1.6, the Old apps grid, real icons (SVG-T engine). **Done when:** Old apps shows X-plore and Frozen Bubble with their icons; a tap starts the app in the guest. **Status:** **Done**.
+- **L1**: A stable runtime and desktop: guest handshake, persistent supervisor, AknCapServer CONE 9 found from evidence, the Avkon service closure. **Done when:** A minimal Avkon app starts again and again; notes and menus work; a guest failure leaves neoui usable. **Status:** **Largely done.** The guest desktop persists, AknCapServer starts first (the CONE 9 cause was found), and closing and reopening Old apps is stable. Open: the explicit guest handshake (guest mode is still detected from the chunk).
+- **L2**: Two usable apps: Frozen Bubble's `mediaclientaudiostream`, X-plore's dynamic loads, typed providers, controls, basic text. **Done when:** **X-plore:** lists, copies and renames files, and keeps its settings. **Frozen Bubble:** a full game with held controls. Whether audio works is recorded either way. **Status:** **Frozen Bubble done:** a full game with held controls and sound (legacy#4, #5). **X-plore in progress:** it browses C: and E: with the Navigator; copying, renaming and kept settings are not recorded yet.
+- **L3**: Shell integration: damage instead of the 10 Hz full copy, frame ownership, a task protocol, several apps at once. **Done when:** Two apps keep running while switching; no idle full-frame copies. **Status:** Not started.
+- **L4**: Runtime SIS install. Now NeoStore ST6 ([../apps/store.md](../apps/store.md), 2026-11-18): a Rust SIS installer in NEOINST instead of the SWI engine from mw.appinstall, plus the store's install screens. **Done when:** Install from C: without a ROM build; the launcher updates; uninstall and upgrade work. **Status:** Designed (store.md), not built. Packages still go in at build time (`SIS=` in build).
+- **L5**: Breadth: screen modes and rotation, a FEP bridge to the neoui keyboard, media, a corpus of apps. **Done when:** Per-app feature results published. **Status:** **Partly done.** Input: the key pads, the landscape console, multi-touch, key vibration and per-app pad memory ([Key pads](#key-pads-s60-apps-take-keys-not-touch)); text from neoui's keyboard through the Abc pad, as key events (no FEP needed). Media: sound and the WAV player's MMF plugins. Network: sockets on an `RConnection` work. Open: AknFep (multi-tap, T9), the apps' own screen modes and rotation (the console turns the canvas, the app keeps its mode), IAP records, a corpus of apps.
+
+Each step is tested on the Pixel. QEMU `virt` with our kernel shows and drives the UI too (`VNC=:0 neo qemu 3600`,
+since US6b, 2026-11-25); until 2026-11-21 steps ran first on QEMU Syborg, watched with `neo live` (both removed in US5).
 
 **Status (2026-11-20):**
 - **L0, L0.5 done; L1 largely done** (table above).
