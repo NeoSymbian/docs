@@ -1,6 +1,8 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Settings data: what the boards show and who produces it
 
+Part of [neoui shell](README.md) · Status: active · Updated: 2026-11-27
+
 **Status: plan 2026-11-26; D1–D11 and D18 built 2026-11-27 (the Settings run, table below), D12–D17 and D19 show honest "Not yet (Dxx)" rows until their hardware stages.** The owner decided that NEOSET matches the design canvas's `set2-*` boards and that every value a board shows is real ([settings.md](settings.md#board-parity-owner-2026-11-26)). This file is the data side: the stages D1–D19, each with its producer, protocol, gate and feasibility. It was written by Codex (xhigh, read-only, from the `origin/main` trees named below); the order the owner approved is in settings.md. The visual side (V0–V3) is in settings.md too.
 
 
@@ -9,6 +11,32 @@ Four board values already have producers worth reusing. WIFID supplies **all fou
 Codex inspected the local `origin/main` trees, including `docs b1e2d91`, `neoui 56f4775`, `neohw 4163f92`, `kernel 73111a3d`, `e32-rs b525e9f`, `build dc684b5`, `phone 8165f58`, `files 39ab88a` and `browser ddf32c9`. The hardware roadmaps are in the **docs** repository at these revisions. It read source only: no builds, tests or phone runs. The checks below are implementation acceptance criteria. [Settings status](https://github.com/NeoSymbian/docs/blob/b1e2d91/neoui-shell/settings.md#status-2026-11-26) · [Hardware ownership](https://github.com/NeoSymbian/docs/blob/b1e2d91/hardware.md)
 
 ## Built (2026-11-27)
+
+<!-- stages -->
+| Stage | What | State | Updated | Next / evidence |
+|---|---|---|---|---|
+| D1 | Shared row values, search, both roots | done | 2026-11-27 | neoui#61: one row model; left: dynamic instances, scroll to a hit |
+| D2 | Wi-Fi details, console overlay, slot | done | 2026-11-27 | neoui#61: WIFID link record, HAL 0x4e02/03, active slot |
+| D3 | Drive totals, per-drive kinds, C: free | done | 2026-11-27 | neoui#61; the per-drive kinds page waits for FS6 |
+| D4 | App identity, size by owner, Clear data | done | 2026-11-27 | neoui#61 (INFO 8, OWNER_REPORT, INFO 13); owners in other apps left |
+| D5 | Screen-on time since full charge | done | 2026-11-27 | neoui#61: charge-cycle recorder, INFO 9 |
+| D6 | Profile feedback, previews, your own ringtones | done | 2026-11-27 | neoui#61, neohw#21 (modem-ipc 2.8, NeoAudio 1.1); WAV import not run on the phone |
+| D7 | Wallpaper, font scale, display language | active | 2026-11-27 | colours and font size built; left: pictures, language strings, other apps' font scale |
+| D8 | Clipboard notice, permissions, diagnostics | done | 2026-11-27 | toast and diagnostics built; read-only app permissions deferred |
+| D9 | Notification policy and pages | done | 2026-11-27 | with TP4, protocol 1.21; left: MODEMD's alert policy, inline reply |
+| D10 | Navigation settings and Edit home | done | 2026-11-27 | G3–G5 and the home editor; left: Add to home from the menu, 2×2 widgets |
+| D11 | SIM lock and attempts left | active | 2026-11-27 | page reads the card; PIN changes held back until the review's fixes (below) |
+| D12 | Hidden Wi-Fi join | open | 2026-11-27 | "Not yet" row; needs the kernel's directed scan (SE1c-2) |
+| D13 | Mobile bearer, mode, APNs, traffic | open | 2026-11-27 | "Not yet" row; waits for C10 |
+| D14 | Bluetooth discovery, pairing, profiles | open | 2026-11-27 | "Not yet" row; waits for B0–B8 |
+| D15 | Lock policy, device PIN, double-tap wake | open | 2026-11-27 | "Not yet" row; waits for TP8/TP9 |
+| D16 | Attributed battery estimates | open | 2026-11-27 | "Not yet" row; after D5 and radio instrumentation |
+| D17 | Eject E: and share over USB | open | 2026-11-27 | "Not yet" row; waits for FS6 |
+| D18 | Check for OS updates | active | 2026-11-27 | status row built ("Update service unavailable"); a signed feed is open |
+| D19 | Network reset extensions, Erase C: | open | 2026-11-27 | "Not yet" row; after D13/D14, then recovery (SE7) |
+<!-- /stages -->
+
+What each built and what it left:
 
 | Stage | As built | Left |
 |---|---|---|

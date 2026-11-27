@@ -1,7 +1,9 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # GNSS research: zero C/N0 on bonito and the first-fix plan
 
-Part of [gnss.md](gnss.md) (GNSS in NeoSymbian; its "Getting a first fix" section is the short version). Written by a
+Part of [Hardware](README.md) · Status: research · Updated: 2026-11-20
+
+The long version of [gnss.md](gnss.md)'s "Getting a first fix" section; its G0–G5 are gnss.md's GR0–GR5 (G4a and G4b are GR4). Written by a
 Codex research run on 2026-11-20, from Android, Linux and our own logs; reviewed and published unchanged in substance.
 Paths: `neohw/` = NeoSymbian/neohw at `208b878` (branch `gnss/gn1`), `kernel/` = NeoSymbian/kernel at `6d34d8da`,
 `docs/` = this repository, `private/` = the owner's unpublished captures (not in any repository). Line numbers are
@@ -224,7 +226,7 @@ Local line numbers are from this research run. References such as `[A1:396–530
 - **L8:** `P/gnss/xtra-test-ring.txt:404–410,526–574`; `P/c1/captures-20261108-1846/tqftpserv.log:8–50`; `P/c1/captures-20261108-1846/mm.log:4169–4196,4262–4277,4356–4386,5332–5337`.
 - **L9:** `P/c1/captures-20261108-1846/init.sh:2–3,27–35`; `D/hardware/modem.md:154–159`.
 - **L10:** `K/baseport/arm64/sdm670_assp/qcom_mss.cpp:18–21,88–99,243–270,322–336`.
-- **L11:** `D/tools/inspect-bonito.py:14–20,82–98`; private DTB node/property traversal described above, with no textual line numbers.
+- **L11:** `D/hardware/tools/inspect-bonito.py:14–20,82–98`; private DTB node/property traversal described above, with no textual line numbers.
 - **L12:** `K/baseport/arm64/sdm670_assp/qcom_rpmh.cpp:71–111,258–295,312–335`.
 - **L13:** `N/symbian/gnssd/src/lib.rs:91–138,143–180`; `N/crates/loc/src/http.rs:11–27,48–91`. Cache lifetime/reinjection additionally at `gnssd/src/lib.rs:29–34,117–120,199–206`.
 - **L14:** `N/crates/loc/src/lib.rs:370–405` — SUCCESS acceptance and absent-uncertainty default; `N/crates/loc/src/proto.rs:157–167` — position parsing.

@@ -1,0 +1,205 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+# Debug access: shell, files and logs from the Mac over USB
+
+Part of [Developer tools](README.md) · Status: done · Updated: 2026-11-11
+
+Written 2026-11-09, revised 2026-11-10. Built through the tasks of [debug-access-roadmap.md](debug-access-roadmap.md);
+the status of each stage is in [Stages](#stages).
+
+The goal is what `adb` gives an Android developer: a shell, pushing and pulling files, launching programs and
+reading logs, from the Mac through the USB cable. NeoSymbian gets it from Symbian's own 2010 tools, unchanged.
+There is no TCP/IP, no SSH and no comms framework (c32) in the first stages.
+
+**This is the only access route (owner, 2026-11-10).** The USB SSH work was dropped; its useful parts came back
+through the roadmap's T1–T11.
+
+## What exists today
+
+As written for the design (2026-11-09), before the user-side channel below was built.
+
+**The kernel debug monitor.** The phone's USB already carries one CDC-ACM serial port, owned by the kernel.
+- **Commands:** `A64Mon_Line` in `kernel/baseport/arm64/common/specific/a64_dbgmon.cpp`, plus the telephony words in
+  `sdm670_assp/qcom_telmon.cpp`. They cover the log ring and the previous boot's log, registers, block I/O, slots,
+  input, screenshots, threads, CPUs, USB, and the telephony subsystems.
+- **Mac side:** `kernel/baseport/arm64/tools/phone.py` (`run`, `cmd`, `dump`, `put`, `shot`, `console`).
+- **Speed:** a SHA-256-checked `blk dump` runs at 2.0 MB/s ([modem.md C0](../hardware/modem.md#c0-recon-and-backups)).
+- **Limits:**
+  - input lines are 160 bytes, and longer ones are cut silently;
+  - output lines are 256 bytes, and longer ones fault the kernel;
+  - `type` can lose the end of a line ([known issues](../known-issues.md));
+  - binary data travels raw between a text header and a SHA-256 trailer.
+
+The monitor stays: it is the **kernel and bring-up channel**, and it works when the user side is dead. This design adds
+a **user-side channel** next to it.
+
+**When USB runs.** `A64StartUsbConsole` (`sdm670_assp/qcom_dwc3.cpp`) starts USB only when ABL left it powered
+(fastboot RAM boots) or in dev mode. Normal-boot USB power is parked
+([known issues](../known-issues.md#phone-usb-power-on-a-normal-boot-doesnt-work-yet-parked-2026-11-08)). Until that is
+fixed, every stage below works on RAM boots only.
+
+## Symbian's own tools
+
+Symbian had all of this, and the sources are in the SymbianSource repos (EPL):
+
+| Tool | What it gives | What it needs | Stage |
+|---|---|---|---|
+| **fshell**, text-shell build (`oss.FCL.sf.os.fshell`, `build/sf/3tshell/`) | a shell with about 80 commands, `ymodem`/`xmodem` file transfer (binary, batches, names kept; `core/builtins/`), `hash`, `base64`, starts any EXE | 2010 user-side libraries: ecom, estor, bafl, charconv, featmgr, dbms, centralrepository, abclient (`fshell_platform.iby`). Some are not in our ROM yet | DA1–DA4 |
+| **`vt100busdevcons.dll`**, an fshell console (`plugins/consoles/vt100cons/`) | a VT100 console over `RBusDevComm` | `ECOMM.LDD` and a serial PDD. **No c32** | DA2–DA4 |
+| fshell `memoryaccess-fshell.ldd` (`libraries/memoryaccess/`) | `top`, `objinfo`, `getstack`, `heaptrace`, `fdb`, built-in `reboot` | a port of its ARM-specific parts (`hwbreak.cia`, `fdebuggerkernel.cpp`) to our kernel | later |
+| **TRK**, text-shell build (`oss.FCL.sftools.dev.devicedbgsrvs`, `dbgagents/trkagent/`) | files, process start and lists, the debugger; Mac client Qt 4.8 `tools/runonphone` (LGPL) | the c32 serial stack (c32, c32root, c32exe, c32start, commsdat, ecuart or ecacm) and `TrkDriver.ldd` (`eka2driver/`, ARM-specific; TRK refuses to start without it) | later |
+| OST TraceCore + `dbgtrccomm` (`oss.FCL.sf.os.osrndtools` `tracesrv/`) | Symbian's "logcat": traces over USB | c32 and a USB ACM CSY | later |
+| coredumpserver (`devicedbgsrvs/dbgsrv/coredumpserver`) | crash dumps to a file | run-mode debug (`rm_debug`, ARM-specific) | later |
+| MTP (`oss.FCL.sf.mw.remoteconn`) | a file browser on the Mac | the Symbian USB stack (usbman, usbc) | not planned |
+
+The key fact: **fshell with `vt100busdevcons` and `ymodem` gives a shell and file transfer with only a serial
+driver**. fshell's own `core/group/comm.script` starts it this way on boards like the NaviEngine:
+`--console vt100busdevcons --console-title pdd=euart1,ldd=ecomm,port=1,rate=115200`.
+
+## Design
+
+### Kernel (C++, new)
+
+- **`ECOMM.LDD`**, Symbian's serial channel, from `kernel/kernel/eka/drivers/ecomm/d_comm.cpp` (one marked fix: a pointer
+  compared with `< 0`). It is linked into the kernel and installed at boot with the board PDD
+  (`common/specific/a64_ecomm.cpp`), so `RBusDevComm::Open(1)` works; `User::Load*Device("ecomm"/"euart1")` needs the
+  loader aliases (T7).
+- **A PDD must call ECOMM from interrupt context (T5 finding).** ECOMM's `RxComplete`, drain and `TxComplete` complete
+  requests inline unless `NKern::CurrentContext()==EInterrupt`; from a thread they self-deadlock on ECOMM's spinlock.
+  A polled PDD cannot work. The bonito ACM PDD (T8) needs the same: call the `...Isr` functions from a real or
+  pended interrupt.
+- **A serial PDD per board** (a `DComm`, `kernel/kernel/eka/include/drivers/comm.h`). The models were
+  `symbian-qemu/baseport/syborg/serial/syborg_serial.cpp` (symbian-qemu is archived) and
+  `kernel/kernel/eka/drivers/ecomm/uart16550.cpp`.
+  - **bonito:** a PDD over a **second CDC-ACM function** in the USB composite gadget.
+    - **USB driver layering (T2, kernel `96f60d6`):** a controller core (`sdm670_assp/qcom_dwc3.cpp`: bring-up,
+      events, EP0, endpoint DMA buffers) runs function drivers through `common/inc/a64_usb_function.h`. At T2 there
+      was one, the monitor ACM (`common/specific/a64_usb_acm_monitor.cpp`); the debug ACM that this PDD sits on came
+      in T8 (below). **T3 (kernel `b7133e2`)** added, without ECM: endpoint DMA ownership (a stop frees a buffer only on its
+      ENDTRANSFER command-complete event; failures quarantine), SET_CONFIGURATION deferred until its stops end, a
+      controller restart (halt, core reset, bring-up) as the only recovery for a live control transfer or a quarantine,
+      and the UTMI/PIPE clock mux restore that `usb cold` needs (a GCC reset leaves QSCRATCH GENERAL_CFG at 04, not
+      0d). Verified on bonito: `usb cold 7`, replug, Mac sleep/wake, a 5-minute soak. The queue code comes in T4.
+    - **T8 (kernel `af9b3f8`), with USB debugging on (T10; `USBDEBUG=1` then):** the gadget is composite (EF/02/01, an IAD per function): the
+      monitor on interfaces 0/1, the debug ACM (`common/specific/a64_usb_acm_debug.cpp`) on 2/3 (EP 0x03/0x83, notify
+      0x84), and macOS names them `cu.usbmodem…11` and `…13`. Its PDD `Comm.UsbAcm` (unit 1) keeps RX/TX in
+      `a64_usb_queue.h` byte queues filled by the poll DFC, and calls ECOMM's `...Isr` functions from a **doorbell
+      interrupt: SGI 7** (`A64_BindSgi`/`A64_RaiseSgi`, SGIs 5–7). DWC3's own SPI 133 can't serve: it fires in
+      hardware during traffic and stormed the CPU. DTR maps to CTS/DSR/DCD. With USB debugging off the descriptors are
+      the single monitor ACM's. FIFO budget: FIFOs 0–4 use 1618 of 2661 TX words.
+    - **The switch (T10, kernel `2a041d3`):** every bonito build links the debug ACM; the core exposes 1 or 2
+      functions (`A64UsbDebugSet`, HAL 0x4e04, monitor `usb dbg`) by recomposing the descriptors and restarting the
+      controller. Two restart fixes came with it: `Halt()` takes pending events while it waits for DEVCTRLHLT (as Linux
+      `dwc3_gadget_run_stop`; a restart during traffic timed out and left USB stopped), and the device stays away 1 s
+      (100 ms was too short for macOS when the functions changed: after a few switches no device came back). A failed
+      restart is logged and retried (3 times); no bus reset 5 s after a restart → reconnect (3 times).
+    - **fshell exit codes on that port:** -29 (`KErrCommsLineFail`) when the Mac closes the port (`waitdcd=1`), so
+      something must restart it (T10); -18 for a malformed console title.
+    - Later, a DWC3 controller driver for Symbian's own USB client framework (`kernel/eka/drivers/usbcc`,
+      `usbc.ldd`) gives the standard `RDevUsbcClient` for usbman and MTP (roadmap L1).
+    - `DComm` is shaped for a UART (characters moved from interrupt handlers), so the PDD bridges to the USB queues
+      through a DFC.
+  - **QEMU:** a PDD for virt's second PL011 (`VIRT_UART1` at `0x09040000`, `neoqemu/qemu/hw/arm/virt.c:206`),
+    so CI can test the user side; UART0 stays the kernel console. Done in T5 (kernel `326fffc`,
+    `virt_assp/a64_pl011_comm.cpp`, SPI 8): QEMU's PL011 raises TX only after a DR write and RX only when the FIFO crosses
+    its trigger, so the PDD pends its own SPI (GICD_ISPENDR) to start TX and to drain leftovers.
+    `run-qemu.sh SERIAL1=<chardev>`; test `NEOCOM.EXE` + `tools/test-serial-qemu.py`.
+- The first ACM port stays the monitor, unchanged.
+
+### Phone user side (2010 C++, unchanged)
+
+- **fshell's text-shell build**, from a new NeoSymbian fork of `oss.FCL.sf.os.fshell`:
+  - pinned in `build/sources.lock`;
+  - built through `build/emitter/components.py` like the other 2010 packages;
+  - with its `.cif` command descriptions in the ROM.
+- **Started by SYSSTART when USB debugging is on (T10):** Settings → System → Developer options → USB debugging
+  (`developer.usb_debugging`, off by default; every ROM carries fshell). neoui `symbian/src/usb_debug.rs`, a worker
+  thread: on → HAL 0x4e04 exposes the port, then `FSHELL.EXE --console vt100busdevcons --console-title
+  pdd=euart1,ldd=ecomm,port=1,sizedetect=0` (no `waitdcd`: it outlives host sessions); an exit restarts it after 1 s,
+  doubling to 32 s for quick exits, 1 s again after a minute's run; off → kill, then the port goes; no `FSHELL.EXE`
+  → logged once. The monitor's `usb dbg 0|1` switches the port only (no fshell); `USBDEBUG=1` images have it on at
+  boot.
+- **`econs.dll` stays.** No `FSHELL_REPLACE_ECONS`: eshell and the Terminal use the real console.
+- **fshell on the serial port (T7):** `fshell --console vt100busdevcons --console-title
+  pdd=euart1,ldd=ecomm,port=1,rate=115200,sizedetect=0` (QEMU; the loader aliases `ecomm`/`euart1` name the built-in
+  drivers). The host client is kernel `tools/fshell_link.py`: wait for fshell's prompt before each command (earlier
+  input loses its first bytes), and put `$?` straight into the END record (`export X $?` reads a negative status as an
+  option). Every builtin needs its `.cif` in the ROM.
+- **fshell on econs (T6, build `faf8f8c`):** fshell's default console is `defcons` (it picks econs on a text
+  configuration), so `defcons.dll` must be in the ROM. The minigui console (`econswserv`, the QEMU/window-server
+  `ECONS.DLL`) didn't complete a cancelled read; fshell's consoleproxy waits for that on every console mode change,
+  so fshell stopped after one command. Fixed in graphics `9513de1`. Check `econs_twin` (the neoui UI ROM's console)
+  for the same before fshell runs on the phone's screen.
+- **Missing libraries:** those on fshell's list that our ROM lacks are added from the 2010 sources, or the feature
+  that needs them is turned off in fshell's `platform.mmh`.
+
+### Mac
+
+- **`screen /dev/cu.usbmodem<…>`** on the shell's port gives the shell with no new tools.
+- **`phone.py` verbs (T9, kernel `277afef`; code in `tools/fshell_link.py`):**
+  - `sh [COMMAND]`: a terminal (Ctrl-D ends), or one command whose real exit status comes back in a nonce-framed END
+    line (`phone.py` exits 1 and prints `native exit N`);
+  - `push`/`pull SRC DST [--overwrite]`: YMODEM in Python, checked by length and SHA-256 at both ends; the phone writes
+    a temporary file and renames it (`ymodem receive --sha256`), the Mac does the same locally;
+  - port selection by USB interface in the IORegistry (monitor 0, fshell 2), `--device`, `--monitor-port`,
+    `--shell-port`; a per-port lock in `~/Library/Caches/NeoSymbian` keeps one operation at a time;
+  - after a failed transfer fshell purges its input until the line is quiet, so the client waits for the command's END
+    and prompt before the next command;
+  - a fresh C: has no `C:\sys\bin`: `phone.py sh 'md c:\sys\bin'` before pushing an EXE.
+- **fshell's console title:** without `waitdcd`, fshell outlives each host session (T9 used
+  `pdd=euart1,ldd=ecomm,port=1,sizedetect=0`); with `waitdcd=1` it exits -29 when the Mac closes the port.
+
+### Security
+
+- **Physical USB only:** the same model as the monitor today. There is no network exposure.
+- **Installed boots (T12):** USB stays off until USB debugging is switched on; then the kernel powers it and offers
+  both ports (monitor and fshell). On a cold boot the host doesn't see the phone yet (the normal-boot PHY issue in
+  [known issues](../known-issues.md)), so T12 is parked.
+- **USB debugging is off by default (T10)** and needs the unlocked UI to turn on. Unlike adb there is no host
+  authorization (RSA keys) yet: revisit before an installed boot offers the shell (DA6).
+
+## Stages
+
+<!-- stages -->
+| Stage | What | State | Updated | Next / evidence |
+|---|---|---|---|---|
+| DA0 | Design | done | 2026-11-10 | this document |
+| DA1 | fshell runs | done | 2026-11-10 | T6: on QEMU through econs (build#12, graphics#1); on the phone over USB since DA3 |
+| DA2 | Serial and fshell on QEMU, in CI | done | 2026-11-11 | T5, T7: kernel#4, kernel#6, build#14; the build CI job passes |
+| DA3 | Second ACM function on the phone | done | 2026-11-11 | T8: kernel#7; two cu.usbmodem ports, monitor kept |
+| DA4 | Files and programs from the Mac | done | 2026-11-11 | T9: kernel#8; phone.py sh, push, pull with SHA-256 |
+| DA5 | Robustness | done | 2026-11-11 | T10, T11: kernel#9, kernel#10; the flood and full C: checks failed, skipped by the owner |
+| DA6 | Installed boot | parked | 2026-11-11 | T12: kernel#11; the host never sees the phone on a cold boot (KRN-027) |
+| Later | memoryaccess, TRK, OST traces, coredumps | open | — | each needs its own design (roadmap L1–L3) |
+<!-- /stages -->
+
+Exit tests:
+
+| Stage | Exit test |
+|---|---|
+| DA0 design | This document. |
+| DA1 fshell runs | fshell builds unchanged and runs on the phone's screen through `econs`, and on QEMU. Missing libraries are listed, then added or turned off. |
+| DA2 serial, QEMU | `ECOMM.LDD` and a QEMU serial PDD; fshell answers on the second serial device; a CI boot runs `ls`, `hash` and a `ymodem` transfer. |
+| DA3 serial, phone | Second ACM function and its PDD on bonito. The Mac sees two `cu.usbmodem` ports. The monitor still works (`phone.py cmd log`, `dump`, `shot`), and fshell answers on the other port. |
+| DA4 files and programs | `phone.py push`/`pull` round-trips a binary file and a Unicode-named file with matching SHA-256; an EXE pushed to `C:` starts from the shell. Speed is measured against the 2 MB/s baseline. |
+| DA5 robustness | Unplug and replug, RAM reboot, and a long transfer while the shell is used all work, and the monitor never goes away. Quarantine recovery, resume refresh after Mac sleep and `Bringup`'s stop on a failed halt come from roadmap T3/T4. |
+| DA6 installed boot | Needs the normal-boot USB power fix, shared with FS6. The USB rework's wrapper-clock fix (`qcom,select-utmi-as-pipe-clk`, tested with the monitor's `usb cold`) is its first step. |
+| Later | memoryaccess LDD port (`top`, `objinfo`, `fdb`); TRK with c32, a `TrkDriver` port and `runonphone`; OST traces; coredumps. |
+
+## Risks and open questions
+
+The design's risks, as written; T6–T9 answered them (see the roadmap's [Progress](debug-access-roadmap.md#progress)
+table).
+
+- **fshell's library closure** against our minimal ROM (DA1). This may pull in more 2010 packages than its list
+  suggests.
+- **The USB PDD:** `DComm`'s UART model over bulk USB endpoints needs a DFC bridge and flow control (DA3).
+- **macOS naming of two ACM functions** on one device, which decides how `phone.py` finds each port (DA3).
+- **ymodem speed:** 1 KB blocks, each acknowledged. If it is far below 2 MB/s, a bulk mode can follow (DA4). The USB rework found transfers bound by idle CPU clocks; its
+  activity boost (`a64_usb_activity.h`) took SSH from 0.66 to 2.67 MB/s.
+
+## References
+
+- SymbianSource: `oss.FCL.sf.os.fshell`, `oss.FCL.sftools.dev.devicedbgsrvs`, `oss.FCL.sf.os.osrndtools`,
+  `oss.FCL.sf.os.commsfw` (serial server, `serialserver/`), `oss.FCL.sf.os.usb`.
+- Qt 4.8 `tools/runonphone` (TRK and CODA client, LGPL).
+- [../reference/symbian-sources.md](../reference/symbian-sources.md): the FShell rows.

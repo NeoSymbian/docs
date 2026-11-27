@@ -1,8 +1,10 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # System keyboard and old-app key pads
 
+Part of [neoui shell](README.md) · Status: done · Updated: 2026-11-21
+
 **Status: languages built 2026-11-12; Keyboard v2 boards (`kb2-*`) and the old-app key pads (`pad-*`) are on the
-canvas's Keyboard page.** Moved here from `neoui-shell.md` on 2026-11-21; the hub is [../neoui-shell.md](../neoui-shell.md).
+canvas's Keyboard page.** Moved here from `neoui-shell.md` on 2026-11-21; the hub is [README.md](README.md).
 The keyboard's place in each navigation mode (above the key row or the band, swipe down to hide) is in
 [navigation.md](navigation.md).
 
@@ -74,7 +76,7 @@ If the language's font is not DejaVu Sans, import it in `shell.slint` and in eac
 - **`neoui-render` `tests/keyboard.rs`:** typing in each language, the globe and its stored choice, a language
   turned off, both height modes, the terminal row, and every letter of each alphabet on a key.
 - **Snapshots:** `keyboard-{en,hy,ru,term}`, and `settings-keyboard-pixel`.
-- **Syborg CI:** types `dir` in the Terminal and `neo` in Files. Then it presses the globe twice and makes a folder
+- **Syborg CI** (until 2026-11-25; the UI checks now run on QEMU `virt` in `virt-taps`): typed `dir` in the Terminal and `neo` in Files. Then it pressed the globe twice and made a folder
   named дом.
 
 ### Not yet
@@ -95,7 +97,7 @@ and translating the UI itself.
 | `sh-form-keyboard` (Shell page) | a form with the keyboard up, Gestures | built |
 
 **Old-app key pads (`pad-*`):** drawn by LEGACY.EXE in C++, not by the shell; the design and its stages live in
-[../legacy.md](../legacy.md#key-pads-s60-apps-take-keys-not-touch).
+[../user-side/legacy.md](../user-side/legacy.md#key-pads-s60-apps-take-keys-not-touch).
 
 | Row | Boards |
 |---|---|

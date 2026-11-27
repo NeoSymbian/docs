@@ -1,0 +1,241 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+# WB2: Rust `std` on NeoSymbian
+
+Part of [Apps](../README.md) · Status: done · Updated: 2026-11-25 · Neighbours: [the browser hub](README.md)
+
+**Status:** ✅ done 2026-11-19 (WB2a–WB2d) · [browser#3](https://github.com/NeoSymbian/browser/pull/3), [browser#4](https://github.com/NeoSymbian/browser/pull/4), [browser#5](https://github.com/NeoSymbian/browser/pull/5), [browser#6](https://github.com/NeoSymbian/browser/pull/6), [build#33](https://github.com/NeoSymbian/build/pull/33), [build#34](https://github.com/NeoSymbian/build/pull/34), [build#37](https://github.com/NeoSymbian/build/pull/37), [e32-rs#4](https://github.com/NeoSymbian/e32-rs/pull/4), [e32-rs#5](https://github.com/NeoSymbian/e32-rs/pull/5), [kernel#21](https://github.com/NeoSymbian/kernel/pull/21), [kernel#24](https://github.com/NeoSymbian/kernel/pull/24), [legacy#6](https://github.com/NeoSymbian/legacy/pull/6), [ossrv#1](https://github.com/NeoSymbian/oss.FCL.sf.os.ossrv/pull/1), [ossrv#2](https://github.com/NeoSymbian/oss.FCL.sf.os.ossrv/pull/2)
+
+## Scope
+
+| Stage | Work | Gate | Estimate (PM) |
+|---|---|---|---:|
+| WB2 OS personality | rust + libc forks, the std unix PAL over P.I.P.S., the mio bridge. The EXE runtime for `std`: today `e32::main!` brings its own panic handler, a 64 MiB Rust heap (`e32/src/heap.rs`) and a 1 MiB native heap (`build/emitter/build_rust_exe.py`); a `std` EXE needs std-aware start-up, allocator budgets, panic/unwind, and C/C++ linkage | Rust's std tests on the emulator and the phone; **one EXE mixing `std`, e32 and C++** runs; a Tokio TCP fetch over NeoNet | 6–12 |
+
+Written 2026-11-17. This is the working doc for [the browser hub](README.md)'s stage **WB2**: Rust's standard library for
+NeoSymbian, which Servo, SpiderMonkey's Rust side, Tokio and rustls all need. Today all our Rust is `no_std`.
+
+**WB2's gate** (above):
+- Rust's std tests on the emulator and the phone;
+- one EXE mixing `std`, e32 and C++;
+- a Tokio TCP fetch over NeoNet.
+
+## Steps
+
+| Step | What | State |
+|---|---|---|
+| **WB2a** | ARMv7 + NEON user code with the soft-float calling convention: e32-rs `targets/armv7a-neosymbian-eabi.json`, `cargo arm7` | ✅ 2026-11-17 (e32-rs#4): neotest 10/10, NEOWB1 6/6 on QEMU and the Pixel. Replaced by US4 (2026-11-25): `armv8a-neosymbian-eabi`, `cargo arm` |
+| **WB2b** | Rust EXEs import from P.I.P.S.'s DLLs (build `exes.txt` `libs=`); `PIPSPROB.EXE` measures P.I.P.S. | ✅ 2026-11-18 on QEMU and the Pixel (identical results) |
+| **WB2c-1** | P.I.P.S. fixed in our forks: `clock_gettime` nanoseconds, `CLOCK_MONOTONIC` (generic timer, kernel EL0VCTEN), new `poll`/`pread`/`pwrite` exports; libc built without GCC builtins | ✅ 2026-11-18 on QEMU and the Pixel: PIPSPROB 19 ok, 0 failed (kernel#21, ossrv#1, legacy#6) |
+| **WB2c-2** | Forks on branch `neosymbian`: `NeoSymbian/libc` (`src/unix/symbian`) and `NeoSymbian/rust` `library/` only (on `nightly-2026-10-20` = 07e526db9, the toolchain e32-rs pins): `target_os = "symbian"` in the unix family; e32's std mode | ✅ 2026-11-18 on QEMU and the Pixel: STDTEST 17 ok, 1 skipped (no IP stack); MIXTEST all ok (browser#4, e32-rs#5, build#33) |
+| **WB2d** | `NeoSymbian/mio` (the `poll` selector over our `poll`), Tokio `current_thread`; an HTTP fetch over NeoNet on the phone | ✅ 2026-11-19 on the Pixel over Wi-Fi: Tokio and std HTTP 200, NETTEST 4 ok, 1 skipped; NEOSOCK PASS (browser#5, kernel#24, build#34; build#37, ossrv#2, browser#6) |
+
+## Why forks
+
+Rust's standard library and the crates under it build only for operating systems they already list, and
+`target_os = "symbian"` is on none of those lists. The change has to live somewhere until upstream takes it: forks of
+**rust**, **libc** and **mio** on branch `neosymbian` (the workspace fork rule), with the nightly pinned so nothing
+moves under us.
+
+| Fork | What we add | Why it can't be avoided |
+|---|---|---|
+| `NeoSymbian/rust` (`library/` only; the compiler is the stock pinned nightly) | `symbian` in std's per-OS choices: the thread, file, time and random code to use; no process spawning; the WB2b workarounds (monotonic time from the kernel counter, `poll` over `select`, our timed waits) | std does not build for an unknown OS, and P.I.P.S.'s gaps need Symbian code inside it |
+| `NeoSymbian/libc` | P.I.P.S.'s exact sizes and constants (PIPSPROB: `AF_INET6` = 2054, 32-bit `time_t`, 96-byte `stat`, ...) | Rust calls C through these; a wrong value corrupts memory |
+| `NeoSymbian/mio` | `symbian` on mio's `poll()` backend list | Tokio sits on mio, which does not compile for an unknown OS |
+
+Each change is small: cfg lines, plus one new module in libc and one OS folder in std. WB2d added **socket2** and
+**tokio** forks for the same reason: each lists the OSes it knows (Symbian follows vita in both). Skipping `std` is not an option,
+since Servo and its ~500 dependencies all assume it.
+
+**Later: back to upstream** (on the [roadmap](../../roadmap.md)). The forks are the start, not the end state:
+- re-sync them on every nightly bump;
+- offer the libc module and the mio cfgs upstream once they are stable;
+- then propose `armv8a-symbian-eabi` as a **tier 3** Rust target, as NuttX, Vita and the 3DS (`horizon`) did. That
+  needs named target maintainers.
+
+Once upstream takes them, the forks shrink to nothing.
+
+## Building for it
+
+- **Target:** `armv8a-symbian-eabi` (`cargo sym`), the `std` twin of e32-rs's `armv8a-neosymbian-eabi`, since US4
+  (2026-11-25; `armv7a-neosymbian-eabi` with VFPv3-D32 until then), which is:
+  - ARMv8-A AArch32 with NEON;
+  - the soft-float calling convention, so calls into the 2010 libraries stay compatible;
+  - 64-bit atomics.
+- **`+no-movt` (GCC: `-mword-relocations`) is required.** E32 images relocate whole 32-bit words only, so a
+  MOVW/MOVT address pair (relocs 43/44) cannot be loaded. The EXE writer refuses it ("reloc type 43 unsupported").
+- **A Rust EXE that calls C libraries** lists them in its `exes.txt` line, as an mmp's LIBRARY:
+
+  ```
+  PIPSPROB.EXE   0xE0007002  libpipsprobe.a     rust/pipsprobe.cpp  libs=libc,libpthread,libm
+  ```
+
+  Imports resolve by ordinal from the components' frozen `.def` files (`build_mmp.provider_maps`). A glue `.cpp`
+  then also sees P.I.P.S.'s headers (`stdapis`, `-D__SOFTFP=`). Function imports only; a DATA import fails clearly.
+- **P.I.P.S. needs a cleanup stack** in each thread that calls it. Without one, `opendir` panics with
+  E32USER-CBase 69. A C program's crt0 creates it, an `e32::main!` EXE does not; std's start-up must
+  (`CTrapCleanup::New()`).
+
+## What PIPSPROB.EXE found (QEMU virt and the Pixel, WB1 kernel, the eshell ROM; 2026-11-18)
+
+`PIPSPROB.EXE` (`NeoSymbian/browser` `symbian/pipsprobe`) runs a C check per behaviour std needs and prints every
+size, field offset and constant the Rust `libc` port needs. These tables come from its serial output through
+`browser/tools/pips_layout.py`.
+
+**Summary:** 14 ok, 2 failed, 8 not supported, on QEMU and on the phone alike.
+
+### Gaps and what the port does about them
+
+| Gap | Effect | WB2c answer |
+|---|---|---|
+| `pthread_cond_timedwait` returns ETIMEDOUT at once | timed waits (`Condvar::wait_timeout`, `park_timeout`, channels with timeouts) would spin | **Fixed in the ossrv fork**: the cause was `clock_gettime(CLOCK_REALTIME)` putting the whole microsecond count since year 0 in `tv_nsec`, so every deadline was garbage |
+| `clock_gettime(CLOCK_MONOTONIC)` → EINVAL (the constant exists, = 4) | no `Instant` | **Added in the ossrv fork**: the ARM generic timer's 64-bit count (CNTVCT at CNTFRQ), which the kernel now lets EL0 read (CNTKCTL_EL1.EL0VCTEN). Only on the SMP (AArch64) kernel; Syborg's Cortex-A8 (retired 2026-11-21) kept EINVAL |
+| no `pthread_condattr_setclock` | — | condvar on CLOCK_REALTIME (as espidf/horizon) |
+| no `poll()` (`struct pollfd` only); `select()` exists, `FD_SETSIZE` 1024 | std's `init` and connect timeouts; mio | **Added to libc.dll** (ordinal 598): `poll()` over `select()`; std skips its init `poll` (as vita/horizon) |
+| no `pread`/`pwrite` | `FileExt::read_at`/`write_at` | **Added to libc.dll** (599, 600): lseek + read/write, not atomic against another user of the fd |
+| no `posix_memalign` | the allocator's large alignments | std's `System` aligns over `malloc` (over-allocate + offset) |
+| no `MAP_ANON`; file `mmap` → errno 24 | — | not used by std; SpiderMonkey's GC uses EKA2 chunks (WB1) |
+| no `O_CLOEXEC`, `SOCK_CLOEXEC`, `SOCK_NONBLOCK`, `F_DUPFD_CLOEXEC`, `O_DIRECTORY` | std's cloexec paths | flags 0 / the `fcntl` fallbacks (no exec on Symbian anyway) |
+| `pipe()` and `socket()` → ENOENT | — | the eshell ROM starts no IP stack and no pipe driver; both work since WB2d ([below](#wb2d-tcp-over-neonet-2026-11-19)) |
+| cwd is `Z:\Private\<SID>` (read-only) | relative paths | left as is: std keeps P.I.P.S.'s cwd, apps use absolute `C:/...` paths |
+
+### Key facts for the `libc` port
+
+- **ILP32:** `long` 4 bytes, `size_t` 4.
+- **Integer types:**
+  - `off_t` **8**;
+  - `time_t` **4**;
+  - `mode_t` **2**;
+  - `ino_t` 4;
+  - `dev_t` 4;
+  - `wchar_t` 2 (`-fshort-wchar`).
+- **Structs:**
+  - `struct stat` 96 bytes, `st_size` at 48;
+  - `struct dirent` 264;
+  - `sockaddr_in` 28;
+  - `addrinfo` 32.
+- **pthread types:** `pthread_t` 4, `pthread_mutex_t` 12, `pthread_cond_t` 24, `pthread_key_t` 4.
+- **Mutex types:** NORMAL 0, RECURSIVE 1, ERRORCHECK 2 (enum values).
+- **errno (BSD values):** EAGAIN 35, ETIMEDOUT 60.
+- **Socket and file constants:** AF_INET6 is **2054** (Symbian's value, not BSD's 28); O_NONBLOCK 4.
+
+### The checks
+
+| Check | Result | Detail |
+|---|---|---|
+| `thread_join` | ok | joined, result 42 |
+| `thread_stack_8m` | ok | 8 MiB stack used to 7 MiB |
+| `thread_detach_self` | ok | detach ok, self 11535448 |
+| `tls_key` | ok | per-thread values 3 and 7 |
+| `mutex` | ok | recursive x3, static initializer |
+| `condvar` | ok | signalled |
+| `condvar_timedwait` | FAILED | returned 60 after 0 ms (want ETIMEDOUT after ~100) |
+| `condattr_setclock` | NOTSUP | pthread_condattr_setclock not in P.I.P.S.: std's condvar uses CLOCK_REALTIME |
+| `clocks` | FAILED | MONOTONIC errno 22 |
+| `sched_yield` | ok | ok |
+| `file_rw` | ok | open/write/lseek/read/fstat/ftruncate/fsync/stat/rename/unlink, ENOENT |
+| `dir_ops` | ok | mkdir/opendir/readdir (1 entries)/rmdir |
+| `cwd` | ok | cwd 'Z:\Private\e0007002', realpath(.) 'Z:\Private\e0007002' |
+| `env` | ok | set/get/unset |
+| `memory` | NOTSUP | page 4096, malloc/realloc ok; mmap(file) errno 24; no MAP_ANON |
+| `pipe_select` | NOTSUP | pipe errno 2 |
+| `poll` | NOTSUP | poll() not in P.I.P.S. (struct pollfd only); select() is: poll over select |
+| `pread` | NOTSUP | pread/pwrite not in P.I.P.S.: FileExt::read_at via lseek+read |
+| `posix_memalign` | NOTSUP | posix_memalign not in P.I.P.S.: std's allocator aligns over malloc |
+| `errno_values` | ok | missing file -> errno 2 (ENOENT 2), ENOTDIR 20 |
+| `getpid` | ok | pid 39 |
+| `tcp_loopback` | NOTSUP | socket errno 2 |
+| `udp_loopback` | NOTSUP | socket errno 2 |
+| `getaddrinfo_local` | ok | numeric host resolved, port 80 |
+
+### All layout values
+
+The 297 values (sizes, field offsets, constants) are in the appendix [wb2-layout-values.md](wb2-layout-values.md).
+
+## What WB2c found and did (2026-11-18)
+
+**Results**, identical on QEMU virt and the Pixel 3a XL (WB1 kernel, eshell ROM):
+- PIPSPROB: 19 ok, 0 failed (was 14 ok, 2 failed).
+- STDTEST.EXE (browser `std/stdtest`): 17 ok, 0 failed, 1 skipped. Network is skipped because this ROM starts no IP
+  stack; it is re-tested in WB2d.
+- MIXTEST.EXE (`std/mixtest`): std threads call Symbian C++ (TRAP, `CArrayFixFlat`), which calls back into Rust;
+  e32 runs alongside; 225 libc sizes, offsets and constants match P.I.P.S.'s own headers.
+
+**Building:**
+- `tools/neosymbian-toolchain.sh RUST_CHECKOUT [LIBC_CHECKOUT]` makes the `neosymbian` toolchain: the pinned nightly
+  with the fork's `library/` as rust-src.
+- Then, in browser `std/`, `cargo sym`.
+- Cargo does not notice changes in build-std sources, so run `cargo clean` after changing the fork.
+- `exes.txt` lines for a std EXE need `libs=libc,libpthread,libm` and `heap=` (build's new column).
+
+**Findings:**
+- **P.I.P.S.'s `libc.dll` was miscompiled.** GCC turned `memset.c`'s loops into `memset` calls and `calloc.c`'s
+  malloc + bzero into a `calloc` call, so both recursed until the stack overflowed (KERN-EXEC 3). Every P.I.P.S.
+  program that zero-allocates was affected. libc is now built with `-fno-builtin -fno-tree-loop-distribute-patterns`
+  (legacy#6).
+- **P.I.P.S.'s `__crt0` blocks** when its IPC server is not running: it first asks whether `popen`/`posix_spawn`
+  started the process. std's start-up therefore does without it:
+  - the cleanup stack;
+  - `args` from `User::CommandLine` and `RProcess::FileName`;
+  - `environ` through `__environ()`.
+- **No unwinder.** Symbian EXEs are `panic=abort`, with no backtraces and no EH personality. libgcc's unwinder needs
+  a C++ runtime Symbian does not export, so std defines aborting stubs for the `_Unwind_*` names it still mentions.
+- **C enums are 32-bit** (the Symbian objects' EABI tag; `sizeof(enum)` = 4 in MIXTEST). The std target sets
+  `c-enum-min-bits` 32. The no_std targets still say 8; nothing passes a `repr(C)` enum to Symbian today.
+- **Paths:** use `C:/...`. std splits paths at `/` and P.I.P.S. accepts both separators; `/x` lands on the cwd's
+  drive (Z:, read-only). `canonicalize` (realpath) returns EINVAL for `/` paths.
+- **Sleep granularity** is the kernel tick: `sleep(0.5 ms)` takes ~15 ms.
+- **stdout and stderr** go to the kernel debug port a line at a time, so panic messages reach the serial log.
+- **The allocator** is P.I.P.S. `malloc` (RHeap, 8-aligned) on the EXE's own heap; larger alignments over-allocate.
+- **`IPPROTO_IP` is 0x100 on Symbian.** The shared unix value (0) silently shadowed ours, and MIXTEST caught it.
+
+**Not done:**
+- `posix_memalign` (std over-allocates instead);
+- `MAP_ANON` (WB3: SpiderMonkey uses chunks);
+- `chdir` to `C:` at start-up;
+- unwinding;
+- process spawning (`posix_spawn` exists for later).
+
+## WB2d: TCP over NeoNet (2026-11-19)
+
+**Done; the WB2 gate passes on the Pixel over Wi-Fi** (kernel main fb16afe, build main + build#37, ossrv#2, every
+Rust app from its main):
+```
+net tokio_http ... ok: "HTTP/1.1 200 OK", 891 bytes in 31 ms
+net std_http ... ok: "HTTP/1.1 200 OK", 891 bytes, DNS 4 ms -> 172.66.147.243:80, total 34 ms (no SO_RCVTIMEO)
+nettest: 4 ok, 0 failed, 1 skipped
+```
+NEOSOCK passes too, with its new "pips" pass: TCP the way P.I.P.S. drives it, against a real host.
+
+**Built in WB2d:**
+- **Pipes.** The kernel links Symbian's pipe LDD in (kernel#24, with `umemget`), and build's loader answers
+  `LoadLogicalDevice("PIPELIB")` (build#34). PIPSPROB's `pipe_select` passes: 20 ok, 0 failed.
+- **Forks on branch `neosymbian`, as vita:**
+  - `NeoSymbian/mio`: the `poll` selector and a `pipe()` waker;
+  - `NeoSymbian/socket2`: as vita, but `fcntl(O_NONBLOCK)`;
+  - `NeoSymbian/tokio`: no peer credentials.
+  - libc gained the socket constants they use.
+- **NETTEST.EXE** (browser `std/nettest`): Tokio's `current_thread` runtime (timers, tasks, mpsc, timeouts,
+  `spawn_blocking` waking the runtime through the pipe waker), DNS, raw socket steps, a TCP echo, and HTTP with std and
+  with Tokio.
+
+**What stood between P.I.P.S. and TCP**, found one layer at a time (QEMU first, with NEONET's loopback):
+
+| Problem | Effect | Fix |
+|---|---|---|
+| P.I.P.S. opens every socket on the default `RConnection`; for such an explicit socket ESOCK's flow shim asks for a bearer at Bind/Connect and waits for a flow below it. Our ESOCK stack had nothing below the shim | `bind`/`connect` hung (blocking) | **NEOTIER link layer** (build#37): a link tier and access point (NEOCDB: tier 0x0E00400D, AP 10001 under 10000) whose flow `CNeoLinkFlow` binds under the shim and answers `KSoConnectionInfo`. Sockets opened without an RConnection never asked, which is why NEOSOCK passed in W5a |
+| An accepted connection's SAP got its notifier while still on the listener's queue; NEONET.PRT announced an early EOF to it | ESock_DIP faulted (KERN-EXEC 3) | NEONET.PRT's up-calls wait for ESOCK's `Start()` (build#37) |
+| `listen` on a socket bound to port 0 (std, Tokio) | EINVAL (NeoNet listens on a real port only) | NEONET.PRT picks an ephemeral port, 32768–49151, below NeoNet's 49152+ (build#37) |
+| `fcntl(F_SETFD, FD_CLOEXEC)` on a socket (mio, every socket) | ENOSYS: every Tokio `bind`/`connect` failed | sockets keep the flag, as pipes do (ossrv#2) |
+| `ioctl(FIONBIO)` on a socket (std's `set_nonblocking`, `connect_timeout`) | KErrNotSupported | as `fcntl(F_SETFL, O_NONBLOCK)` (ossrv#2) |
+| IPv4 socket names came back with length 8, shorter than `struct sockaddr_in` (28) | std's length assert (accept, `local_addr`) panicked | the struct's length, padding zeroed (ossrv#2); `getaddrinfo` also passed a pointer's size as its buffer's length |
+
+**Still open (none blocks WB3):**
+- **No `SO_RCVTIMEO`/`SO_SNDTIMEO`** (ENOPROTOOPT): std's `set_read_timeout`/`set_write_timeout` fail. It needs a timer
+  and cancel in P.I.P.S.'s socket read/write; Servo's networking runs on Tokio's timeouts instead.
+- **A second `listen()` on a socket panics the client** in ESOCK (`ESock_client 11`, EAlreadyListening); POSIX allows
+  it. std and Tokio call it once.
+- **No 127.0.0.1 on the phone:** NeoNet has a loopback interface only on boards without Wi-Fi (QEMU). NETTEST skips the
+  loopback connect there.
+- **CommsDat on C: is one-way:** once an image with the link layer boots, older images fail ESOCK's bearer selection
+  (their NEOTIER lacks the link tier manager). Delete `C:\private\10202be9\persists\cccccc00.cre`; the next image's
+  NEOCDB writes its own records.

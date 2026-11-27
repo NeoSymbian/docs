@@ -1,4 +1,7 @@
+<!-- SPDX-License-Identifier: Apache-2.0 -->
 # The neoui kit and the app API (UI v2)
+
+Part of [neoui shell](README.md) · Status: done · Updated: 2026-11-27
 
 The kit is how every NeoSymbian app looks and behaves the same. It has three parts:
 - a shared Slint component library;
@@ -244,29 +247,32 @@ write). NEOKIT's Files page is the example: Pick a file, Save a file, and the `k
 
 The app can live in another repo, as NEOPHONE does (NeoSymbian/phone). It pins neoui's rev for `neoui-kit` and `neoapp`, and the same `e32` and Slint as neoui.
 
-## Status (2026-11-17)
+## Status
 
-| Stage | What | State |
-|---|---|---|
-| A1 + extras | the kit, tokens, glyphs, gallery (`snapshots/kit-*.png`) | built |
-| A5 / NV1 | protocol 1.8, `nav.mode` 0..=2 | built |
-| NV3, NV4, NV7, NV8 | key row, band, 639/679 resize, Back bubble, home long press, the shell services | built |
-| NV5, NV6, NV9 | Thumb and N9 maps, keyboard swipe-down | built |
-| A2, A3, NV10 | Clock, Files, Dev tools, Terminal, NEOKIT, the shell's screens on the kit; NEOPHONE ported (the p2 redesign is its own session) | built |
-| copy/paste | the keyboard's edit bar (apps' fields) | built |
-| 1.9 | OPEN / ARG / DONE, notification actions, two residents, Keypad / Fab / Bubble / Composer | built (neoui `apps-split`) |
-| 1.11 | `Notification.progress` (0–100, an optional trailing byte): the shade draws a bar (Files' copies) | built 2026-11-18 (neoui `2047404`) |
-| 1.12 | files between apps by handle (`OPEN_FILE`, `ARG_FILE`, `DONE_FILE`, `RESULT_FILE`), the clipboard's kind (`CLIP_KIND`), `neoui_proto::open` (Open with, Files' PICK/SAVE, `open.always`), the kit's Files page | built 2026-11-20 (neoui#27, Files FA8) |
-| NV11, NV12 | this doc, `gestures.md`, the roadmap; Gestures is the default | docs written; install pending |
+<!-- stages -->
+| Stage | What | State | Updated | Next / evidence |
+|---|---|---|---|---|
+| A1 | The kit, tokens, glyphs, gallery | done | 2026-11-17 | `snapshots/kit-*.png`; installed on slot a 2026-11-17 |
+| A2–A3 | Apps and the shell's screens on the kit | done | 2026-11-17 | Clock, Files, Dev tools, Terminal, NEOKIT, NEOPHONE ported |
+| A5 | Protocol 1.8, `nav.mode` 0..=2 | done | 2026-11-17 | with Navigation v2 (NV1) |
+<!-- /stages -->
 
-**Not done yet:**
-- A Pixel install. The Syborg CI passes the Navigation, Terminal and Files steps: the Terminal had never drawn
-  because it didn't pass `Visible` to `App::handle` (fixed in neoui #16; ESHELL was fine). The job now stops in the
-  Old apps step, which waits for the legacy key pads work.
-- An editor for home and a wallpaper picker: the long-press menu opens their Settings pages.
-- Flipping a long-press menu near the bottom.
-- The edit bar for the shell's own fields.
-- G2–G6, from v1's plan.
+The Navigation v2 stages (NV1–NV12) are in [navigation.md](navigation.md). Also built with the kit: the keyboard's
+edit bar for apps' fields (copy/paste); protocol 1.9 (OPEN / ARG / DONE, notification actions, two residents, Keypad /
+Fab / Bubble / Composer; neoui `apps-split`); 1.11 (`Notification.progress`, the shade's bar for Files' copies, neoui
+`2047404`, 2026-11-18); 1.12 (files between apps by handle, the clipboard's kind, `neoui_proto::open`, the kit's
+Files page; neoui#27, Files FA8, 2026-11-20). The versions are in [protocol.md](protocol.md).
+
+**Since 2026-11-17:**
+- UI v2 was installed on slot a on 2026-11-17 ([filesystem.md](../storage/filesystem.md) FS5's install record).
+- The Syborg CI that ran the Navigation, Terminal and Files steps is gone (2026-11-25); neoui's `virt-taps` runs
+  `symbian/taps.sh` on QEMU `virt` (US6b).
+- The home editor was built on 2026-11-27 (Settings D10, [home.md](home.md)); wallpaper colours too (D7), pictures
+  wait for a decoder.
+- A long-press menu near the bottom opens upwards (`Menu.bound`, in the table above).
+- G3–G5 were built on 2026-11-27; G2 (peek) is open and G6 is now the top panel's TP8 ([navigation.md](navigation.md)).
+
+**Not done yet:** the edit bar for the shell's own fields.
 
 **Renderer limits found while building Files (Slint 1.18, software renderer):**
 - A filled rectangle (a background) taller or wider than about 32,767 physical pixels panics: the renderer keeps

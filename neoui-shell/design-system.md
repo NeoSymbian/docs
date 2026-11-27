@@ -1,10 +1,12 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Design system
 
+Part of [neoui shell](README.md) · Status: done · Updated: 2026-11-17
+
 **Status: built (UI v2, 2026-11-17).** It covers the tokens, layout, glyphs, display digits, app tiles and
 components every neoui screen and app uses. The canvas's **Design system** page (7 sheets) follows the code. This
 page replaces `neoui/design/DESIGN.md` (2026-11-06, "Belle, modernized"), which is stale: it lists 26 glyphs and a
-1.8 digit stroke. The hub is [../neoui-shell.md](../neoui-shell.md).
+1.8 digit stroke. The hub is [README.md](README.md).
 
 **Where the code is** (neoui):
 - `ui/theme.slint`: the tokens;
@@ -20,11 +22,11 @@ page replaces `neoui/design/DESIGN.md` (2026-11-06, "Belle, modernized"), which 
   - the header and footer drawn by the app with the kit ([kit.md](kit.md), K01);
   - a black canvas.
 - **Only facts are reused** (sizes, proportions, colours, timings) from the Symbian^3 EPL layout data and from
-  measured screenshots of an N8 running Belle. No Nokia artwork, icon, font or file is copied. The font is Inter (OFL)
+  measured screenshots of an N8 running Belle. No Nokia artwork, icon, font or file is copied. The font is NeoSans (Inter merged with Noto Sans Armenian, both OFL; [kit.md](kit.md))
   and every icon is original.
 
 ## Units and layout (`ds-layout`)
-- **1 dp = min(width, height) / 360.** The Pixel 3a XL has 3 px per dp; Syborg (768 × 640) has 1.78.
+- **1 dp = min(width, height) / 360.** The Pixel 3a XL has 3 px per dp; QEMU `virt`'s 539 × 1079 screen has about 1.5 (the retired Syborg, 768 × 640, had 1.78).
 - **The screen stack** (720 dp tall on the Pixel):
 
   | Mode | Stack |

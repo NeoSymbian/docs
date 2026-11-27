@@ -1,11 +1,15 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Top panel: status bar, shade, notifications, media, calls and messages, live island, control centre, lock screen
 
-**Status: designed 2026-11-21; TP0 done (docs + canvas); TP1 built 2026-11-26 (neoui#50); TP2a built 2026-11-26 (neoui#51); TP2b and TP4 built 2026-11-27 in the Settings run (neoui#61, phone#12, protocol 1.21: channels, the user's policy, banners, Do not disturb, the Notifications pages; inline reply deferred); TP3, TP5–TP9 not built, TP7 next (protocol 1.22).** The design comes from the canvas page **Top panel &
+Part of [neoui shell](README.md) · Status: active · Updated: 2026-11-27
+
+**Status:** designed 2026-11-21. TP0, TP1, TP2a, TP2b and TP4 are built (the last two in the Settings run of
+2026-11-27, with inline reply deferred); TP7 is next ([its numbers](protocol.md#tp7-tiles-reserved-122) are reserved). Each phase is in the
+[Phases](#phases) block. The design comes from the canvas page **Top panel &
 notifications** (18 boards) plus the related boards on the Shell, Navigation, Phone, Messages, Clock, Files, Store,
-Browser and Settings pages. The screen map is at the [end](#screen-map). It replaces `neoui-shell.md` Part 2 (the
+Browser and Settings pages. The screen map is at the [end](#screen-map). It replaces the old hub's (`neoui-shell.md`) Part 2 (the
 2026-11-09 notification sketch, whose opcode numbers are void) and Navigation's G6 lock screen. The hub is
-[../neoui-shell.md](../neoui-shell.md); the wire numbers are in [protocol.md](protocol.md).
+[README.md](README.md); the wire numbers are in [protocol.md](protocol.md).
 
 Canvas: https://claude.ai/artifact/RsLEm6u3dCW6Q88R7LkhtZ (page "Top panel & notifications").
 
@@ -281,6 +285,22 @@ grown record), `clear_notify`, `blob`, `media`, `channel`, `reply_text`, `activi
 neoui (Apache, such as neohw) encode with `neoui-proto` and do not link the GPL `neoapp`.
 
 ## Phases
+
+<!-- stages -->
+| Stage | What | State | Updated | Next / evidence |
+|---|---|---|---|---|
+| TP0 | Docs and canvas boards | done | 2026-11-21 | canvas version 67; this folder |
+| TP1 | Status bar v2 and the shade's first stop | done | 2026-11-26 | neoui#50; Pixel run on image 33 |
+| TP2 | Cards; Phone and Messages post their own | done | 2026-11-27 | TP2a neoui#51 (protocol 1.18); TP2b neoui#61, phone#12 |
+| TP2c | Files' copy job as Progress style | open | 2026-11-26 | waits for files' repin (files#15) |
+| TP3 | Media session, background playback | open | — | with Files FA9 M1b |
+| TP4 | Channels, banners, DND, Settings pages | done | 2026-11-27 | neoui#61, phone#12 (protocol 1.21, with D9); inline reply deferred |
+| TP5 | Calls in the panel | open | — | uses TP2/TP4 |
+| TP6 | Live island | open | — | not started |
+| TP7 | Control centre and tiles | open | 2026-11-27 | next; its numbers are reserved in protocol.md (TP7 tiles) |
+| TP8 | Lock screen | open | — | replaces Navigation G6 |
+| TP9 | Screen-lock PIN | open | — | after TP8 |
+<!-- /stages -->
 
 Each phase ends on the Pixel, with neoui host snapshots for every new board and a step in `taps.sh` (run on QEMU virt from US6b).
 1.12 apps keep working throughout.

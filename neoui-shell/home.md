@@ -1,10 +1,24 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Home pages and widgets
 
-**Status: planned** (the home screen today is `ui/screens/home.slint` with a live clock and static mock-up cards).
-Moved here from `neoui-shell.md` Parts 3 and 4 on 2026-11-21; the hub is [../neoui-shell.md](../neoui-shell.md).
+Part of [neoui shell](README.md) · Status: active · Updated: 2026-11-27
+
+**Status:** the home layout and its editor were built on 2026-11-27 with Settings' D10 (neoui#61): `neoui-proto::home`
+(4 × 6 packing, 1–5 pages, 4 dock slots, a version-1 `home.layout`, a damaged one falls back to the default), and edit
+mode (long press → Edit home, or Settings: ×, drag to a cell, a 400 ms edge hold to the page beside, Add with widgets
+and apps, dock slots; Done or Back saves once). The Favourites and Media cards show empty states instead of mock data.
+Not built yet: "Add to home" from the Apps menu, 2×2 widgets, and Part 4's app widgets (`WIDGET`). Moved here from
+`neoui-shell.md` Parts 3 and 4 on 2026-11-21; the hub is [README.md](README.md).
+
+<!-- stages -->
+| Stage | What | State | Updated | Next / evidence |
+|---|---|---|---|---|
+| Part 3 | Home pages, pin and unpin, dock, edit mode | active | 2026-11-27 | layout and editor built (neoui#61, D10); left: Add to home from the menu |
+| Part 4 | Widgets: templates, catalogue, `WIDGET` | active | 2026-11-27 | built-in Clock, Agenda, Favourites, Media in a catalogue; app widgets open |
+<!-- /stages -->
+
 The home **Media** card goes live with the media session ([top-panel.md](top-panel.md) TP3); the Agenda card with
-DTSRV ([../datetime.md](../datetime.md)).
+DTSRV ([../apps/datetime.md](../apps/datetime.md)).
 
 Canvas (Shell & system UI page): `Main` (home, Gestures), `sh-home-buttons`, `sh-home-clock-24h`, `sh-home-clock-12h`;
 `nav-home-longpress` (Navigation page) for Edit home · Wallpaper.
@@ -21,7 +35,7 @@ Item   = Shortcut(AppKey)                                   // 1×1
 - A page is a **4-column grid**. Items are packed in their stored order, row by row, top to bottom: a 2×2 next to
   another 2×2 or next to two shortcuts, and a 4×n on its own rows.
   - Packing order means there are no gaps to manage.
-  - The same layout fits Syborg, the Pixel and odd CI sizes.
+  - The same layout fits the Pixel, QEMU `virt` and odd CI sizes.
   - In landscape (360 dp tall) a page that doesn't fit scrolls vertically.
 - **Operations:** `pin(app, page)`, `unpin(app)`, `pin_dock(app, slot)`, `move_to(item, page, index)`,
   `add_widget(app, name, size, page)`, `remove(item)`, `add_page`, `drop_empty_pages`.
@@ -66,7 +80,7 @@ Item   = Shortcut(AppKey)                                   // 1×1
 - Host: packing (shortcut rows, 2×2 pairs, 4×n), pin and unpin, dock, move across pages, page limits, encode/decode,
   a corrupt blob falling back to the default, and the default layout itself.
 - Snapshot: home with the default layout, a page with shortcuts and a 2×2, edit mode.
-- Syborg: long-press Clock in the Menu → "Add to home". Reboot without `SNAPSHOT` and check that the shortcut is still
+- On `virt` (the Syborg CI when this was written): long-press Clock in the Menu → "Add to home". Reboot without `SNAPSHOT` and check that the shortcut is still
   on page 0.
 
 ## Part 4: widgets
@@ -110,6 +124,6 @@ A table beside `APPS` in the server: `(app, name, template, sizes, label)`.
 ### Tests
 - Host: the content encode/decode per template, template/size checks.
 - Snapshot: each template at each of its sizes.
-- Syborg: add `clock.next` to home in edit mode, set an alarm in Clock, and check the widget's text in the serial log
+- On `virt` (the Syborg CI when this was written): add `clock.next` to home in edit mode, set an alarm in Clock, and check the widget's text in the serial log
   and on screen.
 

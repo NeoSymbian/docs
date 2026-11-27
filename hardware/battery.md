@@ -1,10 +1,10 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Read-only battery telemetry
 
-Part of [hardware.md](../hardware.md), the hardware and drivers hub (status of every driver, the neohw processes). Neighbours: [modem](modem.md), [audio](audio.md), [wifi](wifi.md), [bluetooth](bluetooth.md).
+Part of [Hardware](README.md) · Status: done · Updated: 2026-11-20 · Neighbours: [modem](modem.md), [audio](audio.md), [wifi](wifi.md), [gnss](gnss.md), [bluetooth](bluetooth.md)
 
-Target: Pixel 3a XL (bonito), PM660 on SPMI SID 0. This extends the thermal
-telemetry work on `feat/pixel-driver-support`. Hardware control remains owned by
+Target: Pixel 3a XL (bonito), PM660 on SPMI SID 0. This extended the thermal
+telemetry work of branch `feat/pixel-driver-support` (hardware hub D2). Hardware control remains owned by
 firmware: this driver does not configure charging, kick its watchdog, load a
 battery profile, access gauge SRAM or trigger ADC conversions.
 

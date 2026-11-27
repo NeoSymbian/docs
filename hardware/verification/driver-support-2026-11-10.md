@@ -1,8 +1,10 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 # Driver foundation verification — 2026-11-10
 
+Part of [Hardware](../README.md) · Status: record · Updated: 2026-11-10
+
 This change implements the initial inventory and bus/audio-lifecycle foundations
-of [driver support](../../hardware.md). It does not implement PCM, camera or
+of [driver support](../README.md). It does not implement PCM, camera or
 sensor capture. Verification used working-tree changes; unrelated fshell tools
 are preserved outside this change.
 
